@@ -1,0 +1,49 @@
+{
+  "name": "peso-lipa-portal",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "start": "node backend/index.js",
+    "sentiment:start": ".venv-sentiment\\Scripts\\python.exe backend/sentiment_inference.py",
+    "test": "node --test tests/*.test.cjs",
+    "evaluate": "node scripts/evaluate.cjs",
+    "verify:live": "node scripts/verify-live.cjs",
+    "verify:workflows": "node scripts/verify-workflows.cjs",
+    "verify:cleanup": "node scripts/cleanup-verification.cjs",
+    "seed:sample": "node scripts/seed-sample.cjs",
+    "user:delete": "node scripts/delete-user.cjs",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/source-sans-3": "^5.3.0",
+    "@google/genai": "^2.28.0",
+    "@supabase/supabase-js": "^2.117.3",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.6",
+    "express": "^4.21.0",
+    "html2canvas-pro": "^2.5.2",
+    "html2pdf.js": "^0.14.0",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.52.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hot-toast": "^2.6.1",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

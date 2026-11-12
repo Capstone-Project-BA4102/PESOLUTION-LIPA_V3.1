@@ -1,0 +1,318 @@
+@import '@fontsource/source-sans-3/400.css';
+@import '@fontsource/source-sans-3/500.css';
+@import '@fontsource/source-sans-3/600.css';
+@import '@fontsource/source-sans-3/700.css';
+@import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * PESO Lipa Design Tokens
+ * -----------------------
+ * One source of truth for colors, type and radius. All pages/components
+ * must use these tokens (brand-*, success-*, warning-*, info-*, slate-*)
+ * instead of ad-hoc hex values so the UI stays consistent.
+ *
+ * LIGHT / DARK
+ * ------------
+ * The same tokens carry two ramps: `--light-*` (official look) and
+ * `--dark-*` (night look). `.dark` on <html> swaps every token at once, so
+ * the ~1,000 existing `bg-*` / `text-*` / `border-*` classes re-theme without
+ * any component edit. Two escape hatches:
+ *   .force-light — regions that must always look official (solid red header,
+ *                  splash, dark footer), regardless of the chosen theme.
+ *   .paper       — referral slips and report cards. Always light so that
+ *                  printing and the PDF capture keep the government look.
+ */
+:root {
+  --light-slate-50: #f8fafc;
+  --light-slate-100: #f1f5f9;
+  --light-slate-200: #e2e8f0;
+  --light-slate-300: #cbd5e1;
+  --light-slate-400: #667587;
+  --light-slate-500: #5b6a80;
+  --light-slate-600: #475569;
+  --light-slate-700: #334155;
+  --light-slate-800: #1e293b;
+  --light-slate-900: #0f172a;
+  --light-slate-950: #020617;
+
+  /* Dark ramp: deep navy pages, blue-grey lines, near-white text. */
+  --dark-slate-50: #0a111d;
+  --dark-slate-100: #121c2b;
+  --dark-slate-200: #2e4058;
+  --dark-slate-300: #445871;
+  --dark-slate-400: #8698b0;
+  --dark-slate-500: #9fb1c6;
+  --dark-slate-600: #bccddb;
+  --dark-slate-700: #d8e3ee;
+  --dark-slate-800: #e9eff5;
+  --dark-slate-900: #f5f8fc;
+  --dark-slate-950: #ffffff;
+
+  --light-brand-50: #fef2f2;
+  --light-brand-100: #fde3e3;
+  --light-brand-200: #fbcaca;
+  --dark-brand-50: #241014;
+  --dark-brand-100: #3a1a20;
+  --dark-brand-200: #5c2830;
+
+  --light-success-50: #ecfdf3;
+  --light-success-100: #d1fadf;
+  --dark-success-50: #0e2419;
+  --dark-success-100: #16382a;
+  --light-warning-50: #fffbeb;
+  --light-warning-100: #fef3c7;
+  --dark-warning-50: #291d08;
+  --dark-warning-100: #3d2c0d;
+  --light-info-50: #eff6ff;
+  --light-info-100: #dbeafe;
+  --dark-info-50: #101f38;
+  --dark-info-100: #182f52;
+
+  /* Accent text: dark in light mode, lifted in dark mode (fills keep red). */
+  --light-accent-brand: #a51217;
+  --light-accent-success: #166534;
+  --light-accent-warning: #92400e;
+  --light-accent-info: #1e40af;
+  --dark-accent-brand: #f0a3a8;
+  --dark-accent-success: #6fe0a1;
+  --dark-accent-warning: #f8c977;
+  --dark-accent-info: #93c5fd;
+
+  --light-surface: #ffffff;
+  --dark-surface: #1a2534;
+}
+
+@theme {
+  --font-sans: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+
+  /* Neutrals — swapped by the `.dark` block below. */
+  --color-slate-50: var(--light-slate-50);
+  --color-slate-100: var(--light-slate-100);
+  --color-slate-200: var(--light-slate-200);
+  --color-slate-300: var(--light-slate-300);
+  --color-slate-400: var(--light-slate-400);
+  --color-slate-500: var(--light-slate-500);
+  --color-slate-600: var(--light-slate-600);
+  --color-slate-700: var(--light-slate-700);
+  --color-slate-800: var(--light-slate-800);
+  --color-slate-900: var(--light-slate-900);
+  --color-slate-950: var(--light-slate-950);
+
+  /* Card, modal and form background. In dark mode `bg-white` becomes this. */
+  --color-surface: var(--light-surface);
+
+  /* Primary — PESO Red. 300–900 never change: red header and buttons stay red. */
+  --color-brand-50: var(--light-brand-50);
+  --color-brand-100: var(--light-brand-100);
+  --color-brand-200: var(--light-brand-200);
+  --color-brand-300: #f6a3a3;
+  --color-brand-400: #ec6b6b;
+  --color-brand-500: #dc3a3a;
+  --color-brand-600: #c4161c;
+  --color-brand-700: #a51217;
+  --color-brand-800: #861116;
+  --color-brand-900: #6f1317;
+
+  /* Status colors (only for statuses / alerts) */
+  --color-success-50: var(--light-success-50);
+  --color-success-100: var(--light-success-100);
+  --color-success-600: #15803d;
+  --color-success-700: #166534;
+  --color-warning-50: var(--light-warning-50);
+  --color-warning-100: var(--light-warning-100);
+  --color-warning-200: #fde68a;
+  --color-warning-400: #fbbf24;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #b45309;
+  --color-warning-700: #92400e;
+  --color-warning-800: #854d0e;
+  --color-warning-900: #713f12;
+  --color-info-50: var(--light-info-50);
+  --color-info-100: var(--light-info-100);
+  --color-info-600: #1d4ed8;
+  --color-info-700: #1e40af;
+
+  /* Foreground accents used by the `.text-*` overrides at the bottom. */
+  --color-accent-brand: var(--light-accent-brand);
+  --color-accent-success: var(--light-accent-success);
+  --color-accent-warning: var(--light-accent-warning);
+  --color-accent-info: var(--light-accent-info);
+
+  /* Always-dark chrome (public footer, sample-resume header). */
+  --color-ink: #0f172a;
+
+  --radius-card: 0.75rem;
+}
+
+/*
+ * Accessibility for all ages: base font size is 18px (instead of 16px).
+ * Because Tailwind uses rem, every text size, spacing and control height
+ * scales up proportionally.
+ */
+html {
+  font-size: 18px;
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 font-sans text-slate-800 antialiased;
+  line-height: 1.6;
+}
+
+/* NIGHT MODE — one swap, the whole app follows. */
+.dark {
+  color-scheme: dark;
+
+  --color-slate-50: var(--dark-slate-50);
+  --color-slate-100: var(--dark-slate-100);
+  --color-slate-200: var(--dark-slate-200);
+  --color-slate-300: var(--dark-slate-300);
+  --color-slate-400: var(--dark-slate-400);
+  --color-slate-500: var(--dark-slate-500);
+  --color-slate-600: var(--dark-slate-600);
+  --color-slate-700: var(--dark-slate-700);
+  --color-slate-800: var(--dark-slate-800);
+  --color-slate-900: var(--dark-slate-900);
+  --color-slate-950: var(--dark-slate-950);
+
+  --color-surface: var(--dark-surface);
+
+  --color-brand-50: var(--dark-brand-50);
+  --color-brand-100: var(--dark-brand-100);
+  --color-brand-200: var(--dark-brand-200);
+
+  --color-success-50: var(--dark-success-50);
+  --color-success-100: var(--dark-success-100);
+  --color-warning-50: var(--dark-warning-50);
+  --color-warning-100: var(--dark-warning-100);
+  --color-info-50: var(--dark-info-50);
+  --color-info-100: var(--dark-info-100);
+
+  --color-accent-brand: var(--dark-accent-brand);
+  --color-accent-success: var(--dark-accent-success);
+  --color-accent-warning: var(--dark-accent-warning);
+  --color-accent-info: var(--dark-accent-info);
+}
+
+/*
+ * Official light look inside a dark theme: solid red brand surfaces, the dark
+ * footer, the splash screen, and printable documents.
+ */
+.force-light {
+  color-scheme: light;
+}
+
+.force-light,
+.paper {
+  --color-slate-50: var(--light-slate-50);
+  --color-slate-100: var(--light-slate-100);
+  --color-slate-200: var(--light-slate-200);
+  --color-slate-300: var(--light-slate-300);
+  --color-slate-400: var(--light-slate-400);
+  --color-slate-500: var(--light-slate-500);
+  --color-slate-600: var(--light-slate-600);
+  --color-slate-700: var(--light-slate-700);
+  --color-slate-800: var(--light-slate-800);
+  --color-slate-900: var(--light-slate-900);
+  --color-slate-950: var(--light-slate-950);
+
+  --color-surface: var(--light-surface);
+
+  --color-brand-50: var(--light-brand-50);
+  --color-brand-100: var(--light-brand-100);
+  --color-brand-200: var(--light-brand-200);
+
+  --color-success-50: var(--light-success-50);
+  --color-success-100: var(--light-success-100);
+  --color-warning-50: var(--light-warning-50);
+  --color-warning-100: var(--light-warning-100);
+  --color-info-50: var(--light-info-50);
+  --color-info-100: var(--light-info-100);
+
+  --color-accent-brand: var(--light-accent-brand);
+  --color-accent-success: var(--light-accent-success);
+  --color-accent-warning: var(--light-accent-warning);
+  --color-accent-info: var(--light-accent-info);
+}
+
+/* Documents must never print or export as PDF on a dark background. */
+.paper {
+  background-color: var(--color-surface);
+  color: var(--color-slate-900);
+}
+
+/* Paper stays white, but its scrollbars and form controls match the theme. */
+.dark .paper {
+  color-scheme: dark;
+}
+
+/* `bg-white` is the card surface, so dark mode dims it instead of blinding. */
+.dark .bg-white {
+  background-color: var(--color-surface);
+}
+
+.dark :is(.bg-white\/60, .bg-white\/70) {
+  background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+}
+
+/*
+ * Status / brand labels keep their tinted background in dark mode, but the
+ * text on top of them has to be lifted. Fills (`bg-brand-600`) stay as they
+ * are so their white text keeps working in both themes.
+ */
+.dark :is(.text-brand-500, .text-brand-600, .text-brand-700, .text-brand-800) {
+  color: var(--color-accent-brand);
+}
+.dark :is(.text-success-500, .text-success-600, .text-success-700) {
+  color: var(--color-accent-success);
+}
+.dark :is(.text-warning-500, .text-warning-600, .text-warning-700) {
+  color: var(--color-accent-warning);
+}
+.dark :is(.text-info-500, .text-info-600, .text-info-700) {
+  color: var(--color-accent-info);
+}
+
+.dark :is(.hover\:text-brand-500:hover, .hover\:text-brand-600:hover, .hover\:text-brand-700:hover, .hover\:text-brand-800:hover) {
+  color: var(--color-accent-brand);
+}
+
+/* Star rating glyphs: gold fill stays gold in both themes; empty stays slate. */
+.star-gold {
+  @apply text-warning-400;
+}
+.star-empty {
+  @apply text-slate-300;
+}
+.dark .group:hover :is(.group-hover\:text-brand-500, .group-hover\:text-brand-600, .group-hover\:text-brand-700, .group-hover\:text-brand-800) {
+  color: var(--color-accent-brand);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  @apply text-slate-900;
+  line-height: 1.25;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand-300);
+  outline-offset: 2px;
+}
+
+/* Print: only print the referral slip document, always on white paper. */
+@media print {
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: #ffffff;
+    color: #0f172a;
+  }
+}
