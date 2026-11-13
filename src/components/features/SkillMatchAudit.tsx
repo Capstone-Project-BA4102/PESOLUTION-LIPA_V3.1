@@ -3,13 +3,15 @@ import { Calculator, CheckCircle2, XCircle, Target, GraduationCap, FileText, Che
 import { Badge } from './../ui/Badge'
 import type { MatchDetailsJob } from '../../lib/api'
 import { usePT } from '../../lib/portalCopy'
+import { NlpSkillBreakdown } from './NlpSkillBreakdown'
 
 interface SkillMatchAuditProps {
   match: MatchDetailsJob
   embedded?: boolean
+  compact?: boolean
 }
 
-export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedded = false }) => {
+export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedded = false, compact = false }) => {
   const pt = usePT()
   const [isExpanded, setIsExpanded] = useState(false)
   const [showMethod, setShowMethod] = useState(false)
@@ -41,7 +43,7 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
         </button>
       </div>}
 
-      {embedded && <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-1 pb-3">
+      {embedded && !compact && <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-1 pb-3">
         <span className="text-sm font-semibold text-slate-600">{pt('Score breakdown')}</span>
         <div className="flex items-center gap-2">
           <span className="font-bold text-brand-700">{pt('{score}% Match', { score: match.score })}</span>
@@ -50,6 +52,8 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
           </button>
         </div>
       </div>}
+
+      {compact && <div className="mb-3 flex justify-end"><button type="button" onClick={() => setShowMethod(value => !value)} aria-expanded={showMethod} className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold text-slate-500 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-600"><Info aria-hidden="true" className="h-4 w-4" />{pt('How scoring works')}</button></div>}
 
       {showMethod && <div role="note" className="mx-4 mb-4 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-700">
         <div className="flex items-start gap-3 border-b border-slate-200 bg-white px-4 py-3">
@@ -82,12 +86,16 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
         </div>
         <div className="grid gap-3 p-4 sm:grid-cols-2">
           <div className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success-600" /><p><strong className="block text-slate-900">{pt('Rule engine controls')}</strong><span className="text-xs text-slate-500">{pt('Fixed weights, arithmetic, threshold, and final score')}</span></p></div>
-          <div className="flex gap-2"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" /><p><strong className="block text-slate-900">{pt('Gemini assists only')}</strong><span className="text-xs text-slate-500">{pt('Semantic skill equivalents and skill-gap suggestions')}</span></p></div>
+          <div className="flex gap-2"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" /><p><strong className="block text-slate-900">{pt('Local NLP and Gemini assistance')}</strong><span className="text-xs text-slate-500">{pt('Local NLP compares skills; Gemini suggests training for verified gaps.')}</span></p></div>
         </div>
       </div>}
 
       {(embedded || isExpanded) && (
-        <div className={embedded ? 'space-y-4 pb-1 pt-4' : 'space-y-4 border-t border-slate-100 px-5 pb-5 pt-4'}>
+        <div className={embedded ? `space-y-4 pb-1 ${compact ? '' : 'pt-4'}` : 'space-y-4 border-t border-slate-100 px-5 pb-5 pt-4'}>
+          <NlpSkillBreakdown match={match} expanded={compact} />
+          <details open={compact ? undefined : true} className={compact ? 'rounded-lg border border-slate-200' : ''}>
+            <summary className={compact ? 'cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700 focus-visible:outline-2 focus-visible:outline-brand-600' : 'hidden'}>{pt('Matched and missing skills')}</summary>
+          <div className={embedded ? `grid gap-5 lg:grid-cols-3 ${compact ? 'border-t border-slate-100 p-4' : ''}` : 'space-y-4'}>
           {/* Hard Skills */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -129,7 +137,7 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
           </div>
 
           {/* Soft Skills */}
-          <div className="pt-3 border-t border-slate-100">
+          <div className={embedded ? 'border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0' : 'pt-3 border-t border-slate-100'}>
             <div className="flex items-center justify-between mb-2">
               <h5 className="font-semibold text-slate-700 flex items-center gap-2 text-sm">
                 <Target className="w-4 h-4 text-brand-500" />
@@ -169,7 +177,7 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
           </div>
 
           {/* Education */}
-          <div className="pt-3 border-t border-slate-100">
+          <div className={embedded ? 'border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0' : 'pt-3 border-t border-slate-100'}>
             <div className="flex items-center justify-between mb-2">
               <h5 className="font-semibold text-slate-700 flex items-center gap-2 text-sm">
                 <GraduationCap className="w-4 h-4 text-brand-500" />
@@ -190,6 +198,8 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
               )}
             </div>
           </div>
+          </div>
+          </details>
         </div>
       )}
     </div>

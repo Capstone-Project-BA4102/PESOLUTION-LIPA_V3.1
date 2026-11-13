@@ -129,7 +129,28 @@ export interface Applicant {
   passwordChangedAt?: string;
 }
 
+export interface NlpSkillAuditRow {
+  job_id: string;
+  category: 'hard' | 'soft';
+  applicant_skill: string | null;
+  matched_competency?: string | null;
+  required_skill: string;
+  similarity_score: number | null;
+  method: 'exact' | 'cosine' | 'none';
+  decision: 'accepted' | 'rejected';
+}
+
+export interface NlpRunAudit {
+  status: 'ready' | 'exact_only';
+  model: { id: string; revision: string } | null;
+  threshold: number;
+  provisional: boolean;
+  capturedAt: string;
+  audit: NlpSkillAuditRow[];
+}
+
 export interface MatchDetailsJob {
+  nlpAudit?: NlpRunAudit;
   hardSkillScore?: number;
   softSkillScore?: number;
   educationScore?: number;
@@ -742,14 +763,37 @@ export async function fetchMatchingSummary(): Promise<any> {
   return { totalMatches: matches || 0, referralsGenerated: referrals || 0, applicants }
 }
 
-// Triggers the per-applicant matching run on the Express backend: one Gemini
-// request covers the skill semantic equalizer and the skill gap recommendations,
-// while every score is calculated locally by the rule engine.
-export async function runApplicantMatching(applicantId: string): Promise<{ matchesFound?: number; recommendationsGenerated?: number; aiDegraded?: boolean }> {
-  const out = await backendRequest<{ matchesFound: number; recommendationsGenerated?: number; aiDegraded: boolean }>(`/match/${encodeURIComponent(applicantId)}`, { method: 'POST' })
-  const { data: a } = await supabase.from('applicants').select('full_name').eq('id', applicantId).maybeSingle()
-  await logActivity('referral', 'Skill matching run', `${a?.full_name || 'Applicant'} — ${out.matchesFound ?? 0} match(es) found`)
-  return out
+export interface MatchingRunResult {
+  matchesFound?: number;
+  recommendationsGenerated?: number;
+  recommendationsReused?: number;
+  recalculatedJobs?: number;
+  aiDegraded?: boolean;
+  nlpAudit?: NlpRunAudit;
+  jobAudits?: Record<string, NlpRunAudit>;
+  matchingKey?: string;
+  cacheStatus?: 'updated' | 'reused';
+  checkedAt?: string;
+}
+
+const matchingRequests = new Map<string, Promise<MatchingRunResult>>()
+
+// Share identical requests across component remounts; automatic checks do not write activity logs.
+export function runApplicantMatching(applicantId: string, options: { force?: boolean; automatic?: boolean } = {}): Promise<MatchingRunResult> {
+  const force = options.force !== false
+  const key = `${applicantId}:${force}`
+  const existing = matchingRequests.get(key)
+  if (existing) return existing
+  const request: Promise<MatchingRunResult> = (async () => {
+    const out = await backendRequest<MatchingRunResult>(`/match/${encodeURIComponent(applicantId)}`, { method: 'POST', body: { force } })
+    if (!options.automatic) {
+      const { data: a } = await supabase.from('applicants').select('full_name').eq('id', applicantId).maybeSingle()
+      await logActivity('referral', 'Skill matching run', `${a?.full_name || 'Applicant'} — ${out.matchesFound ?? 0} match(es) found`)
+    }
+    return out
+  })().finally(() => { if (matchingRequests.get(key) === request) matchingRequests.delete(key) })
+  matchingRequests.set(key, request)
+  return request
 }
 
 export async function fetchApplicantMatchDetails(applicantId: string): Promise<any> {  const { data, error } = await supabase
@@ -762,7 +806,7 @@ export async function fetchApplicantMatchDetails(applicantId: string): Promise<a
         final_match_score, hard_skill_score, soft_skill_score, education_score,
         matched_hard_skills, missing_hard_skills, matched_soft_skills, missing_soft_skills,
         job_id,
-        job_listings(title, location, employment_type, companies(name))
+        job_listings(title, status, location, employment_type, companies(name))
       )
     `)
     .eq('id', applicantId)
@@ -787,7 +831,7 @@ export async function fetchApplicantMatchDetails(applicantId: string): Promise<a
     }
   }
 
-  const appMatches = (data.job_matches || []).map((m: any) => {
+  const appMatches = (data.job_matches || []).filter((m: any) => m.job_listings?.status === 'Active').map((m: any) => {
     const job = m.job_listings
     const ref = referralByJob[m.job_id]
     return {

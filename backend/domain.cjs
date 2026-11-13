@@ -20,7 +20,7 @@ const requireUuid = value => { if (!UUID.test(value || '')) throw new HttpError(
 const check = result => { if (result.error) throw new HttpError(503, 'Database operation failed. Check the database setup and permissions.'); return result.data; };
 
 function scoreJobs(applicant, jobs, equivalences) {
-  if (!Array.isArray(equivalences)) throw new HttpError(502, 'Gemini returned an invalid skill equivalence list.');
+  if (!Array.isArray(equivalences)) throw new HttpError(502, 'Invalid skill equivalence list.');
   return jobs.map(job => {
     const split = category => {
       const available = skills(applicant[`${category}_skills`]);

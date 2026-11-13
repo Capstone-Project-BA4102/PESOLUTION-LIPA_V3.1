@@ -1,7 +1,10 @@
 # PESOLUTION - PESO Lipa City
 
 Existing React/TypeScript/Vite application with Supabase Auth, Postgres and Storage,
-and an Express backend for Gemini OCR, semantic matching and improvement suggestions.
+and an Express backend for Gemini OCR, local pretrained semantic matching and Gemini improvement suggestions.
+
+Local skill NLP setup, Windows commands, audit behavior and limitations:
+[docs/local-nlp.md](docs/local-nlp.md).
 
 ## Run Locally
 
@@ -48,7 +51,7 @@ Never commit credentials, environment files, real resumes or private datasets.
 ## Workflows
 
 - Office-assisted OCR and reviewed registration with PDF and photo uploads.
-- Gemini skill interpretation, retaining existing 50/30/20 hard-skill, soft-skill
+- Local pretrained skill interpretation, retaining existing 50/30/20 hard-skill, soft-skill
   and education weights and the 60% matching threshold.
 - Applicant score breakdown, verified gaps and cached improvement actions,
   practice tasks and training topics.

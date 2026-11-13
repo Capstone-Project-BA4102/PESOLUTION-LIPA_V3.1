@@ -18,40 +18,50 @@ const fixtureSupabase = rows => ({ from: table => ({ select() { return this; }, 
 
 const suggestion = skill => ({ skill, action: `Take a beginner course on ${skill}.`, practice: `Build a small ${skill} exercise.`, training_topic: `${skill} fundamentals` });
 
-test('research export uses the matching pipeline and retains below-threshold pairs without invented labels', async () => {
-  const supabase = fixtureSupabase(fixtureRows());
-  const analysis = await analyzeApplicant(supabase, { model: 'fixture-model', request: async () => ({ skill_equivalences: [] }) }, 'applicant');
+const { skillNlpService } = require('../backend/skill-nlp.cjs');
+const localNlp = () => skillNlpService({ skillNlpUrl: 'http://fixture/match' }, async (url, options) => {
+  const body = JSON.parse(options.body);
+  return { ok: true, json: async () => ({ threshold: body.threshold,
+    model: { id: 'sentence-transformers/all-MiniLM-L6-v2', revision: 'fixture-revision' },
+    audit: body.jobs.flatMap(job => ['hard', 'soft'].flatMap(category => job[`${category}_skills`].map(required => {
+      const available = body.applicant[`${category}_skills`];
+      const exact = available.find(skill => skill.toLowerCase() === required.toLowerCase());
+      const candidate = exact || available[0] || null;
+      const score = required === 'Microsoft Excel' ? 0.95 : 0.1;
+      return { job_id: job.id, category, required_skill: required, applicant_skill: candidate,
+        method: exact ? 'exact' : candidate ? 'cosine' : 'none', similarity_score: !exact && candidate ? score : null,
+        decision: exact || candidate && score >= body.threshold ? 'accepted' : 'rejected' };
+    }))) }) };
+});
+
+test('research export preserves below-cutoff pairs and local model configuration', async () => {
+  const analysis = await analyzeApplicant(fixtureSupabase(fixtureRows()), localNlp(), 'applicant');
   const dataset = predictionDataset(analysis);
   assert.deepEqual(dataset.records.map(row => row.predictedScore), [100, 50]);
   assert.ok(dataset.records.every(row => row.expected === null && row.validatedBy === '' && row.sourceId === 'applicant'));
-  assert.equal(dataset.configuration.model, 'fixture-model');
+  assert.equal(dataset.configuration.model.revision, 'fixture-revision');
   assert.equal(dataset.configuration.threshold, 60);
-  assert.equal(dataset.configuration.promptTemplateHash.length, 64);
+  assert.equal(dataset.configuration.cosineThreshold, 0.85);
+  assert.equal(dataset.configuration.inputHash.length, 64);
   assert.equal(analysis.aiDegraded, false);
 });
 
-test('one analysis call feeds both the semantic equalizer and the skill gap recommendations', async () => {
-  const calls = [];
-  const gemini = { model: 'fixture-model', request: async prompt => {
-    calls.push(prompt);
-    return { skill_equivalences: [{ applicant_skill: 'Excel', job_skill: 'Microsoft Excel', category: 'hard', equivalent: true, job_id: 'positive' }],
-      skill_recommendations: [{ job_id: 'negative', recommendations: [suggestion('SQL')] }] };
-  } };
-  const rows = fixtureRows();
-  rows.job_listings[0].hard_skills = ['Microsoft Excel'];
-  const analysis = await analyzeApplicant(fixtureSupabase(rows), gemini, 'applicant');
-  assert.equal(calls.length, 1);
+test('local semantic decisions feed the unchanged rule engine without Gemini analysis', async () => {
+  const rows = fixtureRows(); rows.job_listings[0].hard_skills = ['Microsoft Excel'];
+  const analysis = await analyzeApplicant(fixtureSupabase(rows), localNlp(), 'applicant');
   assert.equal(analysis.matches.find(match => match.job_id === 'positive').final_match_score, 100);
-  assert.deepEqual(analysis.recommendations, [{ job_id: 'negative', items: [suggestion('SQL')] }]);
+  assert.deepEqual(analysis.recommendations, []);
+  assert.equal(analysis.nlpAudit.audit[0].method, 'cosine');
 });
 
-test('partial AI answers are kept only for the gaps they actually cover', async () => {
-  const gemini = { model: 'fixture-model', request: async () => ({ skill_equivalences: [],
-    skill_recommendations: [{ job_id: 'negative', recommendations: [suggestion('SQL'), suggestion('Public Speaking')] }] }) };
-  const rows = { ...fixtureRows(), job_listings: [{ id: 'negative', title: 'Database operator', hard_skills: ['SQL', 'Power BI'], soft_skills: [], education: 'College Graduate' }] };
-  const analysis = await analyzeApplicant(fixtureSupabase(rows), gemini, 'applicant');
-  assert.deepEqual(analysis.recommendations, [{ job_id: 'negative', items: [suggestion('SQL')] }]);
-  assert.deepEqual(analysis.matches[0].missing_hard_skills, ['SQL', 'Power BI']);
+test('Gemini recommendations receive only the gaps computed after local matching', async () => {
+  const rows = fixtureRows(); rows.job_listings[0].hard_skills = ['Microsoft Excel', 'SQL'];
+  const analysis = await analyzeApplicant(fixtureSupabase(rows), localNlp(), 'applicant');
+  assert.deepEqual(analysis.matches[0].missing_hard_skills, ['SQL']);
+  const calls = [];
+  const gemini = { request: async prompt => { calls.push(prompt); return { recommendations: [suggestion('SQL')] }; } };
+  await completeRecommendations(gemini, (job, gaps) => JSON.stringify(gaps), [analysis.matches[0]], new Map(), new Map());
+  assert.deepEqual(calls, ['["SQL"]']);
 });
 
 test('the matching click repairs skipped jobs and rejects an incomplete recommendation run', async () => {
@@ -69,7 +79,7 @@ test('the matching click repairs skipped jobs and rejects an incomplete recommen
   const answered = new Map([['answered', [suggestion('SQL')]], ['partial', [suggestion('A')]]]);
   const titles = new Map([['answered', 'Database operator'], ['skipped', 'Account officer'], ['partial', 'Warehouse clerk']]);
   await assert.rejects(() => completeRecommendations(gemini, (job, gaps) => gaps.join(','), matches, answered, titles), /Warehouse clerk/);
-  assert.deepEqual(asked, ['Negotiation', 'A,B']);
+  assert.deepEqual(asked, ['Negotiation', 'B']);
 });
 
 test('the matching click saves every recommendation set when automatic repairs succeed', async () => {
@@ -84,9 +94,9 @@ test('the matching click saves every recommendation set when automatic repairs s
   assert.deepEqual(rows[1].items, [suggestion('Negotiation')]);
 });
 
-test('matching still scores with the rule engine when Gemini is unavailable', async () => {
-  const gemini = { model: 'fixture-model', request: async () => { throw new Error('rate limited'); } };
-  const analysis = await analyzeApplicant(fixtureSupabase(fixtureRows()), gemini, 'applicant');
+test('matching still scores with the rule engine when local NLP is unavailable', async () => {
+  const nlp = skillNlpService({ skillNlpUrl: 'http://fixture/match' }, async () => { throw new Error('offline'); });
+  const analysis = await analyzeApplicant(fixtureSupabase(fixtureRows()), nlp, 'applicant');
   assert.equal(analysis.aiDegraded, true);
   assert.deepEqual(analysis.matches.map(match => match.final_match_score), [100, 50]);
   assert.deepEqual(analysis.recommendations, []);

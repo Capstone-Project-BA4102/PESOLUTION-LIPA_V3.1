@@ -31,6 +31,7 @@ dist-ssr
 # Trained sentiment model binaries are runtime artifacts, not source files.
 backend/model-artifacts/
 .venv-sentiment/
+.venv-nlp/
 
 # Generated caches and test output
 __pycache__/

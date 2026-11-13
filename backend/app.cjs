@@ -1,12 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('node:path');
-const { createHash } = require('node:crypto');
 const { authentication, requireRole, applicantAccess } = require('./auth.cjs');
-const { HttpError, check, normalize, skills, requireUuid, decodeFile, validateRecommendations, MATCHING_THRESHOLD, MISSING_SCHEMA, MISSING_COLUMN } = require('./domain.cjs');
+const { HttpError, check, normalize, skills, requireUuid, decodeFile, validateRecommendations, MISSING_SCHEMA, MISSING_COLUMN } = require('./domain.cjs');
 const { OCR_PROMPT, recommendationPrompt } = require('./prompts.cjs');
 const { normalizeOcrResult } = require('./ocr.cjs');
-const { analyzeApplicant, completeRecommendations } = require('./matching.cjs');
+const { createMatchingRefresh, recommendationFingerprint } = require('./matching-refresh.cjs');
 const { validateContent } = require('./content.cjs');
 const { registerApplicant } = require('./registration.cjs');
 const { feedbackEligibility, markFeedbackEvent, submitFeedback, reclassifyPending, feedbackAnalytics } = require('./feedback.cjs');
@@ -14,7 +13,8 @@ const { listNotificationEvents, listCurrentNotificationEvents, previewNotificati
 const { sendAccountEmail } = require('./account-email.cjs');
 const { changePassword, issueNewCredential, logReceiptEvent } = require('./credentials.cjs');
 
-function createApp({ supabase, gemini, config }) {
+function createApp({ supabase, gemini, nlp, config, matchingCache }) {
+  const matchingRefresh = createMatchingRefresh({ supabase, gemini, nlp, cache: matchingCache });
   const app = express();
   app.disable('x-powered-by');
   app.use(cors({ origin: (origin, callback) => callback(null, !origin || config.origins.includes(origin)) }));
@@ -40,7 +40,7 @@ function createApp({ supabase, gemini, config }) {
   // Cached recommendations are keyed on the verified gaps, so the one-click
   // matching run and the per-job generate action must hash identically.
   const fingerprintFor = (gaps, educationScore, title) =>
-    createHash('sha256').update(JSON.stringify({ gaps, education: educationScore, title, model: gemini.model })).digest('hex');
+    recommendationFingerprint(gaps, educationScore, title, gemini.model);
 
   app.get('/api/health', (req, res) => res.json({ status: 'ok', version: config.version }));
   app.get('/api/applicant/feedback', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
@@ -199,25 +199,9 @@ function createApp({ supabase, gemini, config }) {
   }));
   app.post('/api/match/:applicantId', authenticate, admin, rateLimit, asyncRoute(async (req, res) => {
     const applicantId = requireUuid(req.params.applicantId);
-    const result = await withLock(`match:${applicantId}`, async () => {
-      const analysis = await analyzeApplicant(supabase, gemini, applicantId);
-      const matches = analysis.matches.filter(m => m.final_match_score >= MATCHING_THRESHOLD);
-      const titles = new Map(analysis.jobs.map(job => [job.id, job.title]));
-      const answered = new Map(analysis.recommendations.map(entry => [entry.job_id, entry.items]));
-      // A large semantic-analysis request may degrade while the smaller
-      // recommendation requests still work. Continue from the rule engine's
-      // verified exact-match gaps instead of leaving every card empty.
-      const prepared = await completeRecommendations(gemini, recommendationPrompt, matches, answered, titles);
-      const rows = prepared.map(({ match, gaps, items }) => ({ applicant_id: applicantId, job_id: match.job_id,
-        fingerprint: fingerprintFor(gaps, match.education_score, titles.get(match.job_id)),
-        recommendations: items, model: gemini.model, generated_at: new Date().toISOString() }));
-      // Keep the previous complete result visible if Gemini fails. Matching and
-      // recommendations are only replaced after every required set is ready.
-      check(await supabase.rpc('replace_applicant_matches', { p_applicant_id: applicantId, p_matches: matches }));
-      if (rows.length) check(await supabase.from('skill_recommendations').upsert(rows, { onConflict: 'applicant_id,job_id' }));
-      return { matchesFound: matches.length, recommendationsGenerated: rows.length, aiDegraded: analysis.aiDegraded };
-    });
-    res.json(result);
+    if (req.body?.force !== undefined && typeof req.body.force !== 'boolean') throw new HttpError(400, 'force must be a boolean.');
+    // Existing callers retain force-refresh behavior; automatic checks explicitly send false.
+    res.json(await matchingRefresh.run(applicantId, { force: req.body?.force !== false }));
   }));
   const recommendationContext = async req => {
     const applicantId = requireUuid(req.params.applicantId); const jobId = requireUuid(req.params.jobId);
