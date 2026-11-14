@@ -1,3 +1,4 @@
+import { protectedFetch, assertSessionActive } from './sessionGate'
 import { supabase } from './supabase'
 
 const origin = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
@@ -5,13 +6,14 @@ const origin = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
 export async function backendRequest<T>(path: string, options: { method?: string; body?: unknown; authenticated?: boolean } = {}): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (options.authenticated !== false) {
+    assertSessionActive()
     const { data, error } = await supabase.auth.getSession()
     if (error || !data.session) throw new Error('Please sign in to continue.')
     headers.Authorization = `Bearer ${data.session.access_token}`
   }
   let response: Response
   try {
-    response = await fetch(`${origin}/api${path}`, { method: options.method || 'GET', headers,
+    response = await (options.authenticated === false ? fetch : protectedFetch)(`${origin}/api${path}`, { method: options.method || 'GET', headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body), signal: AbortSignal.timeout(180000) })
   } catch (failure) {
     const timedOut = failure instanceof Error && failure.name === 'TimeoutError'
@@ -35,7 +37,7 @@ export async function backendJsonlUpload<T>(path: string, file: File): Promise<T
   if (error || !data.session) throw new Error('Please sign in to continue.')
   let response: Response
   try {
-    response = await fetch(`${origin}/api${path}`, { method: 'POST', headers: {
+    response = await protectedFetch(`${origin}/api${path}`, { method: 'POST', headers: {
       'Content-Type': 'application/x-ndjson', Authorization: `Bearer ${data.session.access_token}`, 'X-Dataset-Filename': file.name,
     }, body: file, signal: AbortSignal.timeout(180000) })
   } catch (failure) {
@@ -52,7 +54,7 @@ export async function backendJsonlUpload<T>(path: string, file: File): Promise<T
 export async function backendCsvUpload<T>(path: string, file: File): Promise<T> {
   const { data, error } = await supabase.auth.getSession()
   if (error || !data.session) throw new Error('Please sign in to continue.')
-  const response = await fetch(`${origin}/api${path}`, { method: 'POST', headers: {
+  const response = await protectedFetch(`${origin}/api${path}`, { method: 'POST', headers: {
     'Content-Type': 'text/csv', Authorization: `Bearer ${data.session.access_token}`, 'X-Dataset-Filename': file.name,
   }, body: file, signal: AbortSignal.timeout(180000) }).catch(() => { throw new Error('The PESOLUTION service could not be reached.') })
   const value: unknown = await response.json().catch(() => null)

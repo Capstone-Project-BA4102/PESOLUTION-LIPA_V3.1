@@ -1,6 +1,8 @@
 // @ts-nocheck
+import { RefreshNotice } from '@/components/shared/RefreshNotice'
+import { useLiveRefresh } from '@/lib/useLiveRefresh'
 import { Link } from 'react-router-dom'
-import { Briefcase, Building2, CheckCircle2, Circle, Clock, FileText, Download } from 'lucide-react'
+import { Briefcase, Building2, CheckCircle2, Circle, Clock, FileText } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/Badge'
@@ -19,10 +21,12 @@ export default function ApplicationStatus({ tab }: { tab: 'current' | 'previous'
   const pt = usePT();
 
   const fetcher = useCallback(() => fetchApplicationStatusData(user?.email || ''), [user?.email])
-  const { data: statusData, loading, error, reload } = useQuery(fetcher, [user?.email])
+  const { data: statusData, loading, refreshing, error, reload } = useQuery(fetcher, [user?.email])
 
-  if (loading) return <LoadingBlock label={pt('Loading application status...')} />
-  if (error) return <ErrorBlock message={error} onRetry={reload} />
+  useLiveRefresh(reload, ['applications', 'referrals', 'status_history']);
+
+  if (loading && !statusData) return <LoadingBlock label={pt('Loading application status...')} />
+  if (error && !statusData) return <ErrorBlock message={error} onRetry={reload} />
 
   const applications = statusData?.applications ?? [];
   const history = statusData?.history ?? [];
@@ -34,6 +38,7 @@ export default function ApplicationStatus({ tab }: { tab: 'current' | 'previous'
 
   return (
     <div className="space-y-6">
+      <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
       <PageHeader title="Application Status" description="Track the status of your applications and view your records." />
       <div className="flex flex-wrap gap-2"><HiredFeedbackFlow applications={applications.filter((app) => app.status === 'Hired')} onChanged={reload} /></div>
 
@@ -134,14 +139,12 @@ export default function ApplicationStatus({ tab }: { tab: 'current' | 'previous'
                     <p className="mb-4 text-sm text-slate-600">
                       {pt('Please download or print your referral slip and present it to the employer during your interview.')}
                     </p>
-                    <a
-                      href={`/applicant/status/referral-slip?refId=${referral.id}`}
-                      target="_blank"
-                      rel="noreferrer"
+                    <Link
+                      to={`/applicant/status/referral-slip?refId=${referral.id}`}
                       className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:ring-offset-2"
                     >
-                      <Download className="mr-2 h-4 w-4" /> {pt('View / Download Slip')}
-                    </a>
+                      <FileText className="mr-2 h-4 w-4" /> {pt('View Referral')}
+                    </Link>
                   </div>
                 </Card>
               )}

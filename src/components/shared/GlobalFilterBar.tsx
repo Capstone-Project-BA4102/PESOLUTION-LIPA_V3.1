@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { Filter, X } from 'lucide-react'
 import { Card, Button, Select, SearchInput } from '@/components/ui'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { usePT } from '@/lib/portalCopy'
 
 export interface FilterOption {
   id: string
   label: string
   placeholder: string
+  searchable?: boolean
   options: Array<string | { value: string; label: string }>
 }
 
@@ -35,7 +37,7 @@ export function GlobalFilterBar({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && !(event.target instanceof Element && event.target.closest('[data-searchable-select-popup]'))) {
         setIsOpen(false)
       }
     }
@@ -79,12 +81,12 @@ export function GlobalFilterBar({
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     {pt(opt.label)}
                   </span>
-                  <Select
+                  {opt.searchable ? <SearchableSelect ariaLabel={opt.label} options={opt.options} value={activeFilters[opt.id] || ''} onChange={value => onFilterChange(opt.id, value)} /> : <Select
                     options={opt.options}
                     value={activeFilters[opt.id] || ''}
                     onChange={(e) => onFilterChange(opt.id, e.target.value)}
                     className="w-full h-10"
-                  />
+                  />}
                 </div>
               ))}
             </div>

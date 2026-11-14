@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { RefreshNotice } from '@/components/shared/RefreshNotice'
+import { useLiveRefresh } from '@/lib/useLiveRefresh'
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlusCircle, Building2, MapPin, Briefcase, CheckCircle2, XCircle, Users, Archive, RotateCcw, UserPlus } from "lucide-react";
@@ -15,12 +17,14 @@ import { useQuery } from "@/lib/useQuery";
 import { usePT } from "@/lib/portalCopy";
 import { usePagination } from "@/lib/usePagination";
 import { LoadingBlock, ErrorBlock, GlobalFilterBar, StatCard } from "@/components/shared";
+import { JobQualifications } from '@/components/shared/JobQualifications';
 import { EMPLOYMENT_TYPES } from "@/constants/options";
 
 export default function JobListingsPage() {
   const pt = usePT();
   const navigate = useNavigate();
-  const { data, loading, error, reload } = useQuery(fetchJobs);
+  const { data, loading, refreshing, error, reload } = useQuery(fetchJobs);
+  useLiveRefresh(reload, ['job_listings']);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All Types");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
@@ -47,8 +51,8 @@ export default function JobListingsPage() {
   });
   const { page, pages, setPage, paged, from, to } = usePagination(filtered, 10);
 
-  if (loading) return <LoadingBlock label={pt('Loading job listings…')} />;
-  if (error) return <ErrorBlock message={error} onRetry={reload} />;
+  if (loading && !data) return <LoadingBlock label={pt('Loading job listings…')} />;
+  if (error && !data) return <ErrorBlock message={error} onRetry={reload} />;
 
   const stats = {
     total: jobs.length,
@@ -101,6 +105,7 @@ export default function JobListingsPage() {
 
   return (
     <div className="space-y-6">
+      <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
       <PageHeader
         title="Job Listings"
         description="Manage all job opportunities from partner companies."
@@ -162,6 +167,7 @@ export default function JobListingsPage() {
                     <p className="text-sm text-slate-500">
                       {job.code}
                     </p>
+                    <div className="mt-2 min-w-56 max-w-sm"><JobQualifications job={job} previewCount={2} /></div>
                   </TD>
                   <TD>
                     <div className="flex items-center gap-2">
@@ -235,7 +241,7 @@ export default function JobListingsPage() {
 
       {selectedJob && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
-          <Card className="w-full max-w-lg p-6">
+          <Card className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-6">
             <h2 className="text-xl font-bold text-slate-900 mb-2">
               {selectedJob.title}
             </h2>
@@ -271,6 +277,7 @@ export default function JobListingsPage() {
                   : pt('Period ended — listing is closed.')}
               </div>
             </div>
+            <div className="mb-5"><JobQualifications job={selectedJob} /></div>
             <div className="flex justify-end gap-3">
               <Button variant="neutral" onClick={() => setSelectedJob(null)}>
                 Close

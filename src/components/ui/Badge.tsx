@@ -41,6 +41,7 @@ const STATUS_TONE: Record<string, Tone> = {
   Shortlisted: 'warning',
   Pending: 'warning',
   Declined: 'warning',
+  'Not Hired': 'brand',
   'Needs Skill Development': 'warning',
   'For Referral': 'info',
   'Ready to Issue': 'info',

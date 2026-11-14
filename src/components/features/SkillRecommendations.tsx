@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react'
-import { CheckCircle2, ChevronDown, Clock3, ExternalLink, Lightbulb, Sparkles } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ExternalLink, Lightbulb, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useQuery } from '@/lib/useQuery'
+import { recommendationsForGaps } from '@/lib/prescriptiveAnalytics'
 import { fetchRecommendations } from '@/lib/recommendations'
 import { usePT } from '@/lib/portalCopy'
 import type { MatchDetailsJob } from '@/lib/api'
 
-const normalized = (value: string) => value.toLowerCase().trim()
+const normalized = (value: string) => value.toLowerCase().trim().replace(/\s+/g, ' ')
 const resourceLinks = (skill: string, technical: boolean) => {
   const query = encodeURIComponent(skill)
   return technical
@@ -32,14 +33,16 @@ export function SkillRecommendations({ applicantId, match, refreshKey = 0, embed
   const pt = usePT()
   const [expanded, setExpanded] = useState(false)
   const [expandedSkill, setExpandedSkill] = useState('')
-  const fetcher = useCallback(() => fetchRecommendations(applicantId, match.jobId), [applicantId, match.jobId])
+  const fetcher = useCallback(async () => { const saved = await fetchRecommendations(applicantId, match.jobId); return saved ? { ...saved, applicantId, jobId: match.jobId } : null }, [applicantId, match.jobId])
   const { data, loading, error, reload } = useQuery(fetcher, [applicantId, match.jobId, refreshKey])
   const gaps = [...(match.missingHardSkills || []), ...(match.missingSoftSkills || [])]
-  const answered = new Set((data?.recommendations || []).map(item => item.skill.toLowerCase().trim()))
-  const unanswered = gaps.filter(skill => !answered.has(skill.toLowerCase().trim()))
+  const record = data?.applicantId === applicantId && data?.jobId === match.jobId ? data : null
+  const suggestions = recommendationsForGaps(record?.recommendations || [], gaps)
+  const answered = new Set(suggestions.map(item => normalized(item.skill)))
+  const unanswered = gaps.filter(skill => !answered.has(normalized(skill)))
   const togglePlan = () => {
     const next = !expanded
-    if (next && !expandedSkill && data?.recommendations[0]) setExpandedSkill(normalized(data.recommendations[0].skill))
+    if (next && !expandedSkill && suggestions[0]) setExpandedSkill(normalized(suggestions[0].skill))
     setExpanded(next)
   }
   return (
@@ -49,14 +52,15 @@ export function SkillRecommendations({ applicantId, match, refreshKey = 0, embed
         <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>}
       {(embedded || expanded) && <div className="space-y-5 pb-1 pt-2">
+      <p className="rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600">{pt('Saved Gemini suggestions address the missing skills listed below. Resource links are general searches; courses, providers, certifications and availability have not been verified.')}</p>
       {loading && <p className="text-sm text-slate-500" role="status">{pt('Loading saved recommendations...')}</p>}
       {error && <div className="space-y-2"><p role="alert" className="text-sm text-brand-700">{error}</p><Button size="sm" variant="neutral" onClick={reload}>Retry</Button></div>}
       {!loading && gaps.length === 0 && <p className="text-slate-600">{pt('No recorded skill gaps for this job.')}</p>}
       {!loading && !error && unanswered.length > 0 && <div className="space-y-2">
-        <p className="text-sm text-slate-600">{pt('Recommendations for these gaps will appear after PESO recalculates the matches.')}</p>
+        <p className="text-sm text-slate-600">{pt('No saved training suggestion is available for these gaps yet. PESO staff can generate an updated improvement plan.')}</p>
         <div className="flex flex-wrap gap-2">{unanswered.map(skill => <span key={skill} className="rounded border border-slate-200 px-2 py-1 text-sm">{skill}</span>)}</div>
       </div>}
-      {data?.recommendations.map(item => {
+      {suggestions.map(item => {
         const technical = (match.missingHardSkills || []).some(skill => normalized(skill) === normalized(item.skill))
         const resources = resourceLinks(item.skill, technical)
         const skillKey = normalized(item.skill)
@@ -64,7 +68,7 @@ export function SkillRecommendations({ applicantId, match, refreshKey = 0, embed
         return <div key={item.skill} className="border-t border-slate-200">
           <button type="button" aria-expanded={skillExpanded} onClick={() => setExpandedSkill(current => current === skillKey ? '' : skillKey)} className="flex w-full items-center justify-between gap-3 py-4 text-left">
             <span className="min-w-0"><span className="block font-bold text-brand-700">{item.skill}</span><span className="mt-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
-              <span>{technical ? pt('Technical skill') : pt('Workplace skill')}</span><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{technical ? pt('30-45 min start') : pt('10-15 min practice')}</span>
+              <span>{technical ? pt('Hard Skills') : pt('Soft Skills')}</span><span aria-hidden="true">·</span><span className="inline-flex items-center gap-1">{pt('Missing required skill')}</span>
             </span></span>
             <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition-transform ${skillExpanded ? 'rotate-180' : ''}`} />
           </button>
@@ -91,7 +95,7 @@ export function SkillRecommendations({ applicantId, match, refreshKey = 0, embed
           </div>}
         </div>
       })}
-      {data && <div className="flex"><span title={pt('Generated {when} using {model} for skill-gap suggestions only.', { when: new Date(data.generated_at).toLocaleString(), model: data.model })} className="inline-flex items-center gap-1.5 rounded-full border border-warning-100 bg-warning-50 px-3 py-1.5 text-xs font-semibold text-warning-700">
+      {record && <div className="flex"><span title={pt('Generated {when} using {model} for skill-gap suggestions only.', { when: new Date(record.generated_at).toLocaleString(), model: record.model })} className="inline-flex items-center gap-1.5 rounded-full border border-warning-100 bg-warning-50 px-3 py-1.5 text-xs font-semibold text-warning-700">
         <Sparkles className="h-3.5 w-3.5" /> {pt('Gemini-assisted skill-gap suggestions')}
       </span></div>}
       </div>}

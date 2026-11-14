@@ -41,6 +41,6 @@ test('Realtime watches job insert/update/delete and filtered applicant inputs, w
   assert.equal(listeners[1].spec.filter, 'applicant_id=eq.applicant-fixture');
   assert.equal(listeners[2].spec.filter, 'id=eq.applicant-fixture');
   for (const eventType of ['INSERT', 'UPDATE', 'DELETE']) listeners[0].callback({ eventType });
-  assert.equal(changed, 3); assert.deepEqual(statuses, ['SUBSCRIBED']);
+  assert.equal(changed, 3); assert.deepEqual(statuses, ['CONNECTING', 'SUBSCRIBED']);
   stop(); assert.equal(removed, channel);
 });

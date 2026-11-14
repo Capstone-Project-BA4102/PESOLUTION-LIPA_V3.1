@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
-import { Briefcase, Building2, FileText, GitCompareArrows, Home, LayoutDashboard, User, Users, Globe, MessageSquareText, History } from 'lucide-react'
+import { Briefcase, Building2, FileText, GitCompareArrows, Home, LayoutDashboard, User, Users, Settings, MessageSquareText, History } from 'lucide-react'
 import { AuthProvider, useAuth, roleHome, type Role } from '@/lib/auth'
 import { PublicPreferencesProvider } from '@/lib/publicPreferences'
 import AdminWebsitePage from '@/pages/admin/AdminWebsitePage'
@@ -48,7 +48,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/matching', label: 'Matching & Referrals', icon: <GitCompareArrows /> },
   { to: '/admin/activities', label: 'Activities', icon: <History /> },
   { to: '/admin/feedback', label: 'Feedback Analytics', icon: <MessageSquareText /> },
-  { to: '/admin/website', label: 'Public Website', icon: <Globe /> },
+  { to: '/admin/website', label: 'Settings', icon: <Settings /> },
 ]
 
 const applicantNav = (pendingRequests: number): NavItem[] => [

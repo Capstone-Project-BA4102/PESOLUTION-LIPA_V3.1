@@ -1,9 +1,11 @@
 // @ts-nocheck
+import { qualificationSkills } from './jobQualifications'
+import { referralSignatoryName, referralRecipient } from './referralDefaults'
 import { supabase } from './supabase'
 import { formatApplicantName } from './applicantName'
 import { backendRequest, fileToUpload } from './backend'
 
-export type ApplicantStatus = 'Active' | 'Hired' | 'Inactive' | 'For Referral' | 'Shortlisted' | 'Matched' | 'Pending' | 'New' | 'Renewal' | 'Referred' | 'Referral Requested' | 'Declined';
+export type ApplicantStatus = 'Active' | 'Hired' | 'Inactive' | 'For Referral' | 'Shortlisted' | 'Matched' | 'Pending' | 'New' | 'Renewal' | 'Referred' | 'Referral Requested' | 'Declined' | 'Not Hired';
 export type RecordStatus = 'Active' | 'Closed' | 'Archived';
 export type EmploymentType = 'Full Time' | 'Part Time' | 'Contract' | 'Freelance' | 'Internship';
 export type Gender = 'Male' | 'Female' | 'Other';
@@ -256,7 +258,7 @@ export async function fetchActivities(limit = 200): Promise<ActivityRow[]> {
   const { data: hist } = await supabase
     .from('status_history')
     .select('id, status, remarks, changed_at, applicants ( full_name )')
-    .in('status', ['Referred', 'Hired', 'Renewal', 'Declined', 'Matched'])
+    .in('status', ['Referred', 'Hired', 'Renewal', 'Declined', 'Not Hired', 'Matched'])
     .order('changed_at', { ascending: false })
     .limit(Math.min(limit, 200))
   return (hist || []).map((h: any) => ({
@@ -472,8 +474,8 @@ export async function fetchJobs(): Promise<Job[]> {
       salaryMax: Number(r.salary_max || 0),
       salaryUnit: r.salary_unit || 'month',
       education: r.education || '',
-      hardSkills: r.hard_skills || [],
-      softSkills: r.soft_skills || [],
+      hardSkills: qualificationSkills(r.hard_skills),
+      softSkills: qualificationSkills(r.soft_skills),
       description: r.description || '',
       status: (expired ? 'Closed' : r.status || 'Active') as RecordStatus,
       datePosted: fmtDate(r.date_posted),
@@ -599,6 +601,7 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
     hired: kpi(countOutcomeApplicants('Hired', inPeriod), countOutcomeApplicants('Hired', inPrev)),
     renewals: kpi(histRows.filter((h: any) => h.status === 'Renewal' && inPeriod(h.changed_at)).length, histRows.filter((h: any) => h.status === 'Renewal' && inPrev(h.changed_at)).length),
     declined: kpi(countOutcomeApplicants('Declined', inPeriod), countOutcomeApplicants('Declined', inPrev)),
+    notHired: kpi(countOutcomeApplicants('Not Hired', inPeriod), countOutcomeApplicants('Not Hired', inPrev)),
   }
 
   // Referral & placement log: referrals issued + hires/declines inside the period
@@ -607,14 +610,14 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
     const app = r.applications
     placementLog.push({
       date: r.date_issued,
-      action: app?.status === 'Hired' ? 'Hired' : 'Referred',
+      action: 'Referred',
       applicant: app?.applicants?.full_name || '—',
       job: app?.job_listings?.title || '—',
       company: app?.job_listings?.companies?.name || '—',
       ref: r.referral_number || '—',
     })
   }
-  for (const h of histRows.filter((x: any) => (x.status === 'Hired' || x.status === 'Declined') && inPeriod(x.changed_at))) {
+  for (const h of histRows.filter((x: any) => (x.status === 'Hired' || x.status === 'Declined' || x.status === 'Not Hired') && inPeriod(x.changed_at))) {
     if (placementLog.some((p) => p.applicant === (h.applicants?.full_name || '—') && p.action === h.status)) continue
     placementLog.push({ date: h.changed_at, action: h.status, applicant: h.applicants?.full_name || '—', job: '—', company: '—', ref: '—', note: h.remarks })
   }
@@ -649,8 +652,11 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
   }
 
   const demandTrend = []
+  const registrationTrend = []
   for (let day = new Date(from); day <= to; day.setDate(day.getDate() + 1)) {
     const key = day.toLocaleDateString('en-CA')
+    registrationTrend.push({ label: day.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
+      count: newInPeriod.filter(a => new Date(a.date_registered).toLocaleDateString('en-CA') === key).length })
     demandTrend.push({ label: day.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
       count: jobRows.filter(j => inPeriod(j.date_posted) && new Date(j.date_posted).toLocaleDateString('en-CA') === key).length })
   }
@@ -674,7 +680,7 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
   })
   // Fallback until seed §11 is pasted: derive the audit from admin status changes
   if (adminAudit.length === 0) {
-    const AUDITED = ['Referred', 'Hired', 'Renewal', 'Declined', 'Matched']
+    const AUDITED = ['Referred', 'Hired', 'Renewal', 'Declined', 'Not Hired', 'Matched']
     adminAudit = histRows
       .filter((h: any) => AUDITED.includes(h.status) && inPeriod(h.changed_at))
       .map((h: any) => ({
@@ -700,6 +706,7 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
     demographics,
     market,
     demandTrend,
+    registrationTrend,
     jobCategories: countBy(activeJobs, j => j.industry || j.companies?.industry || 'Uncategorized'),
     commonSkills,
     skillsGap: {
@@ -740,7 +747,7 @@ export async function fetchMatchingSummary(): Promise<any> {
   for (const a of appRows || []) {
     const k = String(a.applicant_id)
     if (a.status === 'Hired') appStatus[k] = 'Hired'
-    else if ((a.status === 'Referred' || a.status === 'Referral Requested') && appStatus[k] !== 'Hired') appStatus[k] = 'Referred'
+    else if (a.status === 'Referred' && appStatus[k] !== 'Hired') appStatus[k] = 'Referred'
   }
 
   const avatarMap = await fetchAvatarUrls()
@@ -794,6 +801,18 @@ export function runApplicantMatching(applicantId: string, options: { force?: boo
   })().finally(() => { if (matchingRequests.get(key) === request) matchingRequests.delete(key) })
   matchingRequests.set(key, request)
   return request
+}
+
+/** Applicants may automatically refresh only their own cached matching results. */
+export async function refreshOwnApplicantMatching(applicantId: string): Promise<MatchingRunResult> {
+  try {
+    return await backendRequest<MatchingRunResult>(`/applicant/match/${encodeURIComponent(applicantId)}`, { method: 'POST', body: { force: false } })
+  } catch (failure) {
+    if (failure instanceof Error && failure.message === 'API endpoint not found.') {
+      throw new Error('Automatic matching is temporarily unavailable. Your saved results are still shown. Please contact PESO staff.')
+    }
+    throw failure
+  }
 }
 
 export async function fetchApplicantMatchDetails(applicantId: string): Promise<any> {  const { data, error } = await supabase
@@ -1103,21 +1122,23 @@ export async function setCompanyStatus(id: string, status: string): Promise<void
 // Slip preview for a match that has no referral yet — nothing is written to
 // the DB until the admin clicks Confirm Referral.
 export async function fetchReferralPreview(applicantId: string, jobId: string): Promise<any> {
-  const [{ data: applicant, error: e1 }, { data: job, error: e2 }] = await Promise.all([
-    supabase.from('applicants').select('id, full_name, contact_number, email_address').eq('id', applicantId).single(),
-    supabase.from('job_listings').select('title, location, companies(name, location)').eq('id', jobId).single(),
+  const [{ data: applicant, error: e1 }, { data: job, error: e2 }, office] = await Promise.all([
+    supabase.from('applicants').select('id, full_name, gender, contact_number, email_address').eq('id', applicantId).single(),
+    supabase.from('job_listings').select('title, location, companies(name, location, contact_person, contact_role)').eq('id', jobId).single(),
+    backendRequest<{ content?: { referralSignatoryName?: string } } | null>('/admin/site-content'),
   ])
   if (e1 || e2 || !applicant || !job) throw new Error('Applicant or job listing not found')
   return {
     id: '', referral_number: '', date_issued: new Date().toISOString(),
-    signatory_name: null, recipient_name: null, recipient_address: null,
+    signatory_name: referralSignatoryName(office?.content?.referralSignatoryName), recipient_name: referralRecipient(job.companies), recipient_address: job.companies?.location || null,
     application_id: null, applicationStatus: 'Matched',
     applicantName: applicant.full_name || '',
+    applicantGender: applicant.gender || null,
     applicantPhone: applicant.contact_number || '',
     applicantEmail: applicant.email_address || '',
     jobTitle: job.title || '',
     company: job.companies?.name || '',
-    companyAddress: job.companies?.location || job.location || '',
+    companyAddress: job.companies?.location || '',
   }
 }
 
@@ -1128,8 +1149,8 @@ export async function fetchReferralSlip(id: string): Promise<any> {
       id, referral_number, date_issued, signatory_name, recipient_name, recipient_address,
       applications (
         id, status, applicant_id,
-        applicants ( full_name, contact_number, email_address ),
-        job_listings ( title, location, companies ( name, location ) )
+        applicants ( full_name, gender, contact_number, email_address ),
+        job_listings ( title, location, companies ( name, location, contact_person, contact_role ) )
       )
     `)
     .eq('id', id)
@@ -1142,6 +1163,7 @@ export async function fetchReferralSlip(id: string): Promise<any> {
     application_id: app.id || null,
     applicationStatus: app.status || '',
     applicantName: app.applicants?.full_name || '',
+    applicantGender: app.applicants?.gender || null,
     applicantPhone: app.applicants?.contact_number || '',
     applicantEmail: app.applicants?.email_address || '',
     jobTitle: app.job_listings?.title || '',
@@ -1153,48 +1175,15 @@ export async function fetchReferralSlip(id: string): Promise<any> {
 export async function updateReferralSlip(id: string, fields: {
   date_issued?: string; signatory_name?: string; recipient_name?: string; recipient_address?: string
 }): Promise<void> {
-  const { data, error } = await supabase.from('referrals').update(fields).eq('id', id).select('referral_number').maybeSingle()
-  if (error) throw error
-  await logActivity('referral', 'Referral slip details edited', data?.referral_number ? `REF ${data.referral_number}` : undefined)
+  await backendRequest('/admin/referrals/manage', { method: 'POST', body: { action: 'edit', referralId: id, fields } })
 }
 
 export async function markAsReferred(applicationId: string): Promise<void> {
-  const { data: app } = await supabase
-    .from('applications')
-    .select('applicant_id, status, applicants ( full_name ), job_listings ( title, companies ( name ) )')
-    .eq('id', applicationId)
-    .single()
-  if (!app || app.status === 'Referred') return
-  const { error } = await supabase.from('applications').update({ status: 'Referred' }).eq('id', applicationId)
-  if (error) throw error
-  const company = app.job_listings?.companies?.name || 'Company'
-  const job = app.job_listings?.title || 'Job'
-  await logStatusHistory(app.applicant_id, 'Referred', `Referred to ${company} - ${job}`, applicationId)
-  await logActivity('referral', 'Referral slip confirmed', `${app.applicants?.full_name || 'Applicant'} — ${company} - ${job}`)
+  await backendRequest('/admin/referrals/manage', { method: 'POST', body: { action: 'issue', applicationId, confirmed: true } })
 }
 
 export async function cancelReferral(referralId: string): Promise<void> {
-  const { data: ref } = await supabase
-    .from('referrals')
-    .select('id, referral_number, applications ( id, applicant_id, status, applicants ( full_name ), job_listings ( title, companies ( name ) ) )')
-    .eq('id', referralId)
-    .single()
-  if (!ref) return
-
-  const { error } = await supabase.from('referrals').delete().eq('id', referralId)
-  if (error) throw error
-
-  const app = ref.applications
-  if (app && app.status === 'Referred') {
-    await supabase.from('applications').update({ status: 'Matched' }).eq('id', app.id)
-    await logStatusHistory(app.applicant_id, 'Matched', 'Referral cancelled', app.id)
-  }
-  const job = app?.job_listings
-  await logActivity(
-    'referral',
-    'Referral cancelled',
-    `${app?.applicants?.full_name || 'Applicant'} — ${job?.companies?.name || 'Company'} - ${job?.title || 'Job'} (REF ${ref.referral_number || '—'})`,
-  )
+  await backendRequest('/admin/referrals/manage', { method: 'POST', body: { action: 'cancel', referralId, confirmed: true } })
 }
 export async function fetchApplicationStatusData(email: string): Promise<any> {
   const { data: applicant } = await supabase
@@ -1241,73 +1230,16 @@ export async function addJobVacancies(jobId: string, slots: number): Promise<{ b
 }
 
 /** Returns the job's remaining vacancies after the hire, or null when the job row is unknown. */
-export async function markApplicantAsHiredSpecific(appId: string, jobId: string, companyName?: string, jobTitle?: string): Promise<number | null> {
-  const { data: current } = await supabase
-    .from('applications')
-    .select('id, status')
-    .eq('applicant_id', appId)
-    .eq('job_id', jobId)
-    .maybeSingle()
-  const alreadyHired = current?.status === 'Hired'
-
-  const { data: job } = await supabase.from('job_listings').select('vacancies').eq('id', jobId).maybeSingle()
-  const slotsBefore = job ? Number(job.vacancies) || 0 : null
-  let slotsLeft = slotsBefore
-  if (slotsBefore !== null && !alreadyHired) {
-    slotsLeft = Math.max(0, slotsBefore - 1)
-    if (slotsLeft !== slotsBefore) {
-      const { error } = await supabase.from('job_listings').update({ vacancies: slotsLeft }).eq('id', jobId)
-      if (error) throw error
-    }
-  }
-
-  if (!alreadyHired) {
-    const { data: app } = await supabase
-      .from('applications')
-      .update({ status: 'Hired' })
-      .eq('applicant_id', appId)
-      .eq('job_id', jobId)
-      .select('id')
-      .maybeSingle()
-    await logStatusHistory(appId, 'Hired', `Hired to ${companyName || 'Company'} - ${jobTitle || 'Job'}${slotsLeft === null ? '' : ` — ${slotsLabel(slotsLeft)} left`}`, app?.id)
-  }
-
-  const { count: hiredCount } = await supabase
-    .from('applications')
-    .select('id', { count: 'exact', head: true })
-    .eq('job_id', jobId)
-    .eq('status', 'Hired')
-
-  let slotsChip = ''
-  if (slotsLeft !== null && slotsBefore !== null) {
-    const hiredLabel = `${hiredCount || 0} applicant${hiredCount === 1 ? '' : 's'} hired`
-    slotsChip = alreadyHired
-      ? `${slotsLabel(slotsLeft)} left · ${hiredLabel}`
-      : `${slotsLabel(slotsBefore)} before · ${hiredLabel} · ${slotsLabel(slotsLeft)} left`
-  }
-
-  const { data: a } = await supabase.from('applicants').select('full_name').eq('id', appId).maybeSingle()
-  await logActivity('applicant', 'Marked as Hired', `${a?.full_name || 'Applicant'} — ${companyName || 'Company'} - ${jobTitle || 'Job'}`, slotsChip)
-  return slotsLeft
+export async function markApplicantAsHiredSpecific(appId: string, jobId: string, _companyName?: string, _jobTitle?: string): Promise<number | null> {
+  const result = await backendRequest<{ vacancies: number | null }>('/admin/referrals/manage', { method: 'POST', body: { action: 'hire', applicantId: appId, jobId, confirmed: true } })
+  return result.vacancies
 }
 /**
- * Rejects one referral without ending the applicant's record: the application is
- * marked Declined so the applicant stays eligible for a fresh job-matching run.
+ * Records a Not Hired employment outcome without ending the applicant's record: the application is
+ * marked Not Hired so the applicant stays eligible for a fresh job-matching run.
  */
-export async function markReferralRejected(appId: string, jobId: string, companyName?: string, jobTitle?: string): Promise<void> {
-  const { data: app } = await supabase
-    .from('applications')
-    .update({ status: 'Declined' })
-    .eq('applicant_id', appId)
-    .eq('job_id', jobId)
-    .select('id, status')
-    .maybeSingle()
-  if (!app) throw new Error('No referral found for this job.')
-  const job = jobTitle || 'Job'
-  const company = companyName || 'Company'
-  await logStatusHistory(appId, 'Declined', `Not hired for ${company} - ${job}. Eligible for new job matching.`, app.id)
-  const { data: a } = await supabase.from('applicants').select('full_name').eq('id', appId).maybeSingle()
-  await logActivity('applicant', 'Marked as Rejected', `${a?.full_name || 'Applicant'} — ${company} - ${job}`)
+export async function markReferralRejected(appId: string, jobId: string, _companyName?: string, _jobTitle?: string): Promise<void> {
+  await backendRequest('/admin/referrals/manage', { method: 'POST', body: { action: 'not-hired', applicantId: appId, jobId, confirmed: true } })
 }
 
 export async function fetchApplicantHistory(id: string): Promise<any[]> {
@@ -1459,13 +1391,15 @@ export async function fetchPendingReferralRequest(applicantId: string): Promise<
   return data ? { applicationId: data.id, jobId: data.job_id } : null
 }
 
-export async function fetchApplicantReferrals(id: string): Promise<any[]> {  const { data } = await supabase
+export async function fetchApplicantReferrals(id: string): Promise<any[]> {  const { data, error } = await supabase
     .from('referrals')
     .select('id, referral_number, applications!inner(applicant_id, status, job_id, job_listings(title, companies(name)))')
     .eq('applications.applicant_id', id);
+  if (error) throw error;
   return (data || []).map(r => ({
     id: r.id,
     referral_number: r.referral_number,
+    applicationStatus: r.applications?.status,
     job_id: r.applications?.job_id,
     job_listings: {
       job_title: r.applications?.job_listings?.title,
@@ -1534,52 +1468,8 @@ export async function fetchJobForEdit(id: string): Promise<any | null> {
     softSkills: (data.soft_skills || []).join(', '),
   }
 }
-export async function generateReferral(appId: string, jobId: string): Promise<any> {
-  let { data: appData, error: appErr } = await supabase
-    .from('applications')
-    .select('id')
-    .eq('applicant_id', appId)
-    .eq('job_id', jobId)
-    .maybeSingle()
-
-  if (appErr) throw appErr
-
-  let applicationId = appData?.id
-
-  // One referral per application — reuse the existing one instead of duplicating
-  if (applicationId) {
-    const { data: existingRef } = await supabase
-      .from('referrals')
-      .select('*')
-      .eq('application_id', applicationId)
-      .order('date_issued', { ascending: true })
-      .limit(1)
-      .maybeSingle()
-    if (existingRef) return existingRef
-  }
-
-  if (!applicationId) {
-    const { data: resumeData } = await supabase.from('resumes').select('id').eq('applicant_id', appId).order('uploaded_at', { ascending: false }).limit(1).single()
-    
-    const { data: newApp, error: newAppErr } = await supabase
-      .from('applications')
-      .insert({ applicant_id: appId, job_id: jobId, resume_id: resumeData?.id || null, status: 'Matched' })
-      .select('id')
-      .single()
-      
-    if (newAppErr) throw newAppErr
-    applicationId = newApp.id
-  }
-
-  const { data: refData, error: refErr } = await supabase
-    .from('referrals')
-    .insert({ application_id: applicationId })
-    .select('*')
-    .single()
-
-  if (refErr) throw refErr
-
-  return refData
+export async function generateReferral(appId: string, jobId: string, fields = {}, referralId?: string): Promise<any> {
+  return backendRequest('/admin/referrals/manage', { method: 'POST', body: { action: 'issue', applicantId: appId, jobId, referralId, fields, confirmed: true } })
 }
 
 /* ------------------------------------------------------------------ */
@@ -1589,17 +1479,18 @@ export async function generateReferral(appId: string, jobId: string): Promise<an
 export const MAX_ACTIVE_REFERRAL_REQUESTS = 3
 
 export async function fetchApplicantMatchedJobs(email: string): Promise<ApplicantJobsData> {
-  const { data: applicant } = await supabase
+  const { data: applicant, error: applicantError } = await supabase
     .from('applicants')
     .select('id')
     .eq('email_address', email)
     .maybeSingle()
+  if (applicantError) throw applicantError
   if (!applicant) return { applicantId: '', matchedJobs: [], activeRequests: 0 }
 
-  const [{ data: matches }, { data: apps }] = await Promise.all([
+  const [{ data: matches, error: matchError }, { data: apps, error: applicationError }] = await Promise.all([
     supabase
       .from('job_matches')
-      .select('id, job_id, created_at, final_match_score, hard_skill_score, soft_skill_score, education_score, matched_hard_skills, missing_hard_skills, matched_soft_skills, missing_soft_skills, job_listings ( id, title, location, employment_type, companies ( name, location ) )')
+      .select('id, job_id, created_at, final_match_score, hard_skill_score, soft_skill_score, education_score, matched_hard_skills, missing_hard_skills, matched_soft_skills, missing_soft_skills, job_listings ( id, title, status, location, employment_type, companies ( name, location ) )')
       .eq('applicant_id', applicant.id)
       .order('created_at', { ascending: false }),
     supabase
@@ -1608,13 +1499,15 @@ export async function fetchApplicantMatchedJobs(email: string): Promise<Applican
       .eq('applicant_id', applicant.id),
   ])
 
+  if (matchError || applicationError) throw matchError || applicationError
+
   const appByJob: Record<string, any> = {}
   for (const a of apps || []) {
     if (a.job_id && !appByJob[a.job_id]) appByJob[a.job_id] = a
   }
 
   const matchedJobs = (matches || [])
-    .filter((m: any) => m.job_listings)
+    .filter((m: any) => m.job_listings?.status === 'Active')
     .map((m: any) => {
       const app = appByJob[m.job_id]
       return {
@@ -1646,63 +1539,10 @@ export async function fetchApplicantMatchedJobs(email: string): Promise<Applican
  * password printed on their receipt; that rejection has to read as an instruction, not a database
  * error.
  */
-function referralPermissionError(error: { code?: string; message?: string }): Error {
-  const blocked = error.code === '42501' || /row-level security/i.test(error.message || '')
-  return blocked
-    ? new Error('Please set your own password first. Open Profile, choose a private password, then request this referral again.')
-    : new Error(error.message || 'The referral request could not be saved.')
-}
 
-export async function requestReferral(applicantId: string, jobId: string): Promise<any> {
-  const { data: job } = await supabase.from('job_listings').select('title, companies(name)').eq('id', jobId).maybeSingle()
-  const jobTitle = job?.title || 'job'
-  const companyName = job?.companies?.name || 'Company'
 
-  const { data: existing } = await supabase
-    .from('applications')
-    .select('id, status')
-    .eq('applicant_id', applicantId)
-    .eq('job_id', jobId)
-    .maybeSingle()
-
-  if (existing?.status === 'Referral Requested') return existing
-  if (existing?.status === 'Referred') {
-    throw new Error('This job already has a confirmed referral.')
-  }
-
-  const { count: pending } = await supabase
-    .from('applications')
-    .select('id', { count: 'exact', head: true })
-    .eq('applicant_id', applicantId)
-    .eq('status', 'Referral Requested')
-  if ((pending || 0) >= MAX_ACTIVE_REFERRAL_REQUESTS) {
-    throw new Error(`You can only have ${MAX_ACTIVE_REFERRAL_REQUESTS} pending referral requests at a time.`)
-  }
-
-  let applicationId = existing?.id
-  if (!applicationId) {
-    const { data: resume } = await supabase
-      .from('resumes')
-      .select('id')
-      .eq('applicant_id', applicantId)
-      .order('uploaded_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    const { data: newApp, error } = await supabase
-      .from('applications')
-      .insert({ applicant_id: applicantId, job_id: jobId, resume_id: resume?.id || null, status: 'Referral Requested' })
-      .select('id, status')
-      .single()
-    if (error) throw referralPermissionError(error)
-    applicationId = newApp.id
-  } else {
-    const { error } = await supabase.from('applications').update({ status: 'Referral Requested' }).eq('id', applicationId)
-    if (error) throw referralPermissionError(error)
-  }
-
-  await logStatusHistory(applicantId, 'Referral Requested', `Requested referral slip for ${companyName} - ${jobTitle}`, applicationId)
-  return { id: applicationId, status: 'Referral Requested' }
+export async function requestReferral(_applicantId: string, _jobId: string): Promise<any> {
+  throw new Error('Official referrals are managed by PESO staff. Please contact PESO for assistance.')
 }
 
 export async function fetchReferralRequests(): Promise<any[]> {
@@ -1725,27 +1565,7 @@ export async function fetchReferralRequests(): Promise<any[]> {
 }
 
 export async function declineReferralRequest(applicationId: string, remarks?: string): Promise<void> {
-  const { data: app, error } = await supabase
-    .from('applications')
-    .select('applicant_id, status, applicants ( full_name ), job_listings ( title, companies ( name ) )')
-    .eq('id', applicationId)
-    .single()
-  if (error) throw error
-
-  const { error: updErr } = await supabase.from('applications').update({ status: 'Declined' }).eq('id', applicationId)
-  if (updErr) throw updErr
-
-  const company = app.job_listings?.companies?.name || 'Company'
-  const job = app.job_listings?.title || 'Job'
-  await logStatusHistory(
-    app.applicant_id,
-    'Declined',
-    remarks
-      ? `Referral request declined for ${company} - ${job}: ${remarks}`
-      : `Referral request declined for ${company} - ${job}`,
-    applicationId,
-  )
-  await logActivity('referral', 'Referral request declined', `${app.applicants?.full_name || 'Applicant'} — ${company} - ${job}`)
+  await backendRequest('/admin/referrals/manage', { method: 'POST', body: { action: 'decline', applicationId, reason: remarks, confirmed: true } })
 }
 
 // ---------------------------------------------------------------------------
@@ -1753,6 +1573,7 @@ export async function declineReferralRequest(applicationId: string, remarks?: st
 // ---------------------------------------------------------------------------
 
 export interface WalkInInput {
+  cityMunicipality?: string
   firstName: string
   middleSurname: string
   lastSurname: string

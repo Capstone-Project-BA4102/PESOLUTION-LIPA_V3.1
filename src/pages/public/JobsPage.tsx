@@ -41,7 +41,7 @@ export default function JobsPage() {
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <DetailRow icon={<Building2 className="h-5 w-5" />} label="Company" value={selected.company} />
-              <DetailRow icon={<MapPin className="h-5 w-5" />} label="Location" value={`${selected.location}, Batangas`} />
+              <DetailRow icon={<MapPin className="h-5 w-5" />} label="Location" value={selected.location} />
               <DetailRow icon={<Briefcase className="h-5 w-5" />} label="Employment Type" value={selected.employmentType} />
               <DetailRow icon={<XCircle className="h-5 w-5" />} label="Work Setup" value={selected.workSetup} />
               <DetailRow icon={<Building2 className="h-5 w-5" />} label="Industry" value={selected.industry} />

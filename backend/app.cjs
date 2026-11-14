@@ -1,4 +1,6 @@
 const express = require('express');
+const { employmentAnalytics } = require('./employment-analytics.cjs');
+const { manageReferral } = require('./referrals.cjs');
 const cors = require('cors');
 const path = require('node:path');
 const { authentication, requireRole, applicantAccess } = require('./auth.cjs');
@@ -42,6 +44,10 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
   const fingerprintFor = (gaps, educationScore, title) =>
     recommendationFingerprint(gaps, educationScore, title, gemini.model);
 
+  app.post('/api/admin/referrals/manage', authenticate, admin, asyncRoute(async (req, res) => {
+    available();
+    res.json(await manageReferral(supabase, req.actor, req.body));
+  }));
   app.get('/api/health', (req, res) => res.json({ status: 'ok', version: config.version }));
   app.get('/api/applicant/feedback', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
     res.json(await feedbackEligibility(supabase, req.actor));
@@ -55,6 +61,9 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
   app.post('/api/applicant/feedback/:applicationId/submit', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
     res.status(201).json(await withLock(`feedback:${req.params.applicationId}`, () => submitFeedback(supabase, req.actor,
       { ...req.body, applicationId: req.params.applicationId }, config)));
+  }));
+  app.get('/api/admin/employment-analytics', authenticate, admin, asyncRoute(async (req, res) => {
+    res.json(await employmentAnalytics(supabase, req.query));
   }));
   app.get('/api/admin/feedback-analytics', authenticate, admin, asyncRoute(async (req, res) => {
     res.json(await feedbackAnalytics(supabase, config));
@@ -203,6 +212,12 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
     // Existing callers retain force-refresh behavior; automatic checks explicitly send false.
     res.json(await matchingRefresh.run(applicantId, { force: req.body?.force !== false }));
   }));
+  app.post('/api/applicant/match/:applicantId', authenticate, requireRole('applicant'), rateLimit, asyncRoute(async (req, res) => {
+    const applicantId = requireUuid(req.params.applicantId);
+    await applicantAccess(supabase, req.actor, applicantId);
+    if (req.body?.force !== undefined && req.body.force !== false) throw new HttpError(400, 'Applicant matching reuses valid results; force refresh is reserved for staff.');
+    res.json(await matchingRefresh.run(applicantId, { force: false }));
+  }));
   const recommendationContext = async req => {
     const applicantId = requireUuid(req.params.applicantId); const jobId = requireUuid(req.params.jobId);
     await applicantAccess(supabase, req.actor, applicantId);
@@ -236,6 +251,11 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
   app.put('/api/admin/site-content', authenticate, admin, asyncRoute(async (req, res) => {
     const content = validateContent(req.body?.content);
     if (typeof req.body.published !== 'boolean') throw new HttpError(400, 'Publication status must be true or false.');
+    // Older office-content clients must not erase the configured referral manager.
+    if (!Object.hasOwn(content, 'referralSignatoryName')) {
+      const current = check(await supabase.from('site_content').select('content').eq('id', 'public').maybeSingle());
+      if (current?.content?.referralSignatoryName) content.referralSignatoryName = current.content.referralSignatoryName;
+    }
     res.json(check(await supabase.from('site_content').upsert({ id: 'public', content, published: req.body.published,
       updated_by: req.actor.id, updated_at: new Date().toISOString() }).select('*').single()));
   }));

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useId, useState } from 'react'
 import { BriefcaseBusiness, CheckCircle2, ChevronDown, FileText, GraduationCap, MapPin, Users } from 'lucide-react'
 import type { MatchDetailsJob } from '@/lib/api'
@@ -11,6 +12,7 @@ const percentage = (value?: number) => typeof value === 'number' && Number.isFin
 
 export function RecommendedJobCard({ applicantId, match, refreshKey = 0 }: { applicantId: string; match: ReferralMatch; refreshKey?: number }) {
   const pt = usePT()
+  const navigate = useNavigate()
   const panelId = useId()
   const [hasExpanded, setHasExpanded] = useState(false)
   const categories = [
@@ -60,7 +62,7 @@ export function RecommendedJobCard({ applicantId, match, refreshKey = 0 }: { app
       <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
         <Button variant="primary" className="w-full sm:w-auto" onClick={() => {
           const base = `/admin/matching/${applicantId}/referral`
-          window.location.href = match.referralId ? `${base}?refId=${match.referralId}` : `${base}?jobId=${match.jobId}`
+          navigate(match.referralId ? `${base}?refId=${match.referralId}` : `${base}?jobId=${match.jobId}`)
         }}><FileText aria-hidden="true" className="mr-2 h-4 w-4" />{pt('View Referral')}</Button>
       </div>
       </>}

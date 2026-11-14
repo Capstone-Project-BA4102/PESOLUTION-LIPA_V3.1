@@ -1,3 +1,5 @@
+import { BarangayField, CityMunicipalityField } from '@/components/shared/BarangayField';
+import { cityFromAddress, addressWithCity, barangayError, addressCityError } from '@/lib/applicantAddress';
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +22,7 @@ export function EditApplicantModal({ applicant, onClose, onSaved }: { applicant:
     civil_status: applicant.civilStatus,
     contact_number: applicant.contact,
     email_address: applicant.email,
+    cityMunicipality: cityFromAddress(applicant.address) || 'Lipa City',
     barangay: applicant.barangay,
     address: applicant.address,
     education: applicant.education,
@@ -31,6 +34,8 @@ export function EditApplicantModal({ applicant, onClose, onSaved }: { applicant:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const locationError = barangayError(formData.cityMunicipality, formData.barangay) || addressCityError(formData.address, formData.cityMunicipality);
+    if (locationError) { toast.error(pt(locationError)); return; }
     setLoading(true);
     try {
       const { error } = await supabase
@@ -45,7 +50,7 @@ export function EditApplicantModal({ applicant, onClose, onSaved }: { applicant:
           contact_number: formData.contact_number,
           email_address: formData.email_address,
           barangay: formData.barangay,
-          address: formData.address,
+          address: addressWithCity(formData.address, formData.cityMunicipality),
           education: formData.education,
           course: formData.course,
           school: formData.school,
@@ -86,7 +91,8 @@ export function EditApplicantModal({ applicant, onClose, onSaved }: { applicant:
             <Input label="Email Address" type="email" value={formData.email_address} onChange={e => setFormData({...formData, email_address: e.target.value})} />
           </div>
           <Input label="Address" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-          <Input label="Barangay" value={formData.barangay} onChange={e => setFormData({...formData, barangay: e.target.value})} />
+          <CityMunicipalityField value={formData.cityMunicipality} onChange={value => setFormData({...formData, cityMunicipality: value})} />
+          <BarangayField city={formData.cityMunicipality} savedValue={applicant.barangay} value={formData.barangay} onChange={value => setFormData({...formData, barangay: value})} />
           
           <h3 className="text-sm font-bold text-slate-700 pt-4 border-t border-slate-100">{pt('Educational Background')}</h3>
           <Select label="Highest Education" options={["High School", "College Level", "College Graduate", "Master's Degree"]} value={formData.education} onChange={e => setFormData({...formData, education: e.target.value})} />

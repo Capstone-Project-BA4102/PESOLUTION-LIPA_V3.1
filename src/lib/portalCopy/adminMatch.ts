@@ -2,6 +2,40 @@ import { registerFil } from './core'
 
 /** Admin matching & referral screens: MatchingPage, MatchDetailsPage, ReferralSlipPage, SkillMatchAudit, SkillRecommendations, MatchInsights. */
 registerFil({
+  'Automatic updates unavailable.': 'Hindi magamit ang awtomatikong pag-update.',
+  'Automatic matching is temporarily unavailable. Your saved results are still shown. Please contact PESO staff.': 'Pansamantalang hindi magamit ang awtomatikong matching. Ipinapakita pa rin ang naka-save na mga resulta. Makipag-ugnayan sa kawani ng PESO.',
+
+  'Auto-updated (Realtime)': 'Awtomatikong na-update (Realtime)',
+  'Offline — showing saved results.': 'Offline — ipinapakita ang naka-save na mga resulta.',
+
+  'Default Referral Signatory': 'Default na Lumalagda sa Referal',
+  "PESO Manager's name for new referral slips. Issued slips keep their saved signatory.": 'Pangalan ng PESO Manager para sa bagong referral slips. Mananatili ang naka-save na lumalagda sa nailabas nang slips.',
+
+  'To (Contact Person / Company)': 'Para kay (Contact Person / Kumpanya)',
+  'Contact person, position, and company': 'Contact person, posisyon, at kumpanya',
+  'PESO Manager (Signatory)': 'PESO Manager (Lumalagda)',
+  'Signatory name': 'Pangalan ng lumalagda',
+
+  'A Not Hired outcome keeps the applicant eligible for new job matching. Declined refers to referral processing, not an employment outcome.': 'Maaari pa ring maghanap ng tugmang trabaho ang hindi natanggap na aplikante. Ang Declined ay tungkol sa pagproseso ng referal, hindi resulta ng pag-aaplay.',
+
+  'Not Hired': 'Hindi Natanggap sa Trabaho',
+  'Record Employment Outcome': 'Itala ang Resulta ng Pag-aaplay',
+  'Mark as Not Hired': 'Itala bilang Hindi Natanggap',
+  'Confirm Not Hired': 'Kumpirmahin ang Hindi Pagkatanggap',
+  'Confirm Hired': 'Kumpirmahin ang Pagkatanggap',
+  'Yes, Record Hired': 'Oo, Itala ang Pagkatanggap',
+  'Yes, Mark as Not Hired': 'Oo, Itala bilang Hindi Natanggap',
+  'Referral status': 'Katayuan ng Referal',
+  'This record is retained for history.': 'Pinanatili ang rekord na ito sa kasaysayan.',
+  'Preview the referral slip. Only PESO staff can issue an official referral.': 'Suriin ang referral slip. Kawani lamang ng PESO ang maaaring maglabas ng opisyal na referal.',
+  'This creates the official REF number and records the referral as Referred. Download and print are separate actions.': 'Gagawin ang opisyal na REF number at itatala bilang Na-refer. Hiwalay ang pag-download at pag-print.',
+  'The referral will be closed as Declined. Its slip and status history will be retained. This is not a Not Hired employment outcome.': 'Isasara ang referal bilang Tinanggihan. Pananatiliin ang slip at kasaysayan. Hindi ito resulta ng Hindi Pagkatanggap sa Trabaho.',
+  'Referral issued. You can now download or print the slip.': 'Nailabas ang referal. Maaari nang i-download o i-print ang slip.',
+  'Referral PDF downloaded.': 'Na-download ang referral PDF.',
+  'View matched jobs and compatibility results. Contact PESO staff for official referral processing.': 'Tingnan ang mga katugmang trabaho at resulta. Makipag-ugnayan sa kawani ng PESO para sa opisyal na referal.',
+  'Official referrals are issued and managed by authorized PESO staff. Existing requests remain available for staff review.': 'Awtorisadong kawani ng PESO ang naglalabas at nangangasiwa ng opisyal na referal. Maaari pa ring suriin ang mga dating kahilingan.',
+  'Confirm that the applicant was hired for this job? This records the employment outcome and reduces the remaining vacancies by one.': 'Kumpirmahin ang pagkatanggap ng aplikante sa trabahong ito? Itatala ang resulta at babawasan ng isa ang natitirang bakante.',
+
   'Job Matching Results': 'Mga Resulta ng Pagtutugma ng Trabaho',
   'Recommended job opportunities based on applicant skills, education, and job requirements.': 'Mga inirerekomendang trabaho batay sa kasanayan, edukasyon, at mga kinakailangan ng trabaho.',
   'Compatibility Score': 'Iskor ng Pagkatugma',

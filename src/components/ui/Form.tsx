@@ -162,3 +162,6 @@ export function SearchInput({ className, placeholder, ...rest }: InputHTMLAttrib
     </div>
   )
 }
+
+// Shared control tokens keep searchable dropdowns visually aligned with Select.
+export { control as formControlClassName }

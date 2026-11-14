@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { useLiveRefresh } from '@/lib/useLiveRefresh'
+import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, Briefcase, FileText, ChevronRight, Search, User, PlusCircle } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
@@ -14,20 +16,24 @@ import { usePT } from '@/lib/portalCopy'
 export default function ApplicantDashboard() {
   const { user } = useAuth()
   const pt = usePT()
+  const email = user?.email
   
   const fetcher = useCallback(() => {
-    if (!user?.email) return Promise.resolve(null)
-    return fetchApplicantDashboard(user.email)
-  }, [user?.email])
-  const { data, loading, error, reload } = useQuery(fetcher, [user?.email])
+    if (!email) return Promise.resolve(null)
+    return fetchApplicantDashboard(email)
+  }, [email])
+  const { data, loading, refreshing, error, reload } = useQuery(fetcher, [user?.email])
 
-  if (loading) return <LoadingBlock label={pt('Loading dashboard...')} />
-  if (error) return <ErrorBlock message={error} onRetry={reload} />
+  useLiveRefresh(reload, ['applicants','applications','resumes','job_matches'])
+
+  if (loading && !data) return <LoadingBlock label={pt('Loading dashboard...')} />
+  if (error && !data) return <ErrorBlock message={error} onRetry={reload} />
 
   return (
     <div className="space-y-6">
       <AnnouncementNotice />
-      <PageHeader title="Dashboard" description={pt("Welcome, {name}. Here's a quick overview of your application.", { name: user?.name || 'John' })} />
+      <RefreshNotice error={error} refreshing={refreshing} retry={reload}/>
+      <PageHeader title="Dashboard" description={pt("Welcome, {name}. Here's a quick overview of your application.", { name: user?.name || pt('Applicant') })} />
 
       {!data ? (
         <Card className="p-12 text-center flex flex-col items-center justify-center">

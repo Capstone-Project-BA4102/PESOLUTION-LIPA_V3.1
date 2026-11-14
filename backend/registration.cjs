@@ -1,3 +1,4 @@
+const { registrationAddress } = require('./address.cjs');
 const { randomUUID } = require('node:crypto');
 const { HttpError, text, skills, check, validateRegistration, decodeFile } = require('./domain.cjs');
 const { sendAccountEmail } = require('./account-email.cjs');
@@ -6,6 +7,7 @@ const { generateInitialPassword, recordAccountReceipt } = require('./credentials
 async function registerApplicant(supabase, body, config, actorId = null) {
   const { input, files } = body || {};
   validateRegistration(input);
+  const addressFields = registrationAddress(input);
   const resume = decodeFile(files?.resume, 'resume');
   const photo = decodeFile(files?.photo, 'photo');
   // The credential is created here, printed on the receipt the applicant walks out with, and kept
@@ -30,7 +32,7 @@ async function registerApplicant(supabase, body, config, actorId = null) {
     const applicant = check(await supabase.from('applicants').insert({ profile_id: profileId,
       first_name: text(input.firstName), middle_surname: text(input.middleSurname), last_surname: text(input.lastSurname), suffix: text(input.suffix),
       date_of_birth: input.dateOfBirth, gender: text(input.gender), contact_number: text(input.contactNumber), email_address: email,
-      barangay: text(input.barangay), address: text(input.address), civil_status: text(input.civilStatus), nationality: text(input.nationality),
+      barangay: addressFields.barangay, address: addressFields.address, civil_status: text(input.civilStatus), nationality: text(input.nationality),
       education: text(input.education), course: text(input.course), school: text(input.school), account_status: 'Active',
     }).select('*').single());
     check(await supabase.from('resumes').insert({ applicant_id: applicant.id, file_path: `resumes/${resumePath}`,

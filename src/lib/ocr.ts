@@ -1,4 +1,4 @@
-import { BARANGAYS, EDUCATION_LEVELS } from '@/constants/options'
+import { EDUCATION_LEVELS } from '@/constants/options'
 import { backendRequest, fileToUpload } from './backend'
 
 const FIELD_MAP = {
@@ -27,11 +27,8 @@ export async function geminiExtract(file: File) {
     if (typeof value === 'string' && value.trim()) out[target] = value.trim()
   }
   if (out.email_address) out.email_address = out.email_address.toLowerCase()
-  if (typeof result.barangay === 'string') {
-    const value = result.barangay.trim().toLowerCase()
-    const barangay = BARANGAYS.find(option => option.toLowerCase() === value)
-    if (barangay) out.barangay = barangay
-  }
+  // Preserve extracted location wording for staff review, including other municipalities.
+  if (typeof result.barangay === 'string' && result.barangay.trim()) out.barangay = result.barangay.trim()
   if (typeof result.education === 'string') {
     const value = result.education.trim().toLowerCase()
     const education = EDUCATION_LEVELS.find(option => option.toLowerCase() === value)

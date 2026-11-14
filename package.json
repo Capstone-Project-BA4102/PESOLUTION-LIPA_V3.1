@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "start": "node backend/index.js",
+    "backend:dev": "node --watch backend/index.js",
     "sentiment:start": ".venv-sentiment\\Scripts\\python.exe backend/sentiment_inference.py",
     "nlp:setup": ".venv-nlp\\Scripts\\python.exe backend/skill_nlp.py --setup",
     "nlp:start": ".venv-nlp\\Scripts\\python.exe backend/skill_nlp.py",

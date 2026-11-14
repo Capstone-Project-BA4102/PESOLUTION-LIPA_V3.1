@@ -262,3 +262,9 @@ test('actual evidence survives the disk cache and is reused after a fresh runner
     assert.deepEqual(counts(state), before);
   } finally { await fs.unlink(path.join(directory, `${id}.json`)); await fs.rmdir(directory); }
 });
+
+ test('filled and expired vacancies leave recommendations without changing scores or invoking Gemini',async()=>{
+ const {state,runner}=fixture();await runner.run(id);const before=counts(state);
+ state.records.job_listings[0].vacancies=0;const filled=await runner.run(id);assert.equal(filled.matchesFound,0);assert.equal(state.calls.gemini.length,before.gemini);
+ state.records.job_listings[0].vacancies=1;state.records.job_listings[0].date_posted='2000-01-01T00:00:00Z';const expired=await runner.run(id);assert.equal(expired.matchesFound,0);assert.equal(state.calls.gemini.length,before.gemini);
+ });

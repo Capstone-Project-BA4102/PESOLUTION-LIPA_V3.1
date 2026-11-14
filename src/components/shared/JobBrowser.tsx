@@ -1,10 +1,13 @@
+import { RefreshNotice } from '@/components/shared/RefreshNotice'
+import { useLiveRefresh } from '@/lib/useLiveRefresh'
+import { JobQualifications } from './JobQualifications'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Briefcase, CheckCircle2, Clock, MapPin, Search, Wallet, XCircle } from 'lucide-react'
 import type { Job } from '@/lib/api'
 import { fetchJobs } from '@/lib/api'
 import { useQuery } from '@/lib/useQuery'
 import { peso } from '@/lib/utils'
-import { Alert, Button, Card, EmptyState, IconBox, SearchInput, Select, SkillTag } from '@/components/ui'
+import { Alert, Button, Card, EmptyState, IconBox, SearchInput, Select } from '@/components/ui'
 import { LoadingBlock, ErrorBlock } from '@/components/shared/QueryState'
 import { EMPLOYMENT_TYPES, INDUSTRIES, WORK_SETUPS } from '@/constants/options'
 import { usePT } from '@/lib/portalCopy'
@@ -26,20 +29,11 @@ export function JobCard({ job, onView, actions, meta, getSkillState }: { job: Jo
         <h3 className="text-2xl font-black text-slate-900">{job.title}</h3>
         <p className="text-lg font-bold text-brand-700">{job.company}</p>
         <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-slate-600">
-          <span className="inline-flex items-center gap-1.5"><MapPin className="h-5 w-5" />{job.location}, Batangas</span>
+          <span className="inline-flex items-center gap-1.5"><MapPin className="h-5 w-5" />{job.location}</span>
           <span className="inline-flex items-center gap-1.5"><Clock className="h-5 w-5" />{job.employmentType}</span>
           <span className="inline-flex items-center gap-1.5"><Wallet className="h-5 w-5" />{peso(job.salaryMin)} – {peso(job.salaryMax)}{unit}</span>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {[...(job.hardSkills || []).map((s) => ({ skill: s, hard: true })), ...(job.softSkills || []).map((s) => ({ skill: s, hard: false }))].slice(0, 4).map(({ skill: s, hard }) => {
-            const state = getSkillState?.(s)
-            return <SkillTag key={s} variant={state === 'matched' ? 'matched' : state === 'missing' ? 'gap' : hard ? 'hard' : 'soft'}>
-              {state === 'matched' && <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-              {state === 'missing' && <XCircle className="h-4 w-4" aria-hidden="true" />}
-              {s}
-            </SkillTag>
-          })}
-        </div>
+        <div className="mt-3"><JobQualifications job={job} getSkillState={getSkillState} /></div>
       </div>
       <div className="flex w-full shrink-0 flex-col items-end gap-3 sm:w-auto">
         {meta}
@@ -66,16 +60,19 @@ export function JobBrowser({
   getMeta,
   getSkillState,
   showHowToApply = true,
+  refreshKey = 0,
 }: {
   onView?: (job: Job) => void
   allowedIds?: string[]
   getActions?: (job: Job) => ReactNode
   getMeta?: (job: Job) => ReactNode
   getSkillState?: (job: Job, skill: string) => SkillState
+  refreshKey?: string | number
   showHowToApply?: boolean
 }) {
   const pt = usePT()
-  const { data: allJobs, loading, error, reload } = useQuery(fetchJobs)
+  const { data: allJobs, loading, refreshing, error, reload } = useQuery(fetchJobs, [refreshKey])
+  useLiveRefresh(reload, ['job_listings'])
   const [q, setQ] = useState('')
   const [type, setType] = useState('')
   const [setup, setSetup] = useState('')
@@ -96,11 +93,12 @@ export function JobBrowser({
     return filtered
   }, [allJobs, applied, allowedIds])
 
-  if (loading) return <LoadingBlock label={pt('Loading jobs...')} />
-  if (error) return <ErrorBlock message={error} onRetry={reload} />
+  if (loading && !allJobs) return <LoadingBlock label={pt('Loading jobs...')} />
+  if (error && !allJobs) return <ErrorBlock message={error} onRetry={reload} />
 
   return (
     <>
+      <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
       <Card className="mb-6 p-5">
         <form
           className="grid gap-4"

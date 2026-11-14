@@ -1,3 +1,5 @@
+import { BarangayField, CityMunicipalityField } from '@/components/shared/BarangayField'
+import { addressWithCity, barangayError, addressCityError } from '@/lib/applicantAddress'
 import { useMemo, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Download, Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -9,22 +11,22 @@ import { EDUCATION_LEVELS } from '@/constants/options'
 
 type Experience = { id: string; title: string; employer: string; dates: string; responsibilities: string }
 type Resume = {
-  fullName: string; phone: string; email: string; barangay: string; address: string; birthDate: string; gender: string;
+  cityMunicipality: string; fullName: string; phone: string; email: string; barangay: string; address: string; birthDate: string; gender: string;
   civilStatus: string; nationality: string; education: string; course: string; school: string; hardSkills: string;
   softSkills: string; summary: string; experiences: Experience[]
 }
 
-const initial: Resume = { fullName: '', phone: '', email: '', barangay: '', address: '', birthDate: '', gender: '', civilStatus: '', nationality: 'Filipino', education: '', course: '', school: '', hardSkills: '', softSkills: '', summary: '', experiences: [] }
+const initial: Resume = { cityMunicipality: 'Lipa City', fullName: '', phone: '', email: '', barangay: '', address: '', birthDate: '', gender: '', civilStatus: '', nationality: 'Filipino', education: '', course: '', school: '', hardSkills: '', softSkills: '', summary: '', experiences: [] }
 const lines = (value: string) => value.split(',').map(item => item.trim()).filter(Boolean)
 
 export default function ResumeMakerPage() {
   const [resume, setResume] = useState(initial)
   const update = (key: keyof Resume, value: string) => setResume(current => ({ ...current, [key]: value }))
-  const required = [resume.fullName, resume.phone, resume.email, resume.barangay, resume.address, resume.education, resume.school, resume.hardSkills, resume.softSkills]
+  const required = [resume.cityMunicipality, resume.fullName, resume.phone, resume.email, resume.barangay, resume.address, resume.education, resume.school, resume.hardSkills, resume.softSkills]
   const completion = Math.round(required.filter(Boolean).length / required.length * 100)
   const displayName = resume.fullName || 'YOUR FULL NAME'
-  const contact = [resume.phone || 'Mobile number', resume.email || 'Email address', resume.barangay ? `${resume.barangay}, Lipa City` : 'Barangay, Lipa City'].join(' · ')
-  const canExport = required.every(Boolean)
+  const contact = [resume.phone || 'Mobile number', resume.email || 'Email address', resume.barangay ? `${resume.barangay}, ${resume.cityMunicipality}` : 'Barangay, City / Municipality'].join(' · ')
+  const canExport = required.every(Boolean) && !barangayError(resume.cityMunicipality, resume.barangay) && !addressCityError(resume.address, resume.cityMunicipality)
 
   const previewSections = useMemo(() => [
     { title: 'Profile', content: resume.summary },
@@ -55,7 +57,7 @@ export default function ResumeMakerPage() {
       y += wrapped.length * 15 + 18
     }
     pdf.setTextColor(20, 29, 45); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(24); pdf.text(resume.fullName.toUpperCase(), margin, y)
-    y += 23; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(80, 94, 115); pdf.text(pdf.splitTextToSize(`${resume.phone} · ${resume.email} · ${resume.barangay}, Lipa City · ${resume.address}`, maxWidth), margin, y)
+    y += 23; pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(80, 94, 115); pdf.text(pdf.splitTextToSize(`${resume.phone} · ${resume.email} · ${resume.barangay}, ${resume.cityMunicipality} · ${addressWithCity(resume.address, resume.cityMunicipality)}`, maxWidth), margin, y)
     y += 34
     section('Personal Information', `Date of Birth: ${resume.birthDate || 'Not provided'}    Gender: ${resume.gender || 'Not provided'}    Civil Status: ${resume.civilStatus || 'Not provided'}    Nationality: ${resume.nationality || 'Not provided'}`)
     section('Profile', resume.summary)
@@ -74,7 +76,7 @@ export default function ResumeMakerPage() {
 
     <main className="mx-auto grid max-w-[1500px] gap-6 px-5 py-8 sm:px-6 xl:grid-cols-[minmax(0,1fr)_minmax(480px,.85fr)]">
       <form className="space-y-8 rounded-lg border border-slate-200 bg-white p-5 sm:p-7" onSubmit={event => event.preventDefault()}>
-        <section><h2 className="text-2xl font-bold">Contact and Lipa address</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><Input required label="Full Name" value={resume.fullName} onChange={e => update('fullName', e.target.value)} /><Input required label="Mobile Number" value={resume.phone} onChange={e => update('phone', e.target.value)} /><Input required label="Email Address" type="email" value={resume.email} onChange={e => update('email', e.target.value)} /><Input required label="Barangay" value={resume.barangay} onChange={e => update('barangay', e.target.value)} /><Input required label="Complete Lipa City Address" wrapperClassName="sm:col-span-2" value={resume.address} onChange={e => update('address', e.target.value)} /></div></section>
+        <section><h2 className="text-2xl font-bold">Contact and address</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><Input required label="Full Name" value={resume.fullName} onChange={e => update('fullName', e.target.value)} /><Input required label="Mobile Number" value={resume.phone} onChange={e => update('phone', e.target.value)} /><Input required label="Email Address" type="email" value={resume.email} onChange={e => update('email', e.target.value)} /><CityMunicipalityField required value={resume.cityMunicipality} onChange={city => update('cityMunicipality', city)} /><BarangayField required city={resume.cityMunicipality} value={resume.barangay} onChange={barangay => update('barangay', barangay)} /><Input required label="Complete Address" wrapperClassName="sm:col-span-2" value={resume.address} onChange={e => update('address', e.target.value)} /></div></section>
         <section className="border-t border-slate-200 pt-7"><h2 className="text-2xl font-bold">Personal details</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><Input label="Date of Birth" type="date" value={resume.birthDate} onChange={e => update('birthDate', e.target.value)} /><Select label="Gender" placeholder="Select" options={['Female', 'Male', 'Prefer not to say']} value={resume.gender} onChange={e => update('gender', e.target.value)} /><Select label="Civil Status" placeholder="Select" options={['Single', 'Married', 'Widowed', 'Separated']} value={resume.civilStatus} onChange={e => update('civilStatus', e.target.value)} /><Input label="Nationality" value={resume.nationality} onChange={e => update('nationality', e.target.value)} /></div></section>
         <section className="border-t border-slate-200 pt-7"><h2 className="text-2xl font-bold">Education and qualifications</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><Select required label="Highest Educational Attainment" placeholder="Select attainment" options={EDUCATION_LEVELS} value={resume.education} onChange={e => update('education', e.target.value)} /><Input label="Course or Strand" value={resume.course} onChange={e => update('course', e.target.value)} /><Input required label="School" wrapperClassName="sm:col-span-2" value={resume.school} onChange={e => update('school', e.target.value)} /><Textarea label="Professional Summary" rows={3} wrapperClassName="sm:col-span-2" value={resume.summary} onChange={e => update('summary', e.target.value)} hint="Two or three sentences about your experience and target work." /><Textarea required label="Hard Skills" rows={3} value={resume.hardSkills} onChange={e => update('hardSkills', e.target.value)} hint="Separate skills with commas, e.g. Microsoft Excel, Inventory Management." /><Textarea required label="Soft Skills" rows={3} value={resume.softSkills} onChange={e => update('softSkills', e.target.value)} hint="Separate skills with commas, e.g. Communication, Teamwork." /></div></section>
         <section className="border-t border-slate-200 pt-7"><div className="flex items-center justify-between gap-3"><div><h2 className="text-2xl font-bold">Work experience</h2><p className="mt-1 text-slate-500">Optional for first-time jobseekers.</p></div><Button size="sm" variant="neutral" onClick={addExperience} icon={<Plus className="h-4 w-4" />}>Add</Button></div><div className="mt-5 space-y-5">{resume.experiences.map(item => <div key={item.id} className="rounded-lg border border-slate-200 p-4"><div className="mb-4 flex justify-end"><button type="button" onClick={() => removeExperience(item.id)} aria-label="Remove work experience" className="rounded-lg p-2 text-brand-700 hover:bg-brand-50"><Trash2 className="h-4 w-4" /></button></div><div className="grid gap-4 sm:grid-cols-2"><Input label="Job Title" value={item.title} onChange={e => updateExperience(item.id, 'title', e.target.value)} /><Input label="Employer" value={item.employer} onChange={e => updateExperience(item.id, 'employer', e.target.value)} /><Input label="Employment Dates" placeholder="Jan 2024 - Dec 2025" value={item.dates} onChange={e => updateExperience(item.id, 'dates', e.target.value)} /><Textarea label="Main Responsibilities" rows={3} wrapperClassName="sm:col-span-2" value={item.responsibilities} onChange={e => updateExperience(item.id, 'responsibilities', e.target.value)} /></div></div>)}</div></section>

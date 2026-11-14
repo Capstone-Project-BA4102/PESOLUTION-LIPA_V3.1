@@ -92,3 +92,24 @@ test('email failure does not roll back a successfully registered applicant', asy
     assert.ok(!events.some(event => event[0] === 'auth-delete'));
   } finally { global.fetch = originalFetch; }
 });
+
+
+test('reviewed city and barangay are saved using existing address fields', async () => {
+  for (const location of [
+    { cityMunicipality: 'Lipa City', barangay: 'inosloban', address: 'House 1', expectedBarangay: 'Inosloban' },
+    { cityMunicipality: 'Tanauan City', barangay: 'San Vicente', address: 'House 2', expectedBarangay: 'San Vicente' },
+  ]) {
+    const { supabase, events } = service();
+    await registerApplicant(supabase, { ...body, input: { ...body.input, ...location } });
+    const row = events.find(event => event[0] === 'insert' && event[1] === 'applicants')[2];
+    assert.equal(row.barangay, location.expectedBarangay);
+    assert.equal(row.address, `${location.address}, ${location.cityMunicipality}`);
+    assert.equal(Object.hasOwn(row, 'cityMunicipality'), false, 'no new schema column');
+  }
+});
+
+test('invalid Lipa selection is rejected before any Auth user, file or applicant is created', async () => {
+  const { supabase, events } = service();
+  await assert.rejects(registerApplicant(supabase, { ...body, input: { ...body.input, cityMunicipality: 'Lipa City', barangay: 'Tingloy', address: 'House 1' } }), /official Lipa/);
+  assert.deepEqual(events, []);
+});

@@ -2,6 +2,25 @@ import { registerFil } from './core'
 
 /** Admin applicant management, walk-in registration, dashboard, evaluation, summary report. */
 registerFil({
+  'Saved value': 'Naka-save na halaga',
+  'Use {value}': 'Gamitin ang {value}',
+  'Search {field}': 'Hanapin ang {field}',
+  'Type to search…': 'Mag-type upang maghanap…',
+  'No options found.': 'Walang nahanap na pagpipilian.',
+
+  'The complete address and selected city differ. Review the city or municipality before saving.': 'Magkaiba ang lungsod sa address at sa napili. Suriin ang lungsod o munisipalidad bago i-save.',
+
+  'City / Municipality': 'Lungsod / Munisipalidad',
+  'Lipa City or another municipality': 'Lipa City o ibang munisipalidad',
+  'Include this city or municipality in the complete address.': 'Isama ang lungsod o munisipalidad na ito sa kumpletong address.',
+  'Search Lipa City barangays': 'Maghanap ng barangay sa Lipa City',
+  'Enter barangay for the selected city': 'Ilagay ang barangay para sa napiling lungsod',
+  'Saved spelling retained. Choose a suggestion only if you want to change it.': 'Pinanatili ang naka-save na baybay. Pumili lamang kung nais itong baguhin.',
+  'Type to search the official Lipa City list.': 'Mag-type upang hanapin sa opisyal na listahan ng Lipa City.',
+  'Other municipalities are not restricted to the Lipa City list.': 'Hindi limitado sa listahan ng Lipa City ang ibang munisipalidad.',
+  'Choose an official Lipa City barangay from the suggestions.': 'Pumili ng opisyal na barangay sa Lipa City mula sa mga mungkahi.',
+  'The address mentions Lipa City. Review the complete address for the selected city or municipality.': 'Nabanggit ang Lipa City sa address. Suriin ang kumpletong address para sa napiling lungsod o munisipalidad.',
+
   // Applicants page — header, filters, table
   'Manage applicant records and registrations.': 'Pangasiwaan ang mga record at rehistro ng aplikante.',
   'Register Walk-in': 'Irehistro ang Walk-in',

@@ -1,7 +1,7 @@
 const { HttpError, check, requireUuid } = require('./domain.cjs');
 const { createHash } = require('node:crypto');
 
-const NOTIFIABLE_STATUSES = new Set(['Referred', 'Hired', 'Declined']);
+const NOTIFIABLE_STATUSES = new Set(['Referred', 'Hired', 'Declined', 'Not Hired']);
 const EMAIL_LOG_MISSING_CODES = new Set(['42P01', 'PGRST204', 'PGRST205']);
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -35,10 +35,15 @@ function templateFor(event, publicUrl) {
       heading: 'Congratulations on your employment update',
       message: `PESO Lipa City has recorded your application for ${position}${employer ? ` at ${employer}` : ''} as Hired. Please sign in to your Applicant Portal to review the update and complete the feedback process.`,
     },
+    'Not Hired': {
+      subject: `PESOLUTION employment outcome for ${position}`,
+      heading: 'Employment outcome: Not Hired',
+      message: `PESO recorded a Not Hired outcome for ${position}${employer ? ` at ${employer}` : ''}. Your profile remains available for other suitable matches.`,
+    },
     Declined: {
       subject: `PESOLUTION application update for ${position}`,
       heading: 'Your application status has been updated',
-      message: `Your application for ${position}${employer ? ` at ${employer}` : ''} was not selected for this opportunity. Your PESOLUTION profile remains available for other suitable job matches.`,
+      message: `Your application for ${position}${employer ? ` at ${employer}` : ''} has a Declined referral status. Please contact PESO for the recorded reason; this status alone does not confirm an employment outcome. Your PESOLUTION profile remains available for other suitable job matches.`,
     },
   }[status];
   const portalUrl = String(publicUrl || '').replace(/\/$/, '');

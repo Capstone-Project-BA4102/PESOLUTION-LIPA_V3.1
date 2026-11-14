@@ -2,6 +2,16 @@ import { registerFil } from './core'
 
 /** Portal shell (header, sidebar, account card, logout) and the shared UI kit. */
 registerFil({
+  'Showing saved data. Refresh failed.': 'Ipinapakita ang naka-save na data. Hindi nagtagumpay ang pag-refresh.',
+  'Checking for updates…': 'Sinusuri kung may mga update…',
+  Session: 'Sesyon',
+  'Time remaining before inactivity logout': 'Natitirang oras bago awtomatikong mag-logout dahil sa kawalan ng aktibidad',
+  'Your session is about to expire': 'Malapit nang mag-expire ang iyong sesyon',
+  'Stay Logged In': 'Manatiling Naka-log In',
+  'You will be signed out due to inactivity in': 'Awtomatiko kang mala-log out dahil sa kawalan ng aktibidad sa loob ng',
+
+  Settings: 'Mga Setting',
+
   'The PESOLUTION service could not be reached. Please retry or contact PESO.': 'Hindi maabot ang serbisyo ng PESOLUTION. Subukan muli o makipag-ugnayan sa PESO.',
   'New Password': 'Bagong Password',
   'Saving...': 'Sine-save...',

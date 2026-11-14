@@ -3,6 +3,7 @@
  * re-exports the translation hooks, so any screen can simply call usePT().
  */
 import './chrome'
+import './analytics'
 import './applicant'
 import './adminOps'
 import './adminCatalog'

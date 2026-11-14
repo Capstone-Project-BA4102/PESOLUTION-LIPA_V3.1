@@ -103,8 +103,10 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
                 <FileText className="w-4 h-4 text-brand-500" />
                 {pt('Hard Skills (50%)')}
               </h5>
-              <span className="font-bold text-brand-700 text-sm">{match.hardSkillScore ?? 0}%</span>
+              <span className="font-bold text-brand-700 text-sm">{display(match.hardSkillScore ?? hardRate)}%</span>
             </div>
+            <p className="mb-1 text-xs text-slate-500">{hardRequired ? pt('{matched} of {total} required skills matched', { matched: matchedHardSkills.length, total: hardRequired }) : pt('No hard skills required')}</p>
+            <div role="progressbar" aria-label={pt('Hard skill coverage')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={hardRate} className="mb-3 h-2 overflow-hidden rounded-full bg-slate-200"><span className="block h-full bg-brand-600" style={{ width: `${hardRate}%` }}/></div>
             
             <div className="space-y-2 pl-6">
               <div>
@@ -143,8 +145,10 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
                 <Target className="w-4 h-4 text-brand-500" />
                 {pt('Soft Skills (30%)')}
               </h5>
-              <span className="font-bold text-brand-700 text-sm">{match.softSkillScore ?? 0}%</span>
+              <span className="font-bold text-brand-700 text-sm">{display(match.softSkillScore ?? softRate)}%</span>
             </div>
+            <p className="mb-1 text-xs text-slate-500">{softRequired ? pt('{matched} of {total} required skills matched', { matched: matchedSoftSkills.length, total: softRequired }) : pt('No soft skills required')}</p>
+            <div role="progressbar" aria-label={pt('Soft skill coverage')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={softRate} className="mb-3 h-2 overflow-hidden rounded-full bg-slate-200"><span className="block h-full bg-brand-600" style={{ width: `${softRate}%` }}/></div>
             
             <div className="space-y-2 pl-6">
               <div>

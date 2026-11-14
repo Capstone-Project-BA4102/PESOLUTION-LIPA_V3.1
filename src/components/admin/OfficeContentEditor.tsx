@@ -1,3 +1,4 @@
+import { referralSignatoryName } from '@/lib/referralDefaults'
 import { useState } from 'react'
 import { ImagePlus, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -66,7 +67,7 @@ export const SITE_CONTENT_FORM_ID = 'peso-site-content-form'
 
 export function OfficeContentEditor({ record, onSavingChange }: { record: SiteRecord; onSavingChange?: (saving: boolean) => void }) {
   const pt = usePT()
-  const [content, setContent] = useState(record.content)
+  const [content, setContent] = useState(() => ({ ...record.content, referralSignatoryName: referralSignatoryName(record.content.referralSignatoryName) }))
   const [uploadingHero, setUploadingHero] = useState(false)
   const update = (key: keyof typeof content, value: string) => setContent(current => ({ ...current, [key]: value }))
   const changeHero = async (file?: File) => {
@@ -85,6 +86,9 @@ export function OfficeContentEditor({ record, onSavingChange }: { record: SiteRe
   return <form id={SITE_CONTENT_FORM_ID} onSubmit={save} className="space-y-6">
     <section className="space-y-4"><h2 className="text-lg font-bold">{pt('Office Information')}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
+        <Input label="Default Referral Signatory" value={content.referralSignatoryName} required maxLength={200}
+          hint="PESO Manager's name for new referral slips. Issued slips keep their saved signatory."
+          onChange={e => update('referralSignatoryName', e.target.value)} />
         <Input label="Office Name" value={content.title} onChange={e => update('title', e.target.value)} required />
         <Input label="Tagline" value={content.tagline} onChange={e => update('tagline', e.target.value)} required />
         <Input label="Address" value={content.address} onChange={e => update('address', e.target.value)} />

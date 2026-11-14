@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { SessionStatus } from './SessionStatus'
 import { LogOut, Menu, X } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { useQuery } from '@/lib/useQuery'
@@ -186,6 +187,7 @@ function AccountCard() {
           <p className="text-[0.85rem] font-semibold leading-tight text-brand-600">{roleLabel}</p>
           <p className="text-[0.85rem] leading-tight text-slate-600">{user.code || pt('No serial ID yet')}</p>
           <p className="break-all text-[0.85rem] leading-tight text-slate-500">{user.email}</p>
+          <SessionStatus />
         </div>
       </div>
     </div>

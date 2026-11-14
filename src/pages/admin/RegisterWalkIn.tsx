@@ -14,7 +14,9 @@ import { geminiExtract } from '@/lib/ocr'
 import { printDocument } from '@/lib/print'
 import { cn } from '@/lib/utils'
 import { usePT } from '@/lib/portalCopy'
-import { BARANGAYS, EDUCATION_LEVELS } from '@/constants/options'
+import { EDUCATION_LEVELS } from '@/constants/options'
+import { BarangayField, CityMunicipalityField } from '@/components/shared/BarangayField'
+import { cityFromAddress, addressWithCity, barangayError, addressCityError } from '@/lib/applicantAddress'
 import { parseSkillText, formatSkillText } from '@/lib/skillText'
 import type { AmbiguousSkill } from '@/lib/ocr'
 
@@ -83,6 +85,7 @@ const EMPTY_FORM = {
   gender: '',
   contact_number: '',
   email_address: '',
+  city_municipality: 'Lipa City',
   barangay: '',
   address: '',
   education: '',
@@ -165,6 +168,7 @@ export default function RegisterWalkIn() {
           setFormData((cur) => {
             const next = { ...cur }
             prefilled.forEach((k) => { next[k] = parsed[k] })
+            if (parsed.address) next.city_municipality = cityFromAddress(parsed.address)
             return next
           })
         }
@@ -208,8 +212,9 @@ export default function RegisterWalkIn() {
         gender: formData.gender,
         contactNumber: formData.contact_number,
         emailAddress: formData.email_address,
+        cityMunicipality: formData.city_municipality,
         barangay: formData.barangay,
-        address: formData.address,
+        address: addressWithCity(formData.address, formData.city_municipality),
         civilStatus: formData.civil_status,
         nationality: formData.nationality,
         education: formData.education,
@@ -406,6 +411,8 @@ export default function RegisterWalkIn() {
                 toast.error(pt('Review every ambiguous skill before continuing.'))
                 return
               }
+              const locationError = barangayError(formData.city_municipality, formData.barangay) || addressCityError(formData.address, formData.city_municipality)
+              if (locationError) { toast.error(pt(locationError)); return }
               setStep(4)
             }}>
               <h2 className="text-xl font-bold text-slate-900 mb-1">{pt('Applicant Information (Editable)')}</h2>
@@ -431,7 +438,8 @@ export default function RegisterWalkIn() {
                   <Select label="Gender" options={['Male', 'Female']} placeholder="Select gender" required value={formData.gender} onChange={(e) => setField('gender', e.target.value)} />
                   <Input label="Contact Number" required value={formData.contact_number} onChange={(e) => setField('contact_number', e.target.value)} />
                   <Input label="Email Address" type="email" required value={formData.email_address} onChange={(e) => setField('email_address', e.target.value)} hint="This becomes the applicant's portal login." />
-                  <Select label="Barangay" options={BARANGAYS} placeholder="Select barangay" required value={formData.barangay} onChange={(e) => setField('barangay', e.target.value)} />
+                  <CityMunicipalityField required value={formData.city_municipality} onChange={value => setField('city_municipality', value)} />
+                  <BarangayField city={formData.city_municipality} required value={formData.barangay} onChange={value => setField('barangay', value)} />
                   <Input label="Address" required value={formData.address} onChange={(e) => setField('address', e.target.value)} wrapperClassName="sm:col-span-2 lg:col-span-3" />
                 </div>
 
@@ -567,7 +575,7 @@ export default function RegisterWalkIn() {
                   <span className="text-slate-500">{pt('Gender')}</span><span className="font-medium text-slate-900">{formData.gender || '—'}</span>
                   <span className="text-slate-500">{pt('Contact Number')}</span><span className="font-medium text-slate-900">{formData.contact_number || '—'}</span>
                   <span className="text-slate-500">{pt('Email Address')}</span><span className="font-medium text-slate-900">{formData.email_address || '—'}</span>
-                  <span className="text-slate-500">{pt('Address')}</span><span className="font-medium text-slate-900">{formData.address || '—'}</span>
+                  <span className="text-slate-500">{pt('Address')}</span><span className="font-medium text-slate-900">{addressWithCity(formData.address, formData.city_municipality) || '—'}</span>
                 </div>
               </div>
               <div>
@@ -704,7 +712,7 @@ export default function RegisterWalkIn() {
               <span className="text-slate-500">{pt('Date of Birth')}</span><span className="font-medium text-slate-800">{formData.date_of_birth || 'N/A'}</span>
               <span className="text-slate-500">{pt('Gender')}</span><span className="font-medium text-slate-800">{formData.gender || 'N/A'}</span>
               <span className="text-slate-500">{pt('Contact Number')}</span><span className="font-medium text-slate-800">{formData.contact_number || 'N/A'}</span>
-              <span className="text-slate-500">{pt('Address')}</span><span className="font-medium text-slate-800">{formData.address || 'N/A'}</span>
+              <span className="text-slate-500">{pt('Address')}</span><span className="font-medium text-slate-800">{addressWithCity(formData.address, formData.city_municipality) || 'N/A'}</span>
               <span className="text-slate-500">{pt('Highest Attainment')}</span><span className="font-medium text-slate-800">{formData.education || 'N/A'}</span>
               <span className="text-slate-500">{pt('Course')}</span><span className="font-medium text-slate-800">{formData.course || 'N/A'}</span>
             </div>

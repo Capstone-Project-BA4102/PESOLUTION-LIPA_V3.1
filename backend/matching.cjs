@@ -27,9 +27,11 @@ async function loadMatchingInputs(supabase, applicantId) {
   const applicant = check(await supabase.from('applicants').select('id, education').eq('id', applicantId).maybeSingle());
   if (!applicant) throw new HttpError(404, 'Applicant not found.');
   const resume = check(await supabase.from('resumes').select('hard_skills, soft_skills').eq('applicant_id', applicantId).order('uploaded_at', { ascending: false }).limit(1).maybeSingle());
-  const jobs = check(await supabase.from('job_listings').select('id, title, hard_skills, soft_skills, education').eq('status', 'Active')) || [];
+  const jobs = check(await supabase.from('job_listings').select('id, title, hard_skills, soft_skills, education, vacancies, date_posted').eq('status', 'Active')) || [];
   const confirmed = { ...applicant, hard_skills: skills(resume?.hard_skills), soft_skills: skills(resume?.soft_skills) };
-  return { applicant: confirmed, jobs };
+  return { applicant: confirmed, jobs: jobs.filter(job =>
+    (job.vacancies == null || Number(job.vacancies) > 0) &&
+    (!job.date_posted || Date.now() - Date.parse(job.date_posted) < 30 * 86400000)) };
 }
 
 async function analyzeApplicant(supabase, nlp, applicantId, inputs) {

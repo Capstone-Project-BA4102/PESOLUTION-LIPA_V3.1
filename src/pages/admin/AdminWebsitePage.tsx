@@ -14,7 +14,7 @@ export default function AdminWebsitePage() {
   const { data, loading, error, reload } = useQuery(fetcher, [])
   const [saving, setSaving] = useState(false)
   return <div className="space-y-6">
-    <PageHeader title="Public Website" actions={<>
+    <PageHeader title="Settings" actions={<>
       <ButtonLink to="/" target="_blank" variant="neutral" icon={<ExternalLink className="h-4 w-4" />}>
         Open Website
       </ButtonLink>

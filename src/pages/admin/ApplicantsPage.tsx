@@ -1,4 +1,6 @@
 // @ts-nocheck
+import { RefreshNotice } from '@/components/shared/RefreshNotice'
+import { useLiveRefresh } from '@/lib/useLiveRefresh'
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -60,7 +62,8 @@ import { EditApplicantModal } from "@/components/modals/EditApplicantModal";
 export default function ApplicantsPage() {
   const pt = usePT();
   const navigate = useNavigate();
-  const { data, loading, error, reload } = useQuery(fetchApplicants);
+  const { data, loading, refreshing, error, reload } = useQuery(fetchApplicants);
+  useLiveRefresh(reload, ['applicants', 'resumes', 'applications', 'referrals', 'status_history']);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [genderFilter, setGenderFilter] = useState("All Genders");
@@ -75,6 +78,8 @@ export default function ApplicantsPage() {
   const [hiringApplicant, setHiringApplicant] = useState<Applicant | null>(null);
   const [applicantReferrals, setApplicantReferrals] = useState<ApplicantReferral[]>([]);
   const [isHiringModalOpen, setIsHiringModalOpen] = useState(false);
+  const [hireTarget, setHireTarget] = useState<ApplicantReferral | null>(null);
+  const [isHiring, setIsHiring] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<ApplicantReferral | null>(null);
   const [isRejecting, setIsRejecting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -127,12 +132,16 @@ export default function ApplicantsPage() {
   const handleOpenHiringModal = async (appId: string) => {
     setHiringApplicant(applicants.find((a) => a.id === appId) || null);
     setIsHiringModalOpen(true);
-    const refs = await fetchApplicantReferrals(appId);
-    setApplicantReferrals(refs);
+    setApplicantReferrals([]);
+    try {
+      const refs = await fetchApplicantReferrals(appId);
+      setApplicantReferrals(refs);
+    } catch (e) { toast.error(e instanceof Error ? e.message : pt("Unable to load referral history.")); }
   };
 
   const handleConfirmHire = async (referral: ApplicantReferral) => {
-    if (!hiringApplicant) return;
+    if (!hiringApplicant || isHiring) return;
+    setIsHiring(true);
     try {
       const slotsLeft = await markApplicantAsHiredSpecific(
         hiringApplicant.id,
@@ -151,13 +160,13 @@ export default function ApplicantsPage() {
       );
       setIsHiringModalOpen(false);
       reload();
-    } catch {
-      toast.error(pt("Failed to mark as Hired."));
-    }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : pt("Failed to mark as Hired."));
+    } finally { setIsHiring(false); setHireTarget(null); }
   };
 
   const handleConfirmReject = async () => {
-    if (!hiringApplicant || !rejectTarget) return;
+    if (!hiringApplicant || !rejectTarget || isRejecting) return;
     setIsRejecting(true);
     try {
       await markReferralRejected(
@@ -176,7 +185,7 @@ export default function ApplicantsPage() {
       setIsHiringModalOpen(false);
       reload();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : pt("Failed to mark as rejected."));
+      toast.error(e instanceof Error ? e.message : pt("Failed to record Not Hired."));
     } finally {
       setIsRejecting(false);
     }
@@ -236,8 +245,8 @@ export default function ApplicantsPage() {
       .catch(() => setTableEmailEvents({}));
   }, [pagedApplicantIds]);
 
-  if (loading) return <LoadingBlock label="Loading applicants…" />;
-  if (error) return <ErrorBlock message={error} onRetry={reload} />;
+  if (loading && !data) return <LoadingBlock label="Loading applicants…" />;
+  if (error && !data) return <ErrorBlock message={error} onRetry={reload} />;
 
   const selectedApplicant =
     applicants.find((a) => a.id === selectedId) ?? applicants[0];
@@ -317,6 +326,7 @@ export default function ApplicantsPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
       <PageHeader
         title="Applicants"
         description="Manage applicant records and registrations."
@@ -355,7 +365,7 @@ export default function ApplicantsPage() {
         }}
         filterOptions={[
           { id: 'gender', label: 'Gender', placeholder: 'All Genders', options: ['All Genders', 'Male', 'Female'] },
-          { id: 'barangay', label: 'Barangay', placeholder: 'All Barangays', options: ['All Barangays', ...Array.from(new Set(applicants.map(a => a.barangay))).filter(Boolean).sort()] },
+          { id: 'barangay', searchable: true, label: 'Barangay', placeholder: 'All Barangays', options: ['All Barangays', ...Array.from(new Set(applicants.map(a => a.barangay))).filter(Boolean).sort()] },
           { id: 'education', label: 'Education', placeholder: 'All Educations', options: ['All Educations', 'High School', 'College Level', 'College Graduate', "Master's Degree"] },
           { id: 'status', label: 'Status', placeholder: 'All Statuses', options: ['All Statuses', 'New', 'Renewal', 'Referred', 'Hired'] },
         ]}
@@ -805,7 +815,7 @@ export default function ApplicantsPage() {
                   className="flex-1 min-h-[3rem] text-sm"
                   onClick={() => handleOpenHiringModal(selectedApplicant.id)}
                 >
-                  Mark as Hired/Rejected
+                  Record Employment Outcome
                 </Button>
               )}
               {selectedApplicant.status === "Hired" && (
@@ -837,11 +847,11 @@ export default function ApplicantsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
           <Card className="w-full max-w-lg p-6 flex flex-col max-h-[90vh]">
             <h2 className="text-xl font-bold text-slate-900 mb-2">
-              {pt("Mark as Hired/Rejected")}
+              {pt("Record Employment Outcome")}
             </h2>
             <p className="text-slate-500 mb-4 text-sm">
               {pt("Record the outcome for each referral of")}{" "}
-              <strong>{hiringApplicant.name}</strong>. {pt("A rejected applicant stays active and can be job matched again until hired.")}
+              <strong>{hiringApplicant.name}</strong>. {pt("A Not Hired outcome keeps the applicant eligible for new job matching. Declined refers to referral processing, not an employment outcome.")}
             </p>
 
             <div className="flex-1 overflow-y-auto space-y-3 mb-6">
@@ -862,22 +872,24 @@ export default function ApplicantsPage() {
                       {ref.job_listings?.companies?.name}
                     </div>
                     <div className="text-xs text-slate-400 mb-3">
-                      {pt("Ref No.")}: {ref.referral_number}
+                      {pt("Ref No.")}: {ref.referral_number} · {pt(ref.applicationStatus || "Unknown status")}
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Button
                         variant="primary"
                         className="flex-1"
-                        onClick={() => handleConfirmHire(ref)}
+                        disabled={ref.applicationStatus !== "Referred" || !ref.job_id}
+                        onClick={() => setHireTarget(ref)}
                       >
                         Confirm Hire for this Job
                       </Button>
                       <Button
                         variant="neutral"
                         className="flex-1"
+                        disabled={ref.applicationStatus !== "Referred" || !ref.job_id}
                         onClick={() => setRejectTarget(ref)}
                       >
-                        <UserX className="mr-2 h-4 w-4" /> Mark as Rejected
+                        <UserX className="mr-2 h-4 w-4" /> Mark as Not Hired
                       </Button>
                     </div>
                   </div>
@@ -897,21 +909,29 @@ export default function ApplicantsPage() {
         </div>
       )}
 
+      <Modal open={!!hireTarget} onClose={() => { if (!isHiring) setHireTarget(null) }} title="Confirm Hired"
+        footer={<div className="flex justify-end gap-2">
+          <Button variant="neutral" disabled={isHiring} onClick={() => setHireTarget(null)}>Cancel</Button>
+          <Button variant="primary" disabled={isHiring} onClick={() => hireTarget && handleConfirmHire(hireTarget)}>{isHiring ? 'Saving…' : 'Yes, Record Hired'}</Button>
+        </div>}>
+        <p>{pt('Confirm that the applicant was hired for this job? This records the employment outcome and reduces the remaining vacancies by one.')}</p>
+      </Modal>
+
       <Modal
         open={!!rejectTarget}
-        onClose={() => setRejectTarget(null)}
-        title="Confirm Rejection"
+        onClose={() => { if (!isRejecting) setRejectTarget(null) }}
+        title="Confirm Not Hired"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="neutral" onClick={() => setRejectTarget(null)}>Cancel</Button>
             <Button variant="primary" disabled={isRejecting} onClick={handleConfirmReject}>
-              {isRejecting ? "Saving…" : "Yes, Mark as Rejected"}
+              {isRejecting ? "Saving…" : "Yes, Mark as Not Hired"}
             </Button>
           </div>
         }
       >
         <p className="text-lg text-slate-700">
-          {pt("Mark {name} as rejected for {job} at {company}?", {
+          {pt("Mark {name} as Not Hired for {job} at {company}?", {
             name: hiringApplicant?.name || pt("this applicant"),
             job: rejectTarget?.job_listings?.job_title || pt("this job"),
             company: rejectTarget?.job_listings?.companies?.name || pt("this company"),

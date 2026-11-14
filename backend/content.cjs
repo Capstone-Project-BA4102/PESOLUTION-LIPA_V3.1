@@ -15,6 +15,12 @@ function validateContent(input) {
     output[key] = text(input[key]);
     if (output[key].length > 2000) throw new HttpError(400, `${key} is too long.`);
   }
+  if (Object.hasOwn(input, 'referralSignatoryName')) {
+    if (typeof input.referralSignatoryName !== 'string' || !input.referralSignatoryName.trim() || input.referralSignatoryName.trim().length > 200 || Array.from(input.referralSignatoryName).some(character => character.charCodeAt(0) < 32)) {
+      throw new HttpError(400, 'Enter a valid default referral signatory name (up to 200 characters).');
+    }
+    output.referralSignatoryName = input.referralSignatoryName.trim();
+  }
   if (!output.title || !output.tagline) throw new HttpError(400, 'Title and tagline are required.');
   if (output.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(output.email)) throw new HttpError(400, 'Enter a valid office email.');
   output.facebookUrl = publicUrl(input.facebookUrl);

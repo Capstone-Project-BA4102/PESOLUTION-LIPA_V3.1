@@ -2,6 +2,12 @@ import { registerFil } from './core'
 
 /** adminCatalog screen copy. */
 registerFil({
+  'Required qualifications': 'Mga kinakailangang kwalipikasyon',
+  'Minimum Education': 'Minimum na Edukasyon',
+  'Not specified': 'Hindi nakasaad',
+  'View All ({count} more)': 'Tingnan Lahat ({count} pa)',
+  'Show Less': 'Ipakita ang Mas Kaunti',
+
   'Manage partner employers and their company information.': 'Pangasiwaan ang mga katuwang na kumpanya at ang kanilang impormasyon.',
   'Add Company': 'Magdagdag ng Kumpanya',
   'Total Companies': 'Kabuuang Kumpanya',
