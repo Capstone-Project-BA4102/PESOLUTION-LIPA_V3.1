@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const {aggregateAnalytics,employmentAnalytics,filtersFor,readPages}=require('../backend/employment-analytics.cjs');
+const {aggregateAnalytics,filtersFor,readPages}=require('../backend/employment-analytics.cjs');
 const {createApp}=require('../backend/app.cjs');
 const NOW=Date.parse('2026-11-14T04:00:00Z');const filter={from:'2026-11-01',to:'2026-11-30'};
 function fixture(){return {

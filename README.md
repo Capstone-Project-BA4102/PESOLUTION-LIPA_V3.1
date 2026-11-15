@@ -6,6 +6,39 @@ and an Express backend for Gemini OCR, local pretrained semantic matching and Ge
 Local skill NLP setup, Windows commands, audit behavior and limitations:
 [docs/local-nlp.md](docs/local-nlp.md).
 
+## Project Structure
+
+- `src/pages` — route screens for the public site, applicant portal, admin portal
+  and the Batch 5 design-preview references.
+- `src/components` — layout shells, shared job/match cards, admin modules and UI primitives.
+- `src/lib` — API client, Supabase client, auth/session, matching hooks, PDF builders and portal copy.
+- `src/constants`, `src/styles`, `src/index.css` — option lists, the studio stylesheet and global styles.
+- `backend/` — Express entry `index.js`, route/middleware assembly in `app.cjs`, and feature
+  modules (matching, referrals, analytics, feedback, notifications, credentials) beside it.
+  `backend/package.json` only scopes this folder as CommonJS; dependencies install from the root.
+- `backend/skill_nlp.py` — local Sentence-Transformer skill matching service, port 8002.
+- `backend/sentiment_inference.py` — XLM-R sentiment service, port 8001; the Hugging Face
+  deployment copy lives in `sentiment-space/`.
+- `scripts/` — evaluation, live/workflow verification, seed and account utilities.
+- `tests/` — Node `node:test` suites plus Python NLP tests; browser scripts live in `tests/ui/`.
+- `docs/`, `supabase/` — design notes, evaluation evidence and SQL migrations.
+- `public/` — static logos and site images served by Vite.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm ci` | Install the locked dependencies. |
+| `npm run dev` | Vite frontend on port 3000; `/api` proxies to port 5000. |
+| `npm start` | Express backend (serves `dist` when built). |
+| `npm run build` | Type-check and build the production bundle. |
+| `npm test` | Node regression suites. |
+| `npm run lint` | Oxlint checks. |
+| `npm run nlp:setup` / `nlp:start` / `nlp:test` | Local skill-matching model setup, service and tests. |
+| `npm run sentiment:start` | Local XLM-R sentiment service on port 8001. |
+| `npm run evaluate -- dataset.json report.json test 60` | Offline matching evaluation on a reviewed dataset. |
+| `npm run verify:live` | Access and health smoke checks; optional recorded Gemini probe. |
+
 ## Run Locally
 
 1. Install dependencies with `npm ci`.
