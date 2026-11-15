@@ -13,8 +13,8 @@ interface AuthContextValue {
   isLoading: boolean
   idleSeconds: number
   stayLoggedIn: () => void
-  /** Timestamp of manual logout, preserving the existing landing-page transition. */
-  logoutAt: number
+  /** Timestamp bumped when a sign-in or sign-out starts, so the splash covers the next paint. */
+  splashAt: number
   login: (email: string, password: string) => Promise<Role | null>
   logout: () => Promise<void>
 }
@@ -35,7 +35,7 @@ async function loadProfile(authUser: SupabaseUser): Promise<User> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [logoutAt, setLogoutAt] = useState(0)
+  const [splashAt, setSplashAt] = useState(0)
   const [idleSeconds, setIdleSeconds] = useState(1800)
   const stay = useRef<() => void>(() => {})
   const expired = useRef(false)
@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       expired.current = false
       activateSession(data.user.id, true)
       const profile = await loadProfile(data.user)
+      setSplashAt(Date.now())
       setUser(profile)
       return profile.role
     } finally { signingIn.current = false }
@@ -119,14 +120,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     endSession()
+    // Batched with the user reset so the splash covers the landing page's first paint.
+    setSplashAt(Date.now())
     setUser(null)
     const { error } = await supabase.auth.signOut()
     if (error) throw error
     setUser(null)
-    setLogoutAt(Date.now())
     toast.success('Logged out successfully')
   }
-  return <AuthContext.Provider value={{ user, isLoading, logoutAt, login, logout, idleSeconds, stayLoggedIn: () => stay.current() }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, isLoading, splashAt, login, logout, idleSeconds, stayLoggedIn: () => stay.current() }}>{children}</AuthContext.Provider>
 }
 export function useAuth() {
   const ctx = useContext(AuthContext)

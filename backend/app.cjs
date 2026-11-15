@@ -10,6 +10,7 @@ const { normalizeOcrResult } = require('./ocr.cjs');
 const { createMatchingRefresh, recommendationFingerprint } = require('./matching-refresh.cjs');
 const { validateContent } = require('./content.cjs');
 const { registerApplicant } = require('./registration.cjs');
+const { registerFeedbackModeration } = require('./feedback-moderation.cjs');
 const { feedbackEligibility, markFeedbackEvent, submitFeedback, reclassifyPending, feedbackAnalytics } = require('./feedback.cjs');
 const { listNotificationEvents, listCurrentNotificationEvents, previewNotification, sendNotification } = require('./notifications.cjs');
 const { sendAccountEmail } = require('./account-email.cjs');
@@ -44,6 +45,14 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
   const fingerprintFor = (gaps, educationScore, title) =>
     recommendationFingerprint(gaps, educationScore, title, gemini.model);
 
+  app.get('/api/admin/runtime-cache', authenticate, admin, asyncRoute(async (_req, res) => {
+    res.json(await matchingRefresh.maintainCache(false));
+  }));
+  app.post('/api/admin/runtime-cache/cleanup', authenticate, admin, asyncRoute(async (req, res) => {
+    if (req.body?.confirm !== true) throw new HttpError(400, 'Confirm expired temporary cache cleanup first.');
+    res.json(await withLock('runtime-cache:cleanup', () => matchingRefresh.maintainCache(true)));
+  }));
+
   app.post('/api/admin/referrals/manage', authenticate, admin, asyncRoute(async (req, res) => {
     available();
     res.json(await manageReferral(supabase, req.actor, req.body));
@@ -68,6 +77,7 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
   app.get('/api/admin/feedback-analytics', authenticate, admin, asyncRoute(async (req, res) => {
     res.json(await feedbackAnalytics(supabase, config));
   }));
+  registerFeedbackModeration(app, { supabase, authenticate, admin, asyncRoute, withLock });
   app.post('/api/admin/feedback/reclassify', authenticate, admin, asyncRoute(async (req, res) => {
     res.json(await withLock('feedback:reclassify', () => reclassifyPending(supabase, config)));
   }));

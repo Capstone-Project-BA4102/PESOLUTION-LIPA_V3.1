@@ -13,6 +13,7 @@ import { fetchReferralSlip, fetchReferralPreview, updateReferralSlip, cancelRefe
 import { useQuery } from '@/lib/useQuery'
 import { printDocument } from '@/lib/print'
 import { ErrorBlock } from '@/components/shared/QueryState'
+import { DocumentSkeleton } from '@/components/shared/Skeletons'
 import { usePT, EnglishOnly } from '@/lib/portalCopy'
 import toast from 'react-hot-toast'
 
@@ -66,10 +67,7 @@ export default function ReferralSlipPage() {
     })
   }, [data, editMode])
 
-  if (loading && !data) return <div className="space-y-6" aria-busy="true">
-    <PageHeader title="Referral Slip Preview" />
-    <p role="status" className="text-sm text-slate-500">{pt('Loading referral slip details...')}</p>
-  </div>
+  if (loading && !data) return <DocumentSkeleton label={pt('Loading referral slip details...')} actions={0} />
   if (!data) return <ErrorBlock message={error || pt('Referral not found')} onRetry={reload} />
 
   const pronouns = referralPronouns(data.applicantGender)
@@ -168,7 +166,7 @@ export default function ReferralSlipPage() {
   const inputCls = 'w-full rounded border border-slate-300 px-2 py-1 text-sm text-slate-900 focus:border-brand-500 focus:outline-none'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="print:hidden no-print">
         <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
         <PageHeader

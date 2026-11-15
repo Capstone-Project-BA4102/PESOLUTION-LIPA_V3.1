@@ -1,0 +1,3 @@
+.ui-record-drawer { animation: record-drawer-enter var(--ui-motion-emphasis) var(--ui-ease-out); }
+@keyframes record-drawer-enter { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .ui-record-drawer { animation: none; } }

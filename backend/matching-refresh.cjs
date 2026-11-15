@@ -1,3 +1,4 @@
+const { expiredMatchingCache } = require('./cache-maintenance.cjs');
 const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const { readFileSync } = require('node:fs');
@@ -19,12 +20,18 @@ const recommendationFingerprint = (gaps, educationScore, title, model) => hash({
 // Persist fingerprint-bound results and actual qualified-job evidence. Never reconstruct historical cosine values.
 function fileCache(directory = path.join(__dirname, 'model-artifacts', 'matching-cache')) {
   const memory = new Map();
+  const accessed = new Map();
   return {
     async get(id) {
       requireUuid(id);
+      accessed.set(id, Date.now());
       if (memory.has(id)) return memory.get(id);
       try { const value = JSON.parse(await fs.readFile(path.join(directory, `${id}.json`), 'utf8')); memory.set(id, value); return value; }
       catch { return null; }
+    },
+    pruneExpired({ execute = false, now, protect = () => false } = {}) {
+      return expiredMatchingCache(directory, { execute, now, protect: (id, cutoff) => (accessed.get(id) || 0) >= cutoff || protect(id),
+        removed: id => { memory.delete(id); accessed.delete(id); } });
     },
     async set(id, value) {
       requireUuid(id);
@@ -149,7 +156,12 @@ function createMatchingRefresh({ supabase, gemini, nlp = skillNlpService(), cach
       checkedAt: new Date(now()).toISOString() };
   }
 
-  return { run(id, { force = false } = {}) {
+  return {
+    async maintainCache(execute = false) {
+      if (!cache.pruneExpired) throw new Error('Runtime cache maintenance is unavailable.');
+      return cache.pruneExpired({ execute, now: now(), protect: id => pending.has(id) });
+    },
+    run(id, { force = false } = {}) {
     requireUuid(id);
     const current = pending.get(id);
     if (current) {

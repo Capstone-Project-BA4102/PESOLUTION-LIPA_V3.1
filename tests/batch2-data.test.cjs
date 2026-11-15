@@ -72,7 +72,7 @@ test('job API retrieves actual requirements and normalizes only the returned vie
     {id:'two',status:'Active',date_posted:new Date().toISOString(),education:null,hard_skills:null,soft_skills:null}];
   const snapshot=JSON.stringify(rows);
   const db={from:table=>{assert.equal(table,'job_listings');return{select(){return this},update(){return this},eq(){return this},lt:async()=>({error:null}),order:async()=>({data:rows})}}};
-  const api=load('src/lib/api.ts',{'./supabase':{supabase:db},'./jobQualifications':qualifications,'./referralDefaults':require('../src/lib/referralDefaults.ts'),'./applicantName':{},'./backend':{}});
+  const api=load('src/lib/api.ts',{'./supabase':{supabase:db},'./jobQualifications':qualifications,'./activityPresentation':require('../src/lib/activityPresentation.ts'),'./referralDefaults':require('../src/lib/referralDefaults.ts'),'./applicantName':{},'./backend':{}});
   const jobs=await api.fetchJobs();
   assert.equal(jobs[0].education,'College Graduate');assert.equal(jobs[0].hardSkills.join('|'),'C++|C#');assert.equal(jobs[0].softSkills.join('|'),'Communication|Teamwork');
   assert.equal(jobs[1].education,'');assert.equal(jobs[1].hardSkills.length,0);assert.equal(jobs[1].softSkills.length,0);assert.equal(JSON.stringify(rows),snapshot);

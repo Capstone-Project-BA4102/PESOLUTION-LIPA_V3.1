@@ -13,9 +13,6 @@ export function SessionStatus() {
   if (!user) return null
   const countdown = `${Math.floor(idleSeconds / 60)}:${String(idleSeconds % 60).padStart(2, '0')}`
   return <>
-    <p className="mt-2 text-xs tabular-nums text-slate-500" title={pt('Time remaining before inactivity logout')}>
-      {pt('Session')}: {countdown}
-    </p>
     {createPortal(<Modal open={warning} dismissible={false} onClose={() => {}} title={pt('Your session is about to expire')}
       footer={<div ref={action} onKeyDown={event => { if (event.key === 'Tab') { event.preventDefault(); action.current?.querySelector('button')?.focus() } }}><Button onClick={stayLoggedIn}>{pt('Stay Logged In')}</Button></div>}>
       <p role="status">{pt('You will be signed out due to inactivity in')} <strong className="tabular-nums">{countdown}</strong>.</p>

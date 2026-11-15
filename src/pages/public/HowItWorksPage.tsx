@@ -30,30 +30,30 @@ export default function HowItWorksPage() {
   ]
 
   return (
-    <div className="bg-white min-h-[calc(100vh-64px)] py-12 md:py-20">
+    <div className="min-h-[calc(100vh-64px)] bg-white py-10 md:py-14">
       <div className="mx-auto max-w-3xl px-6">
-        <div className="text-center mb-16">
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">How It Works</h1>
-          <p className="text-lg text-slate-500">A simple guide to PESO Lipa's employment services.</p>
+        <div className="mb-10 text-center">
+          <h1 className="mb-2 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">How It Works</h1>
+          <p className="text-[15px] text-slate-500">A simple guide to PESO Lipa's employment services.</p>
         </div>
 
-        <div className="space-y-12 relative">
+        <div className="relative space-y-8">
           {/* Vertical connector line */}
-          <div className="absolute top-8 bottom-8 left-[31px] w-0.5 bg-brand-100 hidden sm:block" />
+          <div className="absolute top-7 bottom-7 left-[27px] hidden w-px bg-brand-100 sm:block" />
 
           {steps.map((step, i) => (
-            <div key={i} className="flex flex-col sm:flex-row gap-6 sm:gap-8 relative">
-              <div className="shrink-0 flex items-center justify-center h-16 w-16 rounded-full bg-brand-50 border-4 border-white shadow-sm relative z-10 mx-auto sm:mx-0">
-                <step.icon className="h-7 w-7 text-brand-600" />
+            <div key={i} className="relative flex flex-col gap-4 sm:flex-row sm:gap-6">
+              <div className="relative z-10 mx-auto flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-white bg-brand-100 shadow-sm sm:mx-0">
+                <step.icon className="h-6 w-6 text-brand-600" />
               </div>
-              <div className="pt-2 text-center sm:text-left">
-                <div className="flex items-center gap-3 justify-center sm:justify-start mb-2">
-                  <span className="flex items-center justify-center h-6 w-6 rounded-full bg-brand-600 text-white text-xs font-bold">
+              <div className="pt-1 text-center sm:text-left">
+                <div className="mb-1.5 flex items-center justify-center gap-2 sm:justify-start">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold text-white">
                     {i + 1}
                   </span>
-                  <h2 className="text-xl font-bold text-slate-900">{step.title}</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">{step.title}</h2>
                 </div>
-                <p className="text-slate-600 leading-relaxed max-w-lg mx-auto sm:mx-0">
+                <p className="mx-auto max-w-lg text-[13.5px] leading-relaxed text-slate-600 sm:mx-0">
                   {step.desc}
                 </p>
               </div>

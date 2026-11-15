@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { Briefcase, Save, SlidersHorizontal } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
+import { FormPageSkeleton } from '@/components/shared/Skeletons'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea, Select } from '@/components/ui/Form'
@@ -65,11 +66,11 @@ export default function AddJobPage() {
   }
 
   if (loadingJob) {
-    return <Card className="p-12 text-center text-slate-500">{pt('Loading job…')}</Card>
+    return <FormPageSkeleton label={pt('Loading job…')} sections={3} />
   }
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="max-w-5xl space-y-4">
       <PageHeader
         title={editId ? 'Edit Job Listing' : 'Add Job Listing'}
         description={editId ? 'Update the job opening details.' : 'Post a new job opening for a partner company.'}
@@ -77,13 +78,13 @@ export default function AddJobPage() {
       />
 
       <Card className="p-6">
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3 font-bold text-brand-700">
             <Briefcase className="h-5 w-5" />
             {pt('Job Details')}
           </div>
           
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Select 
               label="Company" 
               options={companies.map(c => ({ value: c.id, label: c.name }))} 

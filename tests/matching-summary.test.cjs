@@ -7,6 +7,7 @@ function apiWith(db, request = assert.fail) {
   const module = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync('src/lib/api.ts','utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   vm.runInNewContext(code, { exports: module.exports, Error, require: name => {
+    if (name === './activityPresentation') return require('../src/lib/activityPresentation.ts');
     if (name === './jobQualifications') return require('../src/lib/jobQualifications.ts');
     if (name === './supabase') return { supabase: db };
     if (name === './backend') return { backendRequest: request };

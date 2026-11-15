@@ -56,6 +56,7 @@ test('new referral previews use the latest office manager; issued slips use thei
   const module = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync('src/lib/api.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   vm.runInNewContext(code, { exports: module.exports, require: name => {
+    if (name === './activityPresentation') return require('../src/lib/activityPresentation.ts');
     if (name === './jobQualifications') return require('../src/lib/jobQualifications.ts');
     if (name === './supabase') return { supabase: db };
     if (name === './referralDefaults') return defaults;

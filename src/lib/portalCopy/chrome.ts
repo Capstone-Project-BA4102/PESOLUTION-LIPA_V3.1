@@ -2,6 +2,28 @@ import { registerFil } from './core'
 
 /** Portal shell (header, sidebar, account card, logout) and the shared UI kit. */
 registerFil({
+  'Clear expired cache': 'Linisin ang lumang cache',
+  'Clear expired temporary cache?': 'Linisin ang lumang pansamantalang cache?',
+  'Clearing...': 'Nililinis...',
+  'Eligible cache files: {count}': 'Maaaring linising cache files: {count}',
+  'Expired temporary cache cleared: {count}.': 'Nalinis na lumang pansamantalang cache: {count}.',
+  'Could not check temporary cache.': 'Hindi masuri ang pansamantalang cache.',
+  'Could not clear temporary cache.': 'Hindi malinisan ang pansamantalang cache.',
+  'Only temporary matching cache older than {days} days that is not recently used or processing is eligible. Activity history, saved scores, reviews, and pretrained model files are preserved.': 'Pansamantalang matching cache na lampas {days} araw at hindi kamakailang ginamit o pinoproseso lamang ang maaaring linisin. Pinananatili ang activity history, naka-save na marka, reviews, at pretrained model files.',
+  'Expired NLP evidence can be rebuilt on the next matching visit. Cleanup does not run matching or call Gemini.': 'Maaaring buuing muli ang lumang NLP evidence sa susunod na pagbisita sa matching. Hindi nagpapatakbo ng matching o tumatawag sa Gemini ang paglilinis.',
+
+  'Logging in...': 'Nagla-log in...',
+  'Register Applicant': 'Magrehistro ng Aplikante',
+  'Admin Portal': 'Portal ng Admin',
+  'Applicant Portal': 'Portal ng Aplikante',
+  'Breadcrumb': 'Landas ng pahina',
+  'Add New': 'Magdagdag',
+  'Account Receipt': 'Resibo ng Account',
+
+  'Skip to content': 'Lumaktaw sa nilalaman',
+  'Main navigation': 'Pangunahing nabigasyon',
+  'Expand sidebar': 'Palawakin ang sidebar',
+  'Collapse sidebar': 'Paliitin ang sidebar',
   'Showing saved data. Refresh failed.': 'Ipinapakita ang naka-save na data. Hindi nagtagumpay ang pag-refresh.',
   'Checking for updates…': 'Sinusuri kung may mga update…',
   Session: 'Sesyon',
@@ -18,11 +40,14 @@ registerFil({
   'Password must contain at least 8 characters.': 'Dapat may hindi bababa sa 8 character ang password.',
   'Passwords do not match.': 'Hindi magkatugma ang mga password.',
   // Sidebar navigation
+  Home: 'Home',
   Dashboard: 'Dashboard',
   Applicants: 'Mga Aplikante',
   Companies: 'Mga Kumpanya',
   'Job Listings': 'Mga Listahan ng Trabaho',
   'Matching & Referrals': 'Pagtutugma at mga Referal',
+  Feedback: 'Feedback',
+  Analytics: 'Pagsusuri',
   'Ground Truth Evaluation': 'Ebalwasyon ng Ground Truth',
   'Service Status': 'Katayuan ng Serbisyo',
   'Public Website': 'Pampublikong Website',

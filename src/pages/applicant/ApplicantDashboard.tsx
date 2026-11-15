@@ -4,11 +4,15 @@ import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, Briefcase, FileText, ChevronRight, Search, User, PlusCircle } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
+import { ButtonLink } from '@/components/ui/Button'
+import { IconBox } from '@/components/ui/IconBox'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { useAuth } from '@/lib/auth'
 import { fetchApplicantDashboard } from '@/lib/api'
 import { useQuery } from '@/lib/useQuery'
-import { LoadingBlock, ErrorBlock } from '@/components/shared/QueryState'
+import { ErrorBlock } from '@/components/shared/QueryState'
+import { DashboardSkeleton } from '@/components/shared/Skeletons'
+import { CountUp } from '@/components/ui/CountUp'
 import { AnnouncementNotice } from '@/components/shared/AnnouncementNotice'
 import { useCallback } from 'react'
 import { usePT } from '@/lib/portalCopy'
@@ -26,136 +30,135 @@ export default function ApplicantDashboard() {
 
   useLiveRefresh(reload, ['applicants','applications','resumes','job_matches'])
 
-  if (loading && !data) return <LoadingBlock label={pt('Loading dashboard...')} />
+  if (loading && !data) return <DashboardSkeleton label={pt('Loading dashboard...')} />
   if (error && !data) return <ErrorBlock message={error} onRetry={reload} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <AnnouncementNotice />
       <RefreshNotice error={error} refreshing={refreshing} retry={reload}/>
       <PageHeader title="Dashboard" description={pt("Welcome, {name}. Here's a quick overview of your application.", { name: user?.name || pt('Applicant') })} />
 
       {!data ? (
-        <Card className="p-12 text-center flex flex-col items-center justify-center">
-          <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <User className="h-8 w-8 text-slate-400" />
+        <Card className="flex flex-col items-center justify-center p-8 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+            <User className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="text-xl font-bold text-slate-900 mb-2">{pt('Complete Your Profile')}</h3>
-          <p className="text-slate-500 mb-6 max-w-md">{pt("You haven't set up your applicant profile yet. Complete your profile and upload a resume to start matching with jobs.")}</p>
-          <Link to="/applicant/profile" className="inline-flex items-center justify-center px-4 py-2 font-semibold text-white bg-brand-600 rounded-md hover:bg-brand-700 transition-colors">
-            <PlusCircle className="mr-2 h-5 w-5" />
+          <h3 className="mb-1 text-lg font-semibold text-slate-900">{pt('Complete Your Profile')}</h3>
+          <p className="mb-5 max-w-md text-sm text-slate-500">{pt("You haven't set up your applicant profile yet. Complete your profile and upload a resume to start matching with jobs.")}</p>
+          <ButtonLink to="/applicant/profile" icon={<PlusCircle className="h-4 w-4" />}>
             {pt('Set Up Profile')}
-          </Link>
+          </ButtonLink>
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link to="/applicant/status" className="block group">
-              <Card className="p-5 h-full transition-shadow hover:shadow-md border border-slate-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-full bg-success-100 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-6 w-6 text-success-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{pt('Current Application')}</h3>
-                      <p className="font-bold text-success-600 text-lg mt-1">{pt(data.status)}</p>
-                      <p className="text-xs text-slate-400 mt-1">{pt('Last updated')}<br/>{data.statusUpdatedAt}</p>
+          <div className="ui-stagger grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Link to="/applicant/status" className="group block">
+              <Card className="h-full p-4 transition-shadow hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    <IconBox tone="success" size="sm" round>
+                      <CheckCircle2 />
+                    </IconBox>
+                    <div className="min-w-0">
+                      <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-slate-500">{pt('Current Application')}</h3>
+                      <p className="mt-1 text-[20px] font-bold leading-none tracking-tight text-success-700">{pt(data.status)}</p>
+                      <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">{pt('Last updated')}: {data.statusUpdatedAt}</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand-600 transition-colors" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition-colors group-hover:text-brand-600" />
                 </div>
               </Card>
             </Link>
 
-            <Link to="/applicant/jobs" className="block group">
-              <Card className="p-5 h-full transition-shadow hover:shadow-md border border-slate-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-full bg-brand-50 flex items-center justify-center shrink-0">
-                      <Briefcase className="h-6 w-6 text-brand-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{pt('Recommended Jobs')}</h3>
-                      <p className="font-bold text-brand-600 text-lg mt-1">{pt('{count} Opportunities', { count: data.recommendedJobsCount })}</p>
-                      <p className="text-xs text-slate-400 mt-1">{pt('Based on your skills')}</p>
+            <Link to="/applicant/jobs" className="group block">
+              <Card className="h-full p-4 transition-shadow hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    <IconBox tone="brand" size="sm" round>
+                      <Briefcase />
+                    </IconBox>
+                    <div className="min-w-0">
+                      <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-slate-500">{pt('Recommended Jobs')}</h3>
+                      <p className="mt-1 text-[20px] font-bold leading-none tracking-tight text-brand-700"><CountUp value={data.recommendedJobsCount} /> {pt(data.recommendedJobsCount === 1 ? 'Opportunity' : 'Opportunities')}</p>
+                      <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">{pt('Based on your skills')}</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand-600 transition-colors" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition-colors group-hover:text-brand-600" />
                 </div>
               </Card>
             </Link>
 
-            <Link to="/applicant/profile" className="block group">
-              <Card className="p-5 h-full transition-shadow hover:shadow-md border border-slate-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-4">
-                    <div className="h-12 w-12 rounded-full bg-brand-50 flex items-center justify-center shrink-0">
-                      <FileText className="h-6 w-6 text-brand-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{pt('Latest Resume')}</h3>
-                      <p className="font-bold text-brand-600 text-lg mt-1">{pt('Version {version}', { version: data.resumeCount })}</p>
-                      <p className="text-xs text-slate-400 mt-1">{pt('Submitted on')}<br/>{data.resumeUpdatedAt || pt('None')}</p>
+            <Link to="/applicant/profile" className="group block">
+              <Card className="h-full p-4 transition-shadow hover:shadow-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    <IconBox tone="neutral" size="sm" round>
+                      <FileText />
+                    </IconBox>
+                    <div className="min-w-0">
+                      <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-slate-500">{pt('Latest Resume')}</h3>
+                      <p className="mt-1 text-[20px] font-bold leading-none tracking-tight text-slate-900">{pt('Version {version}', { version: data.resumeCount })}</p>
+                      <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">{pt('Submitted on')}: {data.resumeUpdatedAt || pt('None')}</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand-600 transition-colors" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-slate-400 transition-colors group-hover:text-brand-600" />
                 </div>
               </Card>
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6">
-            <Card className="p-0 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900">{pt('Recent Updates')}</h3>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_350px]">
+            <Card className="overflow-hidden p-0">
+              <div className="border-b border-slate-100 px-5 pb-3 pt-4">
+                <h3 className="text-[15px] font-semibold text-slate-900">{pt('Recent Updates')}</h3>
               </div>
               <div className="divide-y divide-slate-100">
                 {data.recentUpdates.length === 0 ? (
-                  <div className="px-6 py-8 text-center text-slate-500">{pt('No recent updates.')}</div>
+                  <div className="px-5 py-6 text-center text-sm text-slate-500">{pt('No recent updates.')}</div>
                 ) : (
                   data.recentUpdates.map((u, i) => (
-                    <div key={i} className="px-6 py-4 flex items-start gap-4 hover:bg-slate-50 transition-colors">
-                      <div className="mt-0.5 h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                        {u.type === 'status' ? <CheckCircle2 className="h-4 w-4 text-success-600" /> :
-                         u.type === 'match' ? <Briefcase className="h-4 w-4 text-brand-600" /> : 
-                         <FileText className="h-4 w-4 text-brand-600" />}
+                    <div key={i} className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-slate-50">
+                      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100">
+                        {u.type === 'status' ? <CheckCircle2 className="h-3.5 w-3.5 text-success-600" /> :
+                         u.type === 'match' ? <Briefcase className="h-3.5 w-3.5 text-brand-600" /> : 
+                         <FileText className="h-3.5 w-3.5 text-brand-600" />}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-800">{u.message}</p>
+                        <p className="text-[13.5px] font-medium leading-snug text-slate-800">{u.message}</p>
                       </div>
-                      <span className="text-xs text-slate-400 whitespace-nowrap">{u.at}</span>
+                      <span className="whitespace-nowrap text-[11.5px] text-slate-400">{u.at}</span>
                     </div>
                   ))
                 )}
               </div>
             </Card>
 
-            <Card className="p-0 overflow-hidden h-fit">
-              <div className="px-6 py-4 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900">{pt('Quick Actions')}</h3>
+            <Card className="h-fit overflow-hidden p-0">
+              <div className="border-b border-slate-100 px-5 pb-3 pt-4">
+                <h3 className="text-[15px] font-semibold text-slate-900">{pt('Quick Actions')}</h3>
               </div>
               <div className="divide-y divide-slate-100 p-2">
-                <Link to="/applicant/status" className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-50 text-slate-700 hover:text-brand-700 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <Search className="h-5 w-5 text-brand-600" />
-                    <span className="font-semibold text-sm">{pt('Check Application Status')}</span>
+                <Link to="/applicant/status" className="group flex items-center justify-between rounded-md p-2.5 text-slate-700 transition-colors hover:bg-brand-50 hover:text-brand-700">
+                  <div className="flex items-center gap-2.5">
+                    <Search className="h-4.5 w-4.5 text-brand-600" />
+                    <span className="text-[13.5px] font-semibold">{pt('Check Application Status')}</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand-600" />
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" />
                 </Link>
-                <Link to="/applicant/profile" className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-50 text-slate-700 hover:text-brand-700 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-brand-600" />
-                    <span className="font-semibold text-sm">{pt('View My Profile')}</span>
+                <Link to="/applicant/profile" className="group flex items-center justify-between rounded-md p-2.5 text-slate-700 transition-colors hover:bg-brand-50 hover:text-brand-700">
+                  <div className="flex items-center gap-2.5">
+                    <User className="h-4.5 w-4.5 text-brand-600" />
+                    <span className="text-[13.5px] font-semibold">{pt('View My Profile')}</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand-600" />
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" />
                 </Link>
-                <Link to="/applicant/jobs" className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-50 text-slate-700 hover:text-brand-700 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <Briefcase className="h-5 w-5 text-brand-600" />
-                    <span className="font-semibold text-sm">{pt('View Matched Opportunities')}</span>
+                <Link to="/applicant/jobs" className="group flex items-center justify-between rounded-md p-2.5 text-slate-700 transition-colors hover:bg-brand-50 hover:text-brand-700">
+                  <div className="flex items-center gap-2.5">
+                    <Briefcase className="h-4.5 w-4.5 text-brand-600" />
+                    <span className="text-[13.5px] font-semibold">{pt('View Matched Opportunities')}</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand-600" />
+                  <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" />
                 </Link>
               </div>
             </Card>

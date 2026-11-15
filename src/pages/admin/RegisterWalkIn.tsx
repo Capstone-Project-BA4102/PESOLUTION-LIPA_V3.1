@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Form'
 import { Badge, SkillTag } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { AccountReceiptSheet } from '@/components/admin/AccountReceiptSheet'
 import { registerWalkIn } from '@/lib/api'
 import { geminiExtract } from '@/lib/ocr'
@@ -57,7 +58,7 @@ function ResumePreview({ file, label }) {
   return (
     <Card className="p-0 overflow-hidden flex flex-col bg-slate-100 h-full">
       <div className="p-4 bg-white border-b border-slate-200">
-        <h2 className="text-lg font-bold text-slate-900">{pt(label)}</h2>
+        <h2 className="text-[15px] font-semibold text-slate-900">{pt(label)}</h2>
         <p className="text-xs text-slate-500">{pt('Preview of the uploaded document.')}</p>
       </div>
       <div className="flex-1 p-6 flex items-center justify-center overflow-auto">
@@ -250,19 +251,23 @@ export default function RegisterWalkIn() {
   }, [step, result])
 
   return (
-    <div className="max-w-5xl space-y-6 pb-12">
+    <div className="max-w-5xl space-y-4 pb-12">
       <div className="print:hidden">
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">{pt('Register Walk-in Applicant')}</h1>
-        <p className="mt-1 text-base text-slate-500 font-medium">
-          {step === 1 && pt("Upload the applicant's resume and 2x2 photo.")}
-          {step === 2 && pt('Extracting information from the uploaded resume using Gemini AI.')}
-          {step === 3 && pt("Fill in the applicant's information. Skills entered here drive job matching.")}
-          {step === 4 && pt("Review the information and create the applicant's account.")}
-          {step === 5 && pt("Print the account receipt and hand it to the applicant — it holds their login email and initial password.")}
-        </p>
+        <PageHeader
+          title="Register Walk-in Applicant"
+          description={
+            <>
+              {step === 1 && pt("Upload the applicant's resume and 2x2 photo.")}
+              {step === 2 && pt('Extracting information from the uploaded resume using Gemini AI.')}
+              {step === 3 && pt("Fill in the applicant's information. Skills entered here drive job matching.")}
+              {step === 4 && pt("Review the information and create the applicant's account.")}
+              {step === 5 && pt("Print the account receipt and hand it to the applicant — it holds their login email and initial password.")}
+            </>
+          }
+        />
       </div>
 
-      <div className="relative mb-8 pt-4 print:hidden">
+      <div className="relative mb-4 pt-2 print:hidden">
         <div className="absolute top-8 left-16 right-16 h-0.5 bg-brand-200 -z-10" />
         <div className="flex justify-between">
           {STEPS.map((s, i) => {
@@ -290,9 +295,9 @@ export default function RegisterWalkIn() {
       </div>
 
       {step === 1 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">{pt('Required Documents')}</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="p-5">
+            <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Required Documents')}</h2>
             <p className="text-sm text-slate-500 mb-6">{pt("Upload the applicant's resume and 2x2 photo. Both are required to continue.")}</p>
 
             <div className="space-y-4 mb-6">
@@ -371,7 +376,7 @@ export default function RegisterWalkIn() {
               <FileText className="h-10 w-10" />
             </div>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2">{pt('Processing Resume with Gemini AI')}</h2>
+          <h2 className="mb-2 text-lg font-semibold tracking-tight text-slate-900">{pt('Processing Resume with Gemini AI')}</h2>
           <p className="text-slate-500 mb-8">
             {ocrPhase === 0
               ? pt('Sending the resume to Gemini AI...')
@@ -403,8 +408,8 @@ export default function RegisterWalkIn() {
       )}
 
       {step === 3 && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-          <Card className="p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4">
+          <Card className="p-5">
             <form onSubmit={(e) => {
               e.preventDefault()
               if (ambiguousSkills.length) {
@@ -415,7 +420,7 @@ export default function RegisterWalkIn() {
               if (locationError) { toast.error(pt(locationError)); return }
               setStep(4)
             }}>
-              <h2 className="text-xl font-bold text-slate-900 mb-1">{pt('Applicant Information (Editable)')}</h2>
+              <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Applicant Information (Editable)')}</h2>
               <p className="text-sm text-slate-500 mb-4">{pt("Fill in or correct the applicant's details before creating the account.")}</p>
 
               {ocrMessage && (
@@ -425,7 +430,7 @@ export default function RegisterWalkIn() {
                 </div>
               )}
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="bg-brand-50 px-4 py-2 rounded-lg text-brand-700 font-bold flex items-center gap-2">
                   <User className="h-4 w-4" /> {pt('Personal Information')}
                 </div>
@@ -544,9 +549,9 @@ export default function RegisterWalkIn() {
       )}
 
       {step === 4 && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-1">{pt('Registration Summary')}</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4">
+          <Card className="p-5">
+            <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Registration Summary')}</h2>
             <p className="text-sm text-slate-500 mb-6">{pt("Please review the information below before creating the applicant's account.")}</p>
 
             <div className="flex items-center gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -558,12 +563,12 @@ export default function RegisterWalkIn() {
                 )}
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-bold text-slate-900">{fullName || '—'}</h3>
+                <h3 className="text-base font-semibold text-slate-900">{fullName || '—'}</h3>
                 <p className="text-sm text-slate-500 truncate">{formData.email_address}</p>
               </div>
             </div>
 
-            <div className="space-y-6 text-sm">
+            <div className="space-y-4 text-sm">
               <div>
                 <div className="flex items-center justify-between border-b border-brand-200 pb-2 mb-3">
                   <h4 className="font-bold text-brand-800">{pt('Personal Information')}</h4>
@@ -625,9 +630,9 @@ export default function RegisterWalkIn() {
             </div>
           </Card>
 
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-1">{pt('Account Credentials')}</h2>
+          <div className="space-y-4">
+            <Card className="p-5">
+              <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Account Credentials')}</h2>
               <p className="text-xs text-slate-500 mb-6">{pt('A portal login will be created using this email address.')}</p>
 
               <div className="bg-info-50 p-4 rounded-lg border border-info-100 text-info-700 text-sm font-medium flex gap-3">
@@ -654,7 +659,7 @@ export default function RegisterWalkIn() {
       )}
 
       {step === 5 && result && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <AccountReceiptSheet receipt={{ fullName, code: result.code, email: result.email, password: result.initialPassword, issuedAt: result.issuedAt, serial: result.receiptSerial }} />
 
           <div className="print:hidden flex flex-col gap-4 rounded-xl border border-brand-200 bg-brand-50 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -667,14 +672,14 @@ export default function RegisterWalkIn() {
             </Button>
           </div>
 
-          <div className="print:hidden grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-          <Card className="p-8 bg-success-50 border-success-100 col-span-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
+          <div className="print:hidden grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4">
+          <Card className="p-8 bg-success-50 border-success-100 col-span-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4">
             <div className="flex gap-4 items-start">
               <div className="bg-success-600 text-white p-3 rounded-full shrink-0">
                 <CheckCircle2 className="h-10 w-10" />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2">{pt('Applicant Successfully Registered!')}</h2>
+                <h2 className="mb-2 text-xl font-semibold tracking-tight text-slate-900">{pt('Applicant Successfully Registered!')}</h2>
                 <p className="text-slate-600 mb-4 font-medium">{pt("{name}'s account has been created and is now active.", { name: fullName })}</p>
                 <div className="bg-white/70 border border-success-100 rounded-lg p-3 inline-flex items-center gap-3 text-slate-700 text-sm font-medium">
                   <User className="h-5 w-5 text-success-600" />
@@ -690,7 +695,7 @@ export default function RegisterWalkIn() {
             </Button>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h3 className="font-bold text-slate-800 text-lg">{pt('Applicant Details')}</h3>
             </div>
@@ -718,8 +723,8 @@ export default function RegisterWalkIn() {
             </div>
           </Card>
 
-          <div className="space-y-6">
-            <Card className="p-6">
+          <div className="space-y-4">
+            <Card className="p-5">
               <h3 className="font-bold text-slate-800 text-lg mb-4">{pt('Applicant Portal Access')}</h3>
               <div className={cn('rounded-xl p-4 flex gap-3 mb-4 border', result.onboardingEmail?.status === 'Sent' ? 'bg-success-50 border-success-100' : 'bg-warning-50 border-warning-200')}>
                 {result.onboardingEmail?.status === 'Sent' ? <Mail className="h-5 w-5 text-success-600 mt-0.5 shrink-0" /> : <AlertCircle className="h-5 w-5 text-warning-700 mt-0.5 shrink-0" />}
@@ -745,7 +750,7 @@ export default function RegisterWalkIn() {
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-5">
               <h3 className="font-bold text-slate-800 text-lg mb-4">{pt('Next Steps')}</h3>
               <div className="space-y-3">
                 <Link to="/admin/applicants" className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors group">

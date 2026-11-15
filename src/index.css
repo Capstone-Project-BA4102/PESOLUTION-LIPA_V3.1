@@ -24,29 +24,29 @@
  *                  printing and the PDF capture keep the government look.
  */
 :root {
-  --light-slate-50: #f8fafc;
-  --light-slate-100: #f1f5f9;
-  --light-slate-200: #e2e8f0;
-  --light-slate-300: #cbd5e1;
-  --light-slate-400: #667587;
-  --light-slate-500: #5b6a80;
-  --light-slate-600: #475569;
-  --light-slate-700: #334155;
-  --light-slate-800: #1e293b;
+  --light-slate-50: #fafafa;
+  --light-slate-100: #f4f4f5;
+  --light-slate-200: #e4e4e7;
+  --light-slate-300: #d4d4d8;
+  --light-slate-400: #71717a;
+  --light-slate-500: #64646e;
+  --light-slate-600: #52525b;
+  --light-slate-700: #3f3f46;
+  --light-slate-800: #27272a;
   --light-slate-900: #0f172a;
   --light-slate-950: #020617;
 
-  /* Dark ramp: deep navy pages, blue-grey lines, near-white text. */
-  --dark-slate-50: #0a111d;
-  --dark-slate-100: #121c2b;
-  --dark-slate-200: #2e4058;
-  --dark-slate-300: #445871;
-  --dark-slate-400: #8698b0;
-  --dark-slate-500: #9fb1c6;
-  --dark-slate-600: #bccddb;
-  --dark-slate-700: #d8e3ee;
-  --dark-slate-800: #e9eff5;
-  --dark-slate-900: #f5f8fc;
+  /* Neutral dark surfaces; semantic and brand colors retain their meaning. */
+  --dark-slate-50: #101012;
+  --dark-slate-100: #18181b;
+  --dark-slate-200: #303036;
+  --dark-slate-300: #484850;
+  --dark-slate-400: #92929d;
+  --dark-slate-500: #aaaab4;
+  --dark-slate-600: #c5c5ce;
+  --dark-slate-700: #dddde4;
+  --dark-slate-800: #ededf1;
+  --dark-slate-900: #fafafa;
   --dark-slate-950: #ffffff;
 
   --light-brand-50: #fef2f2;
@@ -80,7 +80,7 @@
   --dark-accent-info: #93c5fd;
 
   --light-surface: #ffffff;
-  --dark-surface: #1a2534;
+  --dark-surface: #1c1c20;
 }
 
 @theme {
@@ -142,7 +142,14 @@
   /* Always-dark chrome (public footer, sample-resume header). */
   --color-ink: #0f172a;
 
-  --radius-card: 0.75rem;
+  --radius-card: 12px;
+  --ui-control-height: 40px;
+  --ui-motion: 160ms;
+  --ui-motion-emphasis: 220ms;
+  --ui-motion-page: 240ms;
+  --ui-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ui-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.02);
+  --ui-shadow-lift: 0 14px 30px -14px rgb(15 23 42 / 0.22), 0 4px 10px -6px rgb(15 23 42 / 0.1);
 }
 
 /*
@@ -157,7 +164,7 @@ html {
 
 body {
   @apply bg-slate-50 font-sans text-slate-800 antialiased;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 /* NIGHT MODE — one swap, the whole app follows. */
@@ -247,9 +254,18 @@ body {
   color-scheme: dark;
 }
 
-/* `bg-white` is the card surface, so dark mode dims it instead of blinding. */
-.dark .bg-white {
+/* `bg-white` is the card surface, so dark mode dims it instead of blinding.
+   Focus variants need the same treatment or a field turns white under light text. */
+.dark :is(.bg-white, .focus\:bg-white:focus) {
   background-color: var(--color-surface);
+}
+
+/* Native select menus must follow the active theme. Windows otherwise paints a
+   white popup while the option text keeps its themed light color. */
+select option,
+select optgroup {
+  background-color: var(--color-surface);
+  color: var(--color-slate-900);
 }
 
 .dark :is(.bg-white\/60, .bg-white\/70) {
@@ -302,6 +318,12 @@ h4 {
   outline-offset: 2px;
 }
 
+/* Fields that paint their own focus ring opt out of the global outline. */
+.ui-field:focus,
+.ui-field:focus-visible {
+  outline: none;
+}
+
 /* Print: only print the referral slip document, always on white paper. */
 @media print {
   .no-print,
@@ -316,3 +338,255 @@ h4 {
     color: #0f172a;
   }
 }
+
+/* Compact shared primitives. Keep the root rem scale unchanged for official documents. */
+.ui-button { transition-duration: var(--ui-motion); }
+.ui-control { height: var(--ui-control-height); font-size: 15px; }
+textarea.ui-control { height: auto; min-height: 112px; }
+.ui-icon-button { min-width: 36px; min-height: 36px; }
+.ui-segment { height: 30px; min-width: 32px; }
+
+/* Public landing cards share one hover response so none of them feel static. */
+.ui-card-hover {
+  transition:
+    transform var(--ui-motion-emphasis) var(--ui-ease-out),
+    box-shadow var(--ui-motion-emphasis) var(--ui-ease-out);
+}
+@media (hover: hover) {
+  .ui-card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--ui-shadow-lift);
+  }
+  .dark .ui-card-hover:hover {
+    box-shadow: 0 16px 32px -16px rgb(0 0 0 / 0.85), 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+}
+
+/*
+ * Partner logos: a light sweep clipped to the artwork itself, so the shine
+ * never paints outside the transparent PNG.
+ */
+.logo-shine {
+  position: relative;
+  display: inline-flex;
+  transition:
+    transform var(--ui-motion-emphasis) var(--ui-ease-out),
+    filter var(--ui-motion-emphasis) var(--ui-ease-out);
+}
+.logo-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 0.65) 44%, rgb(255 255 255 / 1) 50%, rgb(255 255 255 / 0.65) 56%, transparent 70%);
+  background-size: 210% 100%;
+  background-position: 180% 0;
+  background-repeat: no-repeat;
+  -webkit-mask-image: var(--logo-mask);
+  mask-image: var(--logo-mask);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+.logo-shine--bagong { --logo-mask: url('/bagong-lipa-logo-mark.png'); }
+.dark .logo-shine--bagong { --logo-mask: url('/bagong-lipa-logo-mark-dark.png'); }
+.logo-shine--dole { --logo-mask: url('/dole-logo-mark.png'); }
+.dark .logo-shine--dole { --logo-mask: url('/dole-logo-mark-dark.png'); }
+.logo-shine--peso { --logo-mask: url('/peso-philippines-logo-mark.png'); }
+@media (hover: hover) {
+  .logo-shine:hover { transform: translateY(-2px); filter: drop-shadow(0 8px 14px rgb(2 6 23 / 0.18)); }
+  .dark .logo-shine:hover { filter: drop-shadow(0 8px 18px rgb(0 0 0 / 0.6)); }
+  .logo-shine:hover::after {
+    opacity: 1;
+    animation: logo-shine-sweep 1100ms var(--ui-ease-out);
+  }
+}
+@keyframes logo-shine-sweep {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
+}
+
+/*
+ * Marquee: two identical groups scroll by exactly half the track. Hovering or
+ * keyboard-focusing the card flow is the only pause.
+ */
+.ui-marquee {
+  position: relative;
+  overflow: hidden;
+  padding-block: 0.5rem;
+  --marquee-fade: 2.5rem;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--marquee-fade), #000 calc(100% - var(--marquee-fade)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--marquee-fade), #000 calc(100% - var(--marquee-fade)), transparent);
+}
+.ui-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: ui-marquee-scroll var(--marquee-duration, 44s) linear infinite;
+}
+.ui-marquee-group { display: flex; flex: 0 0 auto; gap: 1rem; padding-right: 1rem; }
+/* Hovering a card flow is the pause: readers can stop scrolling without a control. */
+.ui-marquee:hover .ui-marquee-track,
+.ui-marquee:focus-within .ui-marquee-track { animation-play-state: paused; }
+@keyframes ui-marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.ui-dialog { animation: dialog-enter var(--ui-motion-emphasis) var(--ui-ease-out); }
+/* Pop up with a slight overshoot, then settle: the "surprise" entrance. */
+@keyframes dialog-enter {
+  0% { opacity: 0; transform: translateY(18px) scale(.82); }
+  55% { opacity: 1; transform: translateY(-3px) scale(1.03); }
+  80% { transform: translateY(1px) scale(.995); }
+  100% { opacity: 1; transform: none; }
+}
+@media (pointer: coarse) {
+  .ui-button, .ui-control, .ui-icon-button, .ui-segment, .portal-nav-link { min-height: 44px; }
+  .ui-icon-button, .ui-segment { min-width: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  /* The marquee is core content and hover is its pause, so it keeps looping. */
+  .ui-marquee-track { animation-duration: var(--marquee-duration, 44s) !important; animation-iteration-count: infinite !important; }
+}
+/* Without motion the sweep still answers hover with a fixed sheen, never a blank state. */
+@media (prefers-reduced-motion: reduce) and (hover: hover) {
+  .logo-shine:hover::after { animation: none !important; opacity: 1; background-position: 50% 0; }
+}
+
+/* The portal owns its breadcrumb row; avoid duplicate page-level trails. */
+.portal-shell .page-breadcrumb { display: none; }
+
+/* Shared interaction rhythm: animate overlays and row feedback, not data fetching. */
+.ui-backdrop { animation: backdrop-enter 180ms ease-out; backdrop-filter: blur(2px); }
+@keyframes backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
+
+/*
+ * Motion language: route content rises once, stat rows stagger in, and anchored
+ * popups scale from their trigger. Transform/opacity only, so nothing reflows.
+ */
+/* Soft-focus settle: fade in from a faint blur so the page "breathes" in. */
+.ui-page-enter { animation: page-enter var(--ui-motion-page) var(--ui-ease-out) both; }
+@keyframes page-enter {
+  0% { opacity: 0; transform: translateY(8px) scale(.99); filter: blur(6px); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+.ui-stagger > * { animation: stagger-enter var(--ui-motion-page) var(--ui-ease-out) both; }
+.ui-stagger > :nth-child(2) { animation-delay: 30ms; }
+.ui-stagger > :nth-child(3) { animation-delay: 60ms; }
+.ui-stagger > :nth-child(4) { animation-delay: 90ms; }
+.ui-stagger > :nth-child(5) { animation-delay: 120ms; }
+.ui-stagger > :nth-child(6) { animation-delay: 150ms; }
+@keyframes stagger-enter {
+  0% { opacity: 0; transform: translateY(8px) scale(.985); }
+  60% { opacity: 1; transform: translateY(-1px) scale(1.005); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* Mobile navigation slides; only true dialogs get the surprise pop. */
+.ui-drawer-panel { animation: drawer-panel-enter var(--ui-motion-emphasis) var(--ui-ease-out); }
+@keyframes drawer-panel-enter { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+
+.ui-popover { animation: popover-enter 150ms var(--ui-ease-out); transform-origin: top center; }
+.ui-popover[data-placement="top"] { transform-origin: bottom center; }
+@keyframes popover-enter { from { opacity: 0; transform: translateY(-6px) scale(.9); } to { opacity: 1; transform: none; } }
+
+/* react-hot-toast owns its keyframes; only tighten them to the shared rhythm. */
+.ui-toast { animation-duration: 180ms !important; animation-timing-function: var(--ui-ease-out) !important; }
+
+/* Loading placeholders: a soft sweep instead of a spinner and status text. */
+.ui-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-slate-200);
+}
+.ui-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .65), transparent);
+  animation: skeleton-sweep 1.5s var(--ui-ease-out) infinite;
+}
+.dark .ui-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .1), transparent);
+}
+@keyframes skeleton-sweep { to { transform: translateX(100%); } }
+@keyframes skeleton-pulse { 0%, 100% { opacity: .2; } 50% { opacity: .75; } }
+
+/*
+ * Reduced motion keeps the movement cues but calms them: a short rise, no
+ * filter blur, and only a whisper of overshoot on dialogs, so transitions
+ * still register without the full-motion scale pop.
+ */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes page-enter-soft { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes dialog-enter-soft {
+  0% { opacity: 0; transform: translateY(14px) scale(.95); }
+  70% { opacity: 1; transform: translateY(-2px) scale(1.008); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes popover-enter-soft { from { opacity: 0; transform: translateY(-8px) scale(.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ui-page-enter,
+  .ui-stagger > * {
+    animation-name: page-enter-soft !important;
+    animation-duration: 200ms !important;
+    animation-delay: 0ms !important;
+    animation-timing-function: var(--ui-ease-out) !important;
+    animation-fill-mode: both !important;
+  }
+  .ui-dialog {
+    animation-name: dialog-enter-soft !important;
+    animation-duration: 220ms !important;
+    animation-delay: 0ms !important;
+    animation-timing-function: var(--ui-ease-out) !important;
+    animation-fill-mode: both !important;
+  }
+  .ui-popover {
+    animation-name: popover-enter-soft !important;
+    animation-duration: 170ms !important;
+    animation-delay: 0ms !important;
+    animation-timing-function: var(--ui-ease-out) !important;
+    animation-fill-mode: both !important;
+  }
+  .ui-backdrop {
+    animation-name: fade-in !important;
+    animation-duration: 160ms !important;
+    animation-timing-function: ease-out !important;
+    animation-fill-mode: both !important;
+  }
+  /* The sweep is spatial motion; a slow opacity pulse keeps the placeholder alive. */
+  .ui-skeleton::after {
+    animation-name: skeleton-pulse !important;
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
+    animation-timing-function: ease-in-out !important;
+    transform: none !important;
+  }
+  .ui-toast { animation-duration: .01ms !important; }
+}
+
+/* Keep native file pickers recognisable and keyboard accessible after CSS reset. */
+input[type="file"]::file-selector-button {
+  min-height: 40px;
+  margin-inline-end: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-slate-300);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-slate-900);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--ui-motion), border-color var(--ui-motion);
+}
+input[type="file"]:not(:disabled)::file-selector-button:hover {
+  background: var(--color-brand-50);
+  border-color: var(--color-brand-500);
+}
+input[type="file"]:disabled::file-selector-button { opacity: .5; cursor: not-allowed; }
+@media (pointer: coarse) { input[type="file"]::file-selector-button { min-height: 44px; } }

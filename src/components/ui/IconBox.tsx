@@ -13,9 +13,9 @@ const tones: Record<Tone, string> = {
 }
 
 const sizes = {
-  sm: 'h-9 w-9 [&>svg]:h-5 [&>svg]:w-5',
-  md: 'h-12 w-12 [&>svg]:h-6 [&>svg]:w-6',
-  lg: 'h-14 w-14 [&>svg]:h-7 [&>svg]:w-7',
+  sm: 'h-8 w-8 [&>svg]:h-4 [&>svg]:w-4',
+  md: 'h-10 w-10 [&>svg]:h-5 [&>svg]:w-5',
+  lg: 'h-12 w-12 [&>svg]:h-6 [&>svg]:w-6',
 }
 
 /** Square tinted box holding an icon. Default tone is PESO red for consistency. */
@@ -36,7 +36,7 @@ export function IconBox({
     <span
       className={cn(
         'inline-flex shrink-0 items-center justify-center',
-        round ? 'rounded-full' : 'rounded-xl',
+        round ? 'rounded-full' : 'rounded-lg',
         tones[tone],
         sizes[size],
         className,

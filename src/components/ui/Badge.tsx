@@ -18,7 +18,7 @@ export function Badge({ tone = 'neutral', children, className, wrap }: { tone?: 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-[0.9rem] font-semibold ring-1 ring-inset',
+        'inline-flex items-center gap-1.5 rounded-md px-1.5 py-[1px] text-[11.5px] font-semibold ring-1 ring-inset',
         wrap ? 'whitespace-normal text-center leading-snug' : 'whitespace-nowrap',
         tones[tone],
         className,
@@ -56,6 +56,7 @@ export function StatusBadge({ status, className, wrap }: { status: string; class
   const ptNode = usePTNode()
   return (
     <Badge tone={STATUS_TONE[status] ?? 'neutral'} className={className} wrap={wrap}>
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
       {ptNode(status)}
     </Badge>
   )

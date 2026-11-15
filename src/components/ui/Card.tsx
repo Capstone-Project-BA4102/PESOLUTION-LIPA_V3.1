@@ -5,7 +5,7 @@ import { usePTNode } from '@/lib/portalCopy'
 
 export function Card({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('rounded-card border border-slate-200 bg-white shadow-sm', className)} {...rest}>
+    <div className={cn('rounded-[8px] border border-slate-200 bg-white shadow-[var(--ui-shadow)]', className)} {...rest}>
       {children}
     </div>
   )
@@ -27,15 +27,15 @@ export function CardHeader({ title, description, icon, action, className, divide
   return (
     <div
       className={cn(
-        'flex flex-wrap items-start justify-between gap-3 px-6 pt-6',
-        divider ? 'border-b border-slate-200 pb-4' : 'pb-2',
+        'flex flex-wrap items-start justify-between gap-3 px-5 pt-4',
+        divider ? 'border-b border-slate-200 pb-3' : 'pb-2',
         className,
       )}
     >
       <div className="flex min-w-0 items-start gap-3">
         {icon && <IconBox>{icon}</IconBox>}
         <div className="min-w-0">
-          <h2 className="text-xl font-bold">{ptNode(title)}</h2>
+          <h2 className="text-[17px] font-semibold">{ptNode(title)}</h2>
           {description && <p className="mt-0.5 text-slate-600">{ptNode(description)}</p>}
         </div>
       </div>
@@ -46,7 +46,7 @@ export function CardHeader({ title, description, icon, action, className, divide
 
 export function CardBody({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('p-6', className)} {...rest}>
+    <div className={cn('p-5', className)} {...rest}>
       {children}
     </div>
   )
@@ -55,7 +55,7 @@ export function CardBody({ className, children, ...rest }: HTMLAttributes<HTMLDi
 export function CardFooter({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-6 py-4', className)}
+      className={cn('flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-2.5', className)}
       {...rest}
     >
       {children}

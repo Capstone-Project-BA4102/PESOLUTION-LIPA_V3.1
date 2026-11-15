@@ -12,7 +12,7 @@ async function fontFile(name: string) {
   for (let offset=0; offset<bytes.length; offset+=32768) binary += String.fromCharCode(...bytes.subarray(offset,offset+32768))
   return btoa(binary)
 }
-async function pdfAssets(): Promise<ReportPdfAssets> {
+export async function pdfAssets(): Promise<ReportPdfAssets> {
   fonts ||= Promise.all([fontFile('LiberationSans-Regular.ttf'),fontFile('LiberationSans-Bold.ttf')]).then(([normal,bold])=>({normal,bold})).catch(error=>{ fonts=undefined; throw error })
   const loaded = await fonts
   let logo: string | null = null
@@ -43,7 +43,7 @@ export function renderSummaryReportPdf(report: SummaryReportSnapshot, period: 'w
   }
   const nextPage = () => { pdf.addPage(); header(); y=TOP }
   header()
-  drawReportVisualSummary(pdf,report,{margin:MARGIN,width,top:TOP,bottom,nextPage})
+  drawReportVisualSummary(pdf,report,{margin:MARGIN,width,top:TOP})
   nextPage()
   pdf.setFont('ReportSans','bold');pdf.setFontSize(14);pdf.setTextColor(30,41,59);pdf.text('Detailed Appendix',MARGIN,y+13);y+=32
   for (const [sectionIndex,section] of summaryReportTables(report).entries()) {
@@ -89,7 +89,7 @@ export function renderSummaryReportPdf(report: SummaryReportSnapshot, period: 'w
   for(let page=1;page<=pages;page++){
     pdf.setPage(page);pdf.setDrawColor(200,206,215);pdf.line(MARGIN,height-31,width-MARGIN,height-31)
     pdf.setFont('ReportSans','normal');pdf.setFontSize(7.5);pdf.setTextColor(100,116,139)
-    pdf.text(`Generated: ${reportDate(report.generatedAt,true)}`,MARGIN,height-19)
+    if(page===1)pdf.text(`Generated: ${reportDate(report.generatedAt,true)}`,MARGIN,height-19)
     pdf.text(`Page ${page} of ${pages}`,width-MARGIN,height-19,{align:'right'})
   }
   return pdf

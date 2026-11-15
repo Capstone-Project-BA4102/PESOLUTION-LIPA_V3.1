@@ -44,18 +44,23 @@ export function SearchableSelect({ label, ariaLabel, options, value, onChange, p
       const up = below < 220 && above > below
       const height = Math.max(90, Math.min(320, up ? above : below))
       const width = Math.min(bounds.width, window.innerWidth - 16)
+      menu.current.dataset.placement = up ? 'top' : 'bottom'
       Object.assign(menu.current.style, { width: `${width}px`, left: `${Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8))}px`, top: `${up ? Math.max(8, bounds.top - height) : bounds.bottom + 4}px`, maxHeight: `${height}px`, visibility: 'visible' })
       list.current.style.maxHeight = `${Math.max(36, height - 76)}px`
     }
     const outside = (event: PointerEvent) => {
       if (!menu.current?.contains(event.target as Node) && !trigger.current?.contains(event.target as Node)) setOpen(false)
     }
-    position(); search.current?.focus({ preventScroll: true })
+    position()
+    // Field's portaled subtree can commit after this layout effect. Position it
+    // before focusing: hidden popups cannot receive keyboard focus.
+    const focusFrame = requestAnimationFrame(() => { position(); search.current?.focus({ preventScroll: true }) })
     window.addEventListener('resize', position)
     window.addEventListener('scroll', position, true)
     window.visualViewport?.addEventListener('resize', position)
     document.addEventListener('pointerdown', outside)
     return () => {
+      cancelAnimationFrame(focusFrame)
       window.removeEventListener('resize', position); window.removeEventListener('scroll', position, true)
       window.visualViewport?.removeEventListener('resize', position); document.removeEventListener('pointerdown', outside)
     }
@@ -63,15 +68,15 @@ export function SearchableSelect({ label, ariaLabel, options, value, onChange, p
   useEffect(() => { if (open) rows.current[active]?.scrollIntoView({ block: 'nearest' }) }, [open, active, query])
 
   return <Field label={label} required={required} hint={hint}>
-    {id => <div className="relative min-w-0">
-      <button ref={trigger} id={id} type="button" role="combobox" aria-label={ariaLabel} aria-expanded={open} aria-haspopup="listbox" aria-controls={listId}
+    {(id, descriptionId) => <div className="relative min-w-0">
+      <button ref={trigger} id={id} type="button" role="combobox" aria-describedby={descriptionId} aria-label={ariaLabel} aria-expanded={open} aria-haspopup="listbox" aria-controls={listId}
         className={cn(formControlClassName, 'relative h-12 pr-12 text-left', className)}
         onClick={() => open ? setOpen(false) : show()} onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); show() } }}>
         <span className={cn('block truncate', !value && 'text-slate-500')}>{selected || pt(placeholder)}</span>
         <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
       </button>
       <input aria-hidden="true" tabIndex={-1} className="sr-only" value={value} required={required} onChange={() => {}} onInvalid={event => { event.preventDefault(); show() }} />
-      {open && createPortal(<div ref={menu} data-searchable-select-popup="" style={{ position: 'fixed', visibility: 'hidden', zIndex: 100 }} className="overflow-hidden rounded-lg border border-slate-300 bg-white text-slate-900 shadow-lg">
+      {open && createPortal(<div ref={menu} data-searchable-select-popup="" style={{ position: 'fixed', zIndex: 100 }} className="ui-popover overflow-hidden rounded-lg border border-slate-300 bg-white text-slate-900 shadow-lg">
         <div className="border-b border-slate-200 p-2">
           <input ref={search} value={query} maxLength={200} aria-label={pt('Search {field}', { field: pt(label || ariaLabel || 'options') })} aria-controls={listId} aria-activedescendant={filtered[active] ? `${listId}-${active}` : undefined}
             className={cn(formControlClassName, 'h-10')} placeholder={pt('Type to search…')}

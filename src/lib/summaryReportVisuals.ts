@@ -1,13 +1,12 @@
 import type { jsPDF } from 'jspdf'
 import type { SummaryReportSnapshot } from './summaryReportTables.ts'
-import { summaryReportOverview } from './summaryReportOverview.ts'
 type Count = { label: string; count: number }
-type Layout = { margin: number; width: number; top: number; bottom: number; nextPage: () => void }
+type Layout = { margin: number; width: number; top: number }
 const RED: [number,number,number]=[174,28,35], BLUE: [number,number,number]=[44,86,127], INK: [number,number,number]=[30,41,59], MUTED: [number,number,number]=[90,105,122]
+const recorded = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0
 /** Lightweight vector charts: every mark comes from actual report counts. */
 export function drawReportVisualSummary(pdf: jsPDF, report: SummaryReportSnapshot, layout: Layout) {
-  const {margin,width,top,bottom,nextPage}=layout,usable=width-margin*2,gap=22,half=(usable-gap)/2
-  const model=summaryReportOverview(report)
+  const {margin,width,top}=layout,usable=width-margin*2,gap=22,half=(usable-gap)/2
   const text=(value: string,x: number,y: number,size=9,bold=false,color=INK)=>{pdf.setFont('ReportSans',bold?'bold':'normal');pdf.setFontSize(size);pdf.setTextColor(...color);pdf.text(value,x,y)}
   const paragraph=(value: string,x: number,y: number,w=usable,size=9)=>{pdf.setFont('ReportSans','normal');pdf.setFontSize(size);pdf.setTextColor(...MUTED);const lines=pdf.splitTextToSize(value,w) as string[];pdf.text(lines,x,y,{lineHeightFactor:1.4});return y+lines.length*size*1.4}
   const heading=(title: string,y: number)=>text(title,margin,y,14,true)
@@ -29,48 +28,20 @@ export function drawReportVisualSummary(pdf: jsPDF, report: SummaryReportSnapsho
       if(marks.has(index)){pdf.setFontSize(6.8);pdf.setTextColor(...MUTED);const label=row.label.length>12?`${row.label.slice(0,9)}...`:row.label;pdf.text(label,bx,base+14,{align:'center'})}
     })
   }
-  const bars=(title: string,rows: Count[],x: number,y: number,w: number,color: [number,number,number],unit: string)=>{
-    text(title,x,y,10,true);paragraph(unit,x,y+15,w,8)
-    if(!rows.length){paragraph('No recorded skills for this measure.',x,y+50,w,9);return}
-    const max=Math.max(...rows.map(row=>row.count));let at=y+42
-    for(const row of rows){
-      pdf.setFont('ReportSans','normal');pdf.setFontSize(8.5);pdf.setTextColor(...INK)
-      const label=pdf.splitTextToSize(row.label,w-40) as string[],visible=label.slice(0,2)
-      if(label.length>2)visible[1]=`${visible[1].slice(0,-3)}...`
-      pdf.text(visible,x,at,{lineHeightFactor:1.25});pdf.text(String(row.count),x+w,at,{align:'right'})
-      const barY=at+(visible.length-1)*10.6+7
-      pdf.setFillColor(235,239,244);pdf.rect(x,barY,w,5,'F');pdf.setFillColor(...color);pdf.rect(x,barY,w*row.count/max,5,'F')
-      at+=42
-    }
-  }
+  const metrics = [['newAccounts','Registrations'],['referralsIssued','Referrals issued'],['hired','Hired'],['notHired','Not hired']].map(([key,label])=>{
+    const value=report.kpis?.[key]
+    const current=recorded(value?.cur)?value.cur:null
+    return { label, value: current, change: current!==null&&recorded(value?.prev) ? current-value.prev : null }
+  })
   heading('Executive Summary',top+14)
-  paragraph('Key results for the selected reporting period',margin,top+31,usable,9)
-  const metricTop=top+61,column=usable/4
-  model.metrics.forEach((metric,index)=>{
+  const metricTop=top+48,column=usable/4
+  metrics.forEach((metric,index)=>{
     const x=margin+column*index
     text(metric.label,x,metricTop,8.5,false,MUTED);text(metric.value===null?'Not recorded':String(metric.value),x,metricTop+27,metric.value===null?12:24,true,RED)
     text(metric.change===null?'No prior comparison':`${metric.change>0?'+':''}${metric.change} vs prior period`,x,metricTop+44,7.5,false,MUTED)
     if(index>0){pdf.setDrawColor(222,227,233);pdf.line(x-12,metricTop-4,x-12,metricTop+47)}
   })
-  trend('Applicant registrations',model.registrationTrend,margin,top+146,half,RED)
-  trend('Job listings posted',model.postingTrend,margin+half+gap,top+146,half,BLUE)
-  paragraph('Counts by actual registration/posting date. These are new records, not remaining vacancy balances.',margin,top+328,usable,8)
-  text('Recorded highlights',margin,top+374,11,true)
-  let y=top+397
-  const highlights=model.highlights.length?model.highlights:['No comparable report metrics are available for this period.']
-  for(const highlight of highlights){text('-',margin,y,10,true,RED);y=paragraph(highlight,margin+13,y,usable-13,9)+14}
-  y=Math.max(y+6,top+524)
-  paragraph('Outcome counts are applicants recorded with each status, not a hiring-rate calculation. The current period may be incomplete; comparisons use counts, not rates.',margin,y,usable,8)
-  const snapshot=[['active companies',report.market?.activeCompanies],['listings recorded Active',report.market?.openJobs],['recorded vacancies',report.market?.totalVacancies]].filter(([,value])=>typeof value==='number'&&Number.isFinite(value)).map(([label,value])=>`${value} ${label}`).join(' | ')
-  if(snapshot)paragraph(`Current snapshot: ${snapshot}.`,margin,top+590,usable,8)
-  text(`Detailed appendix starts on page ${model.hasSkills?3:2}.`,margin,bottom-10,8,false,MUTED)
-  if(model.hasSkills){
-    nextPage();heading('Skills Overview',top+14)
-    paragraph('Employer demand: current active listings. Gaps: saved match rows from this reporting period.',margin,top+33,usable,8.5)
-    bars('Most-required hard skills',model.requiredHard,margin,top+75,half,RED,'Distinct active listings requiring each skill')
-    bars('Most-required soft skills',model.requiredSoft,margin+half+gap,top+75,half,BLUE,'Distinct active listings requiring each skill')
-    bars('Frequently missing hard skills',model.missingHard,margin,top+370,usable,[172,101,21],'Saved match occurrences; the same applicant may appear across jobs')
-    paragraph('Top five per measure. Full counts and labels are in the appendix. This report does not create training recommendations or verify course availability.',margin,bottom-31,usable,8)
-  }
-  return model
+  trend('Applicant registrations',report.registrationTrend,margin,top+118,half,RED)
+  trend('Job listings posted',report.demandTrend,margin+half+gap,top+118,half,BLUE)
+  paragraph('Counts use actual registration and posting dates; these are new records, not remaining vacancy balances. Outcome counts are applicants recorded with each status, not a hiring-rate calculation, and comparisons use counts rather than rates. The current period may be incomplete.',margin,top+300,usable,8)
 }

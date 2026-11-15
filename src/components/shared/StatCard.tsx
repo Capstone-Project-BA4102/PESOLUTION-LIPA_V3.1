@@ -13,14 +13,14 @@ interface StatCardProps {
 export function StatCard({ label, value, icon, tone = 'brand' }: StatCardProps) {
   const ptNode = usePTNode()
   return (
-    <Card className="flex items-center gap-3 p-5 transition-shadow hover:shadow-md">
-      <IconBox tone={tone} size="md" round>
+    <Card className="flex items-start justify-between gap-3 p-3 transition-shadow hover:shadow-[0_2px_8px_rgb(0_0_0_/_0.06)]">
+      <div className="min-w-0">
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.05em] text-slate-500">{ptNode(label)}</p>
+        <p className="mt-1 text-[22px] font-bold leading-none tracking-tight tabular-nums text-slate-900">{value}</p>
+      </div>
+      <IconBox tone={tone} size="sm" round>
         {icon}
       </IconBox>
-      <div className="min-w-0">
-        <p className="text-sm font-medium leading-tight text-slate-500">{ptNode(label)}</p>
-        <p className="text-2xl font-bold text-slate-900">{value}</p>
-      </div>
     </Card>
   )
 }

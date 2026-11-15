@@ -16,7 +16,8 @@ import {
 } from "@/lib/api";
 import { useQuery } from "@/lib/useQuery";
 import { printDocument } from "@/lib/print";
-import { LoadingBlock, ErrorBlock } from "@/components/shared/QueryState";
+import { ErrorBlock } from "@/components/shared/QueryState";
+import { DocumentSkeleton } from "@/components/shared/Skeletons";
 import { usePT } from "@/lib/portalCopy";
 
 export default function ApplicantAccountReceiptPage() {
@@ -54,7 +55,7 @@ export default function ApplicantAccountReceiptPage() {
     }
   };
 
-  if (loading) return <LoadingBlock label={pt("Loading applicant account receipt...")} />;
+  if (loading) return <DocumentSkeleton label={pt("Loading applicant account receipt...")} actions={2} />;
   if (error || !applicant) {
     return <ErrorBlock message={error || pt("Applicant not found.")} onRetry={reload} />;
   }
@@ -71,7 +72,7 @@ export default function ApplicantAccountReceiptPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="print:hidden no-print">
         <PageHeader
           title="Account Receipt"

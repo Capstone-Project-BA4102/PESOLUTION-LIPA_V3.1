@@ -1,4 +1,4 @@
-import { BrainCircuit, Info } from 'lucide-react'
+import { BrainCircuit, ChevronDown, Info } from 'lucide-react'
 import type { MatchDetailsJob } from '@/lib/api'
 import { usePT } from '@/lib/portalCopy'
 import { Badge } from '@/components/ui/Badge'
@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/Badge'
 export function NlpSkillBreakdown({ match, expanded = false }: { match: MatchDetailsJob; expanded?: boolean }) {
   const pt = usePT()
   const evidence = match.nlpAudit
-  return <details open={expanded || undefined} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-    <summary className="flex cursor-pointer list-none items-center gap-2 border-b border-slate-200 bg-brand-50 px-4 py-3 text-sm font-bold text-brand-800 [&::-webkit-details-marker]:hidden">
-      <BrainCircuit aria-hidden="true" className="h-5 w-5 shrink-0" />{pt('NLP Skill Matching Breakdown')}
+  return <details open={expanded || undefined} className="group overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+    <summary className="flex cursor-pointer list-none items-center gap-2.5 border-b border-slate-200 bg-white px-3.5 py-2.5 text-[13px] font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><BrainCircuit aria-hidden="true" className="h-4 w-4" /></span>
+      <span className="min-w-0">{pt('NLP Skill Matching Breakdown')}</span>
+      <ChevronDown aria-hidden="true" className="ml-auto h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
     </summary>
     {!evidence ? <p role="status" className="p-4 text-sm text-slate-500">{pt('The skill comparison will load automatically when local matching is available.')}</p> : <>
       {evidence.status === 'exact_only' && <p role="status" className="px-4 pt-3 text-xs text-warning-700">{pt('Local NLP unavailable: exact-match fallback.')}</p>}

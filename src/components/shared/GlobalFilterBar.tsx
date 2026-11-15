@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Filter, X } from 'lucide-react'
-import { Card, Button, Select, SearchInput } from '@/components/ui'
+import { Button, Select, SearchInput } from '@/components/ui'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { usePT } from '@/lib/portalCopy'
 
@@ -48,44 +48,46 @@ export function GlobalFilterBar({
   const hasActiveFilters = filterOptions.some((opt) => activeFilters[opt.id] && activeFilters[opt.id] !== opt.options[0])
 
   return (
-    <Card className="flex flex-wrap items-center gap-3 p-4 shrink-0 relative">
+    <div className="flex flex-wrap items-center gap-2">
       <SearchInput
         placeholder={searchPlaceholder}
         value={searchValue}
         onChange={(e) => onSearchChange(e.target.value)}
         aria-label={pt('Search records')}
-        className="flex-1 min-w-[240px]"
+        className="min-w-[220px] flex-1"
       />
-      
-      <div className="flex gap-2 relative" ref={dropdownRef}>
-        <Button 
-          icon={<Filter className="h-5 w-5" />} 
+
+      <div className="ml-auto flex items-center gap-1.5" ref={dropdownRef}>
+        <Button
+          size="sm"
+          icon={<Filter className="h-4 w-4" />}
           onClick={() => setIsOpen(!isOpen)}
           variant={hasActiveFilters ? 'primary' : 'neutral'}
+          aria-expanded={isOpen}
         >
-          {pt('Filters')} {hasActiveFilters && pt('(Active)')}
+          {pt('Filters')}{hasActiveFilters ? ' · ' + pt('Active') : ''}
         </Button>
 
         {isOpen && (
-          <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 z-50 p-4 flex flex-col gap-4">
+          <div className="ui-popover absolute top-full right-0 z-50 mt-2 flex w-72 flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800">{pt('Advanced Filters')}</h3>
-              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <h3 className="text-[13px] font-semibold text-slate-800">{pt('Advanced Filters')}</h3>
+              <button type="button" aria-label={pt('Close')} onClick={() => setIsOpen(false)} className="rounded p-0.5 text-slate-400 hover:text-slate-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            
-            <div className="flex flex-col gap-3">
+
+            <div className="flex flex-col gap-2.5">
               {filterOptions.map((opt) => (
                 <div key={opt.id} className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-500">
                     {pt(opt.label)}
                   </span>
                   {opt.searchable ? <SearchableSelect ariaLabel={opt.label} options={opt.options} value={activeFilters[opt.id] || ''} onChange={value => onFilterChange(opt.id, value)} /> : <Select
                     options={opt.options}
                     value={activeFilters[opt.id] || ''}
                     onChange={(e) => onFilterChange(opt.id, e.target.value)}
-                    className="w-full h-10"
+                    className="w-full"
                   />}
                 </div>
               ))}
@@ -93,10 +95,10 @@ export function GlobalFilterBar({
           </div>
         )}
 
-        <Button variant="neutral" onClick={onClear}>
-          Clear
+        <Button size="sm" variant="ghost" onClick={onClear}>
+          {pt('Clear')}
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }

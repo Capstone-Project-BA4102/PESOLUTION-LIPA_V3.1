@@ -2,6 +2,14 @@ import { registerFil } from './core'
 
 /** Administrative website-management copy. */
 registerFil({
+  'Remove review': 'Alisin ang review',
+  'Remove selected review?': 'Alisin ang napiling review?',
+  'Removing…': 'Inaalis…',
+  'The selected review was removed.': 'Naalis na ang napiling review.',
+  'The review was removed, but its activity log could not be saved.': 'Naalis ang review, ngunit hindi naitala ang activity log nito.',
+  'Could not remove this review. Please retry.': 'Hindi maalis ang review na ito. Pakisubukang muli.',
+  'This permanently removes the selected rating, comment, sentiment result, and any public testimonial. Employment and referral history are kept. This cannot be undone.': 'Permanenteng aalisin ang napiling rating, komento, resulta ng sentiment, at anumang pampublikong testimonial. Mananatili ang employment at referral history. Hindi na ito maibabalik.',
+
   // Service Status screen
   Healthy: 'Maayos',
   Unavailable: 'Hindi Magagamit',

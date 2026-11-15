@@ -1,8 +1,10 @@
 // @ts-nocheck
+import { SelectedFilePreview } from "@/components/shared/SelectedFilePreview";
+import { saveRenewalResume } from "@/lib/applicantFiles";
 import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   PlusCircle,
@@ -20,16 +22,22 @@ import {
   Printer,
   RotateCcw,
   Send,
-  X,
+  Search,
+  Filter,
+  Eye,
+  Archive,
 } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Table, THead, TH, TD, TR } from "@/components/ui/Table";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { SkillTag, StatusBadge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Display";
 import { IconBox } from "@/components/ui/IconBox";
 import { Modal } from "@/components/ui/Modal";
+import { Drawer } from "@/components/ui/Drawer";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { CountUp } from "@/components/ui/CountUp";
+import { Select } from "@/components/ui/Form";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
+import { downloadCsv } from "@/lib/csv";
 import {
   type Applicant,
   type ApplicantHistoryItem,
@@ -48,12 +56,12 @@ import {
   type StatusEmailPreview,
   fetchPendingReferralRequest,
   renewApplicant,
+  setApplicantStatus,
 } from "@/lib/api";
 import { useQuery } from "@/lib/useQuery";
 import { usePagination } from "@/lib/usePagination";
 import { usePT } from "@/lib/portalCopy";
-import { LoadingBlock, ErrorBlock, GlobalFilterBar, StatCard } from "@/components/shared";
-import { Pagination } from "@/components/ui/Table";
+import { LoadingBlock, ErrorBlock } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import { hasStructuredApplicantName } from "@/lib/applicantName";
 
@@ -62,13 +70,21 @@ import { EditApplicantModal } from "@/components/modals/EditApplicantModal";
 export default function ApplicantsPage() {
   const pt = usePT();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data, loading, refreshing, error, reload } = useQuery(fetchApplicants);
   useLiveRefresh(reload, ['applicants', 'resumes', 'applications', 'referrals', 'status_history']);
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchTerm = searchParams.get("q") || "";
+  const setSearchTerm = (value: string) => setSearchParams(params => {
+    const next = new URLSearchParams(params);
+    if (value) next.set("q", value); else next.delete("q");
+    return next;
+  }, { replace: true });
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [genderFilter, setGenderFilter] = useState("All Genders");
   const [educationFilter, setEducationFilter] = useState("All Educations");
   const [barangayFilter, setBarangayFilter] = useState("All Barangays");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     "profile" | "documents" | "history"
@@ -91,6 +107,9 @@ export default function ApplicantsPage() {
   const [emailSending, setEmailSending] = useState(false);
   const [setupEmailApplicant, setSetupEmailApplicant] = useState<Applicant | null>(null);
   const [setupEmailStatuses, setSetupEmailStatuses] = useState<Record<string, ApplicantSetupEmailStatus>>({});
+  const [statusTargets, setStatusTargets] = useState<Applicant[] | null>(null);
+  const [statusNext, setStatusNext] = useState<"Active" | "Inactive">("Inactive");
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const loadStatusEvents = async (applicantId: string) => {
     const history = await fetchApplicantStatusEvents(applicantId);
@@ -100,7 +119,7 @@ export default function ApplicantsPage() {
   useEffect(() => {
     const list = data ?? [];
     const effectiveId =
-      list.find((a) => a.id === selectedId)?.id ?? list[0]?.id;
+      list.find((a) => a.id === selectedId)?.id;
     if (effectiveId) {
       // Keep the persisted notification action available beside the current status,
       // while the full audit trail remains visible in the History tab.
@@ -108,11 +127,20 @@ export default function ApplicantsPage() {
     }
   }, [selectedId, data]);
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(event.target as Node)) setFiltersOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [filtersOpen]);
+
   const [resumeMissing, setResumeMissing] = useState(false);
 
   useEffect(() => {
     const list = data ?? [];
-    const url = (list.find((a) => a.id === selectedId) ?? list[0])?.resumeUrl;
+    const url = list.find((a) => a.id === selectedId)?.resumeUrl;
     if (!url) {
       setResumeMissing(false);
       return;
@@ -191,27 +219,46 @@ export default function ApplicantsPage() {
     }
   };
 
+  const [renewTarget, setRenewTarget] = useState<Applicant | null>(null);
+  const [renewFile, setRenewFile] = useState<File | null>(null);
+  const [keepResume, setKeepResume] = useState(false);
+  const [renewing, setRenewing] = useState(false);
+  const [resumeSaved, setResumeSaved] = useState(false);
+  const renewalRequest = useRef(false);
   const handleRenew = async (appId: string) => {
+    if (!renewTarget || renewalRequest.current || (!renewFile && !keepResume)) return;
+    renewalRequest.current = true;
+    setRenewing(true);
     try {
+      if (renewFile && !resumeSaved) { await saveRenewalResume(renewTarget, renewFile); setResumeSaved(true); }
       await renewApplicant(appId);
+      setRenewTarget(null);
       toast.success(pt("Application successfully renewed!"));
       reload();
       if (activeTab === "history") {
         loadStatusEvents(appId).catch(() => {});
       }
-    } catch {
-      toast.error(pt("Failed to renew application."));
-    }
+    } catch (failure) {
+      toast.error(failure instanceof Error ? failure.message : pt("Failed to renew application. Please retry."));
+    } finally { renewalRequest.current = false; setRenewing(false); }
   };
 
   const applicants = data ?? [];
 
+  /** Inactive/Suspended accounts replace the workflow badge until the account is reactivated. */
+  const accountStatusOf = (app: Applicant) =>
+    app.accountStatus && app.accountStatus !== "Active" ? app.accountStatus : app.status;
+  const accountIsActive = (app: Applicant) =>
+    !app.accountStatus || app.accountStatus === "Active";
+
+  const searchNeedle = searchTerm.trim().toLowerCase();
   const filtered = applicants.filter((a) => {
-    const matchSearch = `${a.name} ${a.code}`
+    const matchSearch = !searchNeedle || [a.name, a.code, a.contact, a.barangay, a.email, a.course, a.education]
+      .join(" ")
       .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+      .includes(searchNeedle);
     const matchStatus =
-      statusFilter === "All Statuses" || a.status === statusFilter;
+      statusFilter === "All Statuses" || accountStatusOf(a) === statusFilter;
     const matchGender =
       genderFilter === "All Genders" || a.gender === genderFilter;
     const matchEdu =
@@ -245,22 +292,28 @@ export default function ApplicantsPage() {
       .catch(() => setTableEmailEvents({}));
   }, [pagedApplicantIds]);
 
-  if (loading && !data) return <LoadingBlock label="Loading applicants…" />;
+  if (loading && !data) return <LoadingBlock label="Loading applicants…" kpis={5} rows={6} action />;
   if (error && !data) return <ErrorBlock message={error} onRetry={reload} />;
 
   const selectedApplicant =
-    applicants.find((a) => a.id === selectedId) ?? applicants[0];
+    applicants.find((a) => a.id === selectedId);
 
-  const handleViewRecommendations = async () => {
-    if (!selectedApplicant) return;
-    if (selectedApplicant.status === "Referral Requested") {
-      const pending = await fetchPendingReferralRequest(selectedApplicant.id);
+  const handleViewRecommendations = async (applicant = selectedApplicant) => {
+    if (!applicant) return;
+    if (applicant.status === "Referral Requested") {
+      const pending = await fetchPendingReferralRequest(applicant.id);
       if (pending) {
-        navigate(`/admin/matching/${selectedApplicant.id}/referral?jobId=${pending.jobId}`);
+        navigate(`/admin/matching/${applicant.id}/referral?jobId=${pending.jobId}`);
         return;
       }
     }
-    navigate(`/admin/matching/${selectedApplicant.id}`);
+    navigate(`/admin/matching/${applicant.id}`);
+  };
+
+  const openApplicant = (applicant: Applicant) => {
+    setApplicantHistory([]);
+    setSelectedId(applicant.id);
+    setActiveTab("profile");
   };
 
   const handlePreviewEmail = async (item: ApplicantHistoryItem) => {
@@ -315,189 +368,356 @@ export default function ApplicantsPage() {
     }
   };
 
-  const stats = {
-    New: applicants.filter((a) => a.status === "New").length,
-    Renewal: applicants.filter((a) => a.status === "Renewal").length,
-    Referred: applicants.filter((a) => a.status === "Referred").length,
-    Hired: applicants.filter((a) => a.status === "Hired").length,
+  const requestApplicantStatus = (targets: Applicant[], next: "Active" | "Inactive") => {
+    setStatusNext(next);
+    setStatusTargets(targets);
   };
 
+  const confirmApplicantStatus = async () => {
+    if (!statusTargets?.length) return;
+    setStatusSaving(true);
+    let updated = 0;
+    let failed = 0;
+    try {
+      for (const applicant of statusTargets) {
+        try {
+          await setApplicantStatus(applicant.id, statusNext);
+          updated += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      if (updated) {
+        toast.success(
+          statusNext === "Inactive"
+            ? pt("{n} applicant{s} inactivated.", { n: updated, s: updated === 1 ? "" : "s" })
+            : pt("{n} applicant{s} reactivated.", { n: updated, s: updated === 1 ? "" : "s" }),
+        );
+      }
+      if (failed) toast.error(pt("Could not update {n} applicant{s}. Please retry.", { n: failed, s: failed === 1 ? "" : "s" }));
+      if (!failed) setStatusTargets(null);
+    } finally {
+      setStatusSaving(false);
+      if (updated) reload();
+    }
+  };
 
+  const stats = {
+    New: applicants.filter((a) => accountStatusOf(a) === "New").length,
+    Renewal: applicants.filter((a) => accountStatusOf(a) === "Renewal").length,
+    Referred: applicants.filter((a) => accountStatusOf(a) === "Referred").length,
+    Hired: applicants.filter((a) => accountStatusOf(a) === "Hired").length,
+    Inactive: applicants.filter((a) => accountStatusOf(a) === "Inactive").length,
+  };
+
+  const statusTabs = [
+    { value: "All Statuses", label: "All" },
+    { value: "New", label: "New" },
+    { value: "Renewal", label: "Renewal" },
+    { value: "Referred", label: "Referred" },
+    { value: "Hired", label: "Hired" },
+    { value: "Inactive", label: "Inactive" },
+  ];
+
+  const kpis = [
+    { status: "New", label: "New", value: stats.New, icon: <Users />, foot: "Registered, no referral yet" },
+    { status: "Renewal", label: "Renewal", value: stats.Renewal, icon: <FileClock />, foot: "Returning applicants" },
+    { status: "Referred", label: "Referred", value: stats.Referred, icon: <UserCheck />, foot: "With an active referral" },
+    { status: "Hired", label: "Hired", value: stats.Hired, icon: <Briefcase />, foot: "Employment recorded" },
+    { status: "Inactive", label: "Inactive", value: stats.Inactive, icon: <Archive />, foot: "Hidden from active rosters until reactivated" },
+  ];
+
+  const hasAdvancedFilters =
+    genderFilter !== "All Genders" ||
+    educationFilter !== "All Educations" ||
+    barangayFilter !== "All Barangays";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setGenderFilter("All Genders");
+    setBarangayFilter("All Barangays");
+    setEducationFilter("All Educations");
+    setStatusFilter("All Statuses");
+  };
+
+  /** Email action cell — keeps the existing send/resend/retry rules untouched. */
+  const renderEmailAction = (app: Applicant) => {
+    const emailEvent = tableEmailEvents[app.id];
+    if (!emailEvent) {
+      const setupStatus = setupEmailStatuses[app.id];
+      const setupSent = setupStatus?.email_status === "Sent";
+      const setupSending = setupStatus?.email_status === "Sending";
+      const setupFailed = setupStatus?.email_status === "Failed";
+      return app.status === "New" ? (
+        <Button
+          variant={setupSent ? "neutral" : "primary"}
+          size="sm"
+          className="w-full max-w-[240px] shrink-0 whitespace-nowrap !px-3"
+          disabled={emailSending || setupSending}
+          onClick={(event) => {
+            event.stopPropagation();
+            setSetupEmailApplicant(app);
+          }}
+        >
+          {setupFailed ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Mail className="mr-1.5 h-4 w-4" />}
+          {setupSent ? pt("Resend Welcome Email") : setupSending ? pt("Sending...") : setupFailed ? pt("Retry Email") : pt("Send Welcome Email")}
+        </Button>
+      ) : (
+        <p className="max-w-[240px] text-xs font-medium leading-snug text-slate-400">
+          {pt("No email is required for the {status} status", { status: pt(app.status) })}
+        </p>
+      );
+    }
+    const status = emailEvent.notification?.email_status;
+    const sent = status === "Sent" || status === "Delivered";
+    const retry = status === "Failed" || status === "Bounced";
+    const processing = status === "Queued" || status === "Sending";
+    return (
+      <Button
+        variant={sent ? "neutral" : "primary"}
+        size="sm"
+        className="w-full max-w-[240px] shrink-0 whitespace-nowrap !px-3"
+        disabled={sent || processing || emailPreviewLoading}
+        onClick={(event) => {
+          event.stopPropagation();
+          handlePreviewEmail(emailEvent);
+        }}
+        title={sent ? pt("This status email has already been sent.") : undefined}
+      >
+        {retry ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Mail className="mr-1.5 h-4 w-4" />}
+        {sent ? pt("Email Sent") : processing ? pt("Sending...") : retry ? pt("Retry Email") : pt("Send Email")}
+      </Button>
+    );
+  };
+
+  const applicantColumns: DataTableColumn<Applicant>[] = [
+    {
+      key: "applicant",
+      header: pt("Applicant"),
+      width: "31%",
+      render: (app) => (
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Avatar name={app.name} src={app.avatarUrl} size="sm" className="!h-8 !w-8 shrink-0 rounded border border-slate-200" />
+          <div className="min-w-0">
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={selectedId === app.id}
+              className="block max-w-full truncate text-left text-[14px] font-semibold leading-snug text-slate-900 hover:text-brand-700"
+              title={app.name}
+              onClick={(event) => {
+                event.stopPropagation();
+                openApplicant(app);
+              }}
+            >
+              {app.name}
+            </button>
+            <p className="t-sub">
+              {app.code} · {app.age} {pt("yrs")} · {app.gender}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "education",
+      header: pt("Education"),
+      width: "23%",
+      render: (app) => (
+        <div className="min-w-0">
+          <p className="t-main" title={app.education}>{app.education}</p>
+          <p className="t-sub" title={app.course}>{app.course}</p>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: pt("Status"),
+      width: 150,
+      render: (app) => <StatusBadge status={accountStatusOf(app)} wrap />,
+    },
+    {
+      key: "email",
+      header: pt("Email Action"),
+      width: "30%",
+      render: (app) => renderEmailAction(app),
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
-      <PageHeader
-        title="Applicants"
-        description="Manage applicant records and registrations."
-        actions={
-          <ButtonLink to="/admin/applicants/register">
-            <PlusCircle className="mr-2 h-4 w-4" /> {pt("Register Walk-in")}
-          </ButtonLink>
-        }
-      />
 
-      {/* Dashboard Cards & Chart */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="New" value={stats.New} icon={<Users />} tone="brand" />
-        <StatCard label="Renewal" value={stats.Renewal} icon={<FileClock />} tone="neutral" />
-        <StatCard label="Referred" value={stats.Referred} icon={<UserCheck />} tone="success" />
-        <StatCard label="Hired" value={stats.Hired} icon={<Briefcase />} tone="success" />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[24px] font-bold tracking-[-0.015em] text-slate-900">{pt("Applicants")}</h1>
+          <p className="mt-0.5 max-w-2xl text-[14px] leading-relaxed text-slate-500">
+            {pt("Manage applicant records, registrations, referrals, and status emails.")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink to="/admin/applicants/register">
+            <PlusCircle className="mr-1.5 h-4 w-4" /> {pt("Register Walk-in")}
+          </ButtonLink>
+        </div>
       </div>
 
-      <GlobalFilterBar
-        searchPlaceholder="Search by name, contact, or barangay..."
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        activeFilters={{ gender: genderFilter, barangay: barangayFilter, education: educationFilter, status: statusFilter }}
-        onFilterChange={(id, val) => {
-          if (id === 'gender') setGenderFilter(val);
-          if (id === 'barangay') setBarangayFilter(val);
-          if (id === 'education') setEducationFilter(val);
-          if (id === 'status') setStatusFilter(val);
-        }}
-        onClear={() => {
-          setSearchTerm('');
-          setGenderFilter('All Genders');
-          setBarangayFilter('All Barangays');
-          setEducationFilter('All Educations');
-          setStatusFilter('All Statuses');
-        }}
-        filterOptions={[
-          { id: 'gender', label: 'Gender', placeholder: 'All Genders', options: ['All Genders', 'Male', 'Female'] },
-          { id: 'barangay', searchable: true, label: 'Barangay', placeholder: 'All Barangays', options: ['All Barangays', ...Array.from(new Set(applicants.map(a => a.barangay))).filter(Boolean).sort()] },
-          { id: 'education', label: 'Education', placeholder: 'All Educations', options: ['All Educations', 'High School', 'College Level', 'College Graduate', "Master's Degree"] },
-          { id: 'status', label: 'Status', placeholder: 'All Statuses', options: ['All Statuses', 'New', 'Renewal', 'Referred', 'Hired'] },
-        ]}
-      />
+      <div className="studio-kpis is-5 ui-stagger">
+        {kpis.map((kpi) => (
+          <button
+            key={kpi.status}
+            type="button"
+            className={cn("studio-kpi", statusFilter === kpi.status && "is-on")}
+            aria-pressed={statusFilter === kpi.status}
+            onClick={() => setStatusFilter((current) => current === kpi.status ? "All Statuses" : kpi.status)}
+          >
+            <span className="k-label">{pt(kpi.label)}{kpi.icon}</span>
+            <span className="k-value"><CountUp value={kpi.value} /></span>
+            <span className="k-foot">{pt(kpi.foot)}</span>
+          </button>
+        ))}
+      </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* Left: Applicant List */}
-        <Card className="flex min-w-0 w-full flex-col overflow-hidden lg:w-1/2 xl:w-[60%]">
-          <div className="min-w-0">
-            <Table
-              className="min-w-[860px] table-fixed text-sm [&_th:first-child]:pl-4 [&_td:first-child]:pl-4 [&_th:last-child]:pr-5 [&_td:last-child]:pr-5"
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder={pt("Search name, code, contact, or barangay…")}
+            aria-label={pt("Search applicants")}
+            className="h-9 w-full rounded-md border border-slate-300 bg-white pr-3 pl-9 text-[13.5px] text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          />
+        </div>
+
+        <div className="studio-tabs" role="tablist" aria-label={pt("Filter by status")}>
+          {statusTabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === tab.value}
+              className={cn("studio-tab", statusFilter === tab.value && "on")}
+              onClick={() => setStatusFilter(tab.value)}
             >
-              <THead>
-                <tr>
-                  <TH className="w-10">#</TH>
-                  <TH className="w-[34%] max-lg:w-[30%]">Applicant</TH>
-                  <TH className="w-[26%] max-lg:w-[16%]">Education</TH>
-                  <TH className="w-[14%] max-lg:w-[12%]">Status</TH>
-                  <TH className="w-[26%] max-lg:w-[34%] text-right">{pt("Email Action")}</TH>
-                </tr>
-              </THead>
-              <tbody>
-                {paged.map((app, i) => (
-                  <TR
-                    key={app.id}
-                    onClick={() => {
-                      setSelectedId(app.id);
-                      setActiveTab("profile");
-                    }}
-                    className={cn(
-                      "cursor-pointer transition-colors hover:bg-brand-50/50",
-                      selectedApplicant?.id === app.id ? "bg-brand-50/80" : "",
-                    )}
-                  >
-                    <TD className="text-slate-500">{from + i}</TD>
-                    <TD>
-                      <div className="flex min-w-0 items-center gap-3">
-                        <Avatar name={app.name} src={app.avatarUrl} size="sm" className="shrink-0 rounded border border-slate-200" />
-                        <div className="min-w-0">
-                          <p className="break-words font-semibold leading-snug text-slate-900">
-                            {app.name}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {app.code} · {app.age} {pt("yrs")} · {app.gender}
-                          </p>
-                        </div>
-                      </div>
-                    </TD>
-                    <TD className="min-w-0">
-                      <p className="break-words font-medium leading-snug text-slate-800">
-                        {app.education}
-                      </p>
-                      <p className="break-words text-xs leading-snug text-slate-500">
-                        {app.course}
-                      </p>
-                    </TD>
-                    <TD>
-                      <StatusBadge status={app.status} wrap />
-                    </TD>
-                    <TD className="text-right">
-                      {(() => {
-                        const emailEvent = tableEmailEvents[app.id];
-                        if (!emailEvent) {
-                          const setupStatus = setupEmailStatuses[app.id];
-                          const setupSent = setupStatus?.email_status === "Sent";
-                          const setupSending = setupStatus?.email_status === "Sending";
-                          const setupFailed = setupStatus?.email_status === "Failed";
-                          return app.status === "New" ? (
-                          <Button
-                            variant={setupSent ? "neutral" : "primary"}
-                            size="sm"
-                            className="whitespace-nowrap !px-3"
-                            disabled={emailSending || setupSending}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSetupEmailApplicant(app);
-                            }}
-                          >
-                            {setupFailed ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Mail className="mr-1.5 h-4 w-4" />}
-                            {setupSent ? pt("Resend Welcome Email") : setupSending ? pt("Sending...") : setupFailed ? pt("Retry Email") : pt("Send Welcome Email")}
-                          </Button>
-                          ) : <span className="text-slate-400">—</span>;
-                        }
-                        const status = emailEvent.notification?.email_status;
-                        const sent = status === "Sent" || status === "Delivered";
-                        const retry = status === "Failed" || status === "Bounced";
-                        const processing = status === "Queued" || status === "Sending";
-                        return (
-                          <Button
-                            variant={sent ? "neutral" : "primary"}
-                            size="sm"
-                            className="whitespace-nowrap !px-3"
-                            disabled={sent || processing || emailPreviewLoading}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handlePreviewEmail(emailEvent);
-                            }}
-                            title={sent ? pt("This status email has already been sent.") : undefined}
-                          >
-                            {retry ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Mail className="mr-1.5 h-4 w-4" />}
-                            {sent ? pt("Email Sent") : processing ? pt("Sending...") : retry ? pt("Retry Email") : pt("Send Email")}
-                          </Button>
-                        );
-                      })()}
-                    </TD>
-                  </TR>
-                ))}
-                {paged.length === 0 && (
-                  <TR>
-                    <TD colSpan={5} className="p-8 text-center text-slate-500">
-                      {pt("No applicants found.")}
-                    </TD>
-                  </TR>
-                )}
-              </tbody>
-            </Table>
-          </div>
-          <Pagination from={from} to={to} total={filtered.length} label="applicants" page={page} pages={pages} onPage={setPage} />
-        </Card>
+              {pt(tab.label)}
+            </button>
+          ))}
+        </div>
 
-        {/* Right: Applicant Details */}
-        {selectedApplicant ? (
-          <Card className="hidden flex-col overflow-hidden lg:flex lg:w-1/2 xl:w-[40%] sticky top-28 max-h-[calc(100vh-8rem)]">
+        <div className="relative ml-auto flex items-center gap-1.5" ref={filtersRef}>
+          <Button
+            size="sm"
+            icon={<Filter className="h-4 w-4" />}
+            variant={hasAdvancedFilters ? "primary" : "neutral"}
+            onClick={() => setFiltersOpen((open) => !open)}
+            aria-expanded={filtersOpen}
+          >
+            {pt("Filters")}{hasAdvancedFilters ? ` · ${pt("Active")}` : ""}
+          </Button>
+          {filtersOpen && (
+            <div className="ui-popover absolute top-full right-0 z-50 mt-2 flex w-72 flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[13px] font-semibold text-slate-800">{pt("Advanced Filters")}</h3>
+                <button type="button" aria-label={pt("Close")} onClick={() => setFiltersOpen(false)} className="rounded p-0.5 text-slate-400 hover:text-slate-600">✕</button>
+              </div>
+              <Select label={pt("Gender")} options={["All Genders", "Male", "Female"]} value={genderFilter} onChange={(event) => setGenderFilter(event.target.value)} />
+              <SearchableSelect label={pt("Barangay")} options={["All Barangays", ...Array.from(new Set(applicants.map((a) => a.barangay))).filter(Boolean).sort()]} value={barangayFilter} onChange={setBarangayFilter} />
+              <Select label={pt("Education")} options={["All Educations", "High School", "College Level", "College Graduate", "Master's Degree"]} value={educationFilter} onChange={(event) => setEducationFilter(event.target.value)} />
+            </div>
+          )}
+          <Button size="sm" variant="ghost" onClick={clearFilters}>{pt("Clear")}</Button>
+        </div>
+      </div>
+
+      <div className="min-w-0">
+        <div className="studio-card">
+          <DataTable
+            rows={paged}
+            columns={applicantColumns}
+            activeId={selectedApplicant?.id}
+            onRowClick={openApplicant}
+            minWidth={1040}
+            empty={pt("No applicants found. Adjust the filters or register a walk-in applicant.")}
+            bulkActions={[
+              {
+                label: pt("Inactivate selected"),
+                icon: <Archive className="h-3.5 w-3.5" />,
+                run: (rows) => {
+                  const targets = rows.filter((app) => accountIsActive(app));
+                  if (!targets.length) {
+                    toast(pt("The selected applicants are already inactive."));
+                    return;
+                  }
+                  requestApplicantStatus(targets, "Inactive");
+                },
+              },
+              {
+                label: pt("Reactivate selected"),
+                icon: <RotateCcw className="h-3.5 w-3.5" />,
+                run: (rows) => {
+                  const targets = rows.filter((app) => !accountIsActive(app));
+                  if (!targets.length) {
+                    toast(pt("The selected applicants are already active."));
+                    return;
+                  }
+                  requestApplicantStatus(targets, "Active");
+                },
+              },
+              {
+                label: pt("Export CSV"),
+                icon: <Download className="h-3.5 w-3.5" />,
+                run: (rows) => downloadCsv(
+                  `peso-applicants-${new Date().toISOString().slice(0, 10)}.csv`,
+                  rows.map((app) => ({
+                    Code: app.code,
+                    Name: app.name,
+                    Age: app.age,
+                    Gender: app.gender,
+                    "Civil status": app.civilStatus || "",
+                    Barangay: app.barangay,
+                    Contact: app.contact,
+                    Email: app.email,
+                    Address: app.address,
+                    Education: app.education,
+                    Course: app.course,
+                    School: app.school,
+                    Status: app.status,
+                    "Account status": app.accountStatus || "Active",
+                    "Date added": app.dateAdded,
+                    "Hard skills": (app.hardSkills || []).join("; "),
+                    "Soft skills": (app.softSkills || []).join("; "),
+                  })),
+                ),
+              },
+            ]}
+            rowActions={[
+              { label: pt("View details"), icon: <Eye className="h-3.5 w-3.5" />, run: openApplicant },
+              { label: pt("View recommendations"), icon: <FileText className="h-3.5 w-3.5" />, run: (app) => void handleViewRecommendations(app) },
+              { label: pt("Account receipt"), icon: <Printer className="h-3.5 w-3.5" />, run: (app) => navigate(`/admin/applicants/${app.id}/account-receipt`) },
+              {
+                label: (app) => accountIsActive(app) ? pt("Inactivate applicant") : pt("Reactivate applicant"),
+                icon: (app) => accountIsActive(app) ? <Archive className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />,
+                run: (app) => requestApplicantStatus([app], accountIsActive(app) ? "Inactive" : "Active"),
+              },
+            ]}
+            pagination={{ from, to, total: filtered.length, page, pages, label: "applicants", onPage: setPage }}
+          />
+        </div>
+
+        {/* Details open on demand; the applicant table keeps the full workspace. */}
+        <Drawer open={!!selectedApplicant} onClose={() => setSelectedId(null)} title="Applicant Details">
+          {selectedApplicant && <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 shrink-0">
               <div className="flex items-center gap-4">
                 <Avatar name={selectedApplicant.name} src={selectedApplicant.avatarUrl} size="lg" className="rounded border border-slate-200" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-slate-900">
+                    <h3 className="text-base font-semibold text-slate-900">
                       {selectedApplicant.name}
                     </h3>
-                    <StatusBadge status={selectedApplicant.status} />
+                    <StatusBadge status={accountStatusOf(selectedApplicant)} />
                   </div>
                   <p className="text-sm text-slate-500">
                     {selectedApplicant.code}
@@ -808,11 +1028,11 @@ export default function ApplicantsPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-slate-100 p-5 shrink-0 bg-white">
+            <div className="flex flex-wrap gap-2 border-t border-slate-200 p-4 shrink-0 bg-white sm:flex-row">
               {selectedApplicant.status === "Referred" && (
                 <Button
                   variant="primary"
-                  className="flex-1 min-h-[3rem] text-sm"
+                  className="flex-1 text-[14px]"
                   onClick={() => handleOpenHiringModal(selectedApplicant.id)}
                 >
                   Record Employment Outcome
@@ -821,34 +1041,26 @@ export default function ApplicantsPage() {
               {selectedApplicant.status === "Hired" && (
                 <Button
                   variant="neutral"
-                  className="flex-1 min-h-[3rem] text-sm"
-                  onClick={() => handleRenew(selectedApplicant.id)}
+                  className="flex-1 text-[14px]"
+                  onClick={() => { setRenewTarget(selectedApplicant); setRenewFile(null); setKeepResume(false); setResumeSaved(false); }}
                 >
                   Renew Application
                 </Button>
               )}
               <Button
                 variant="primary"
-                className="flex-1 min-h-[3rem] text-sm"
-                onClick={handleViewRecommendations}
+                className="flex-1 text-[14px]"
+                onClick={() => void handleViewRecommendations()}
               >
                 <FileText className="mr-2 h-4 w-4" /> {pt("View Recommendations")}
               </Button>
             </div>
-          </Card>
-        ) : (
-          <Card className="hidden items-center justify-center text-slate-500 lg:flex lg:w-1/2 xl:w-[40%] sticky top-28 h-64">
-            <p>{pt("Select an applicant to view details")}</p>
-          </Card>
-        )}
+          </div>}
+        </Drawer>
       </div>
 
       {isHiringModalOpen && hiringApplicant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
-          <Card className="w-full max-w-lg p-6 flex flex-col max-h-[90vh]">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">
-              {pt("Record Employment Outcome")}
-            </h2>
+        <Modal open onClose={() => setIsHiringModalOpen(false)} title="Record Employment Outcome">
             <p className="text-slate-500 mb-4 text-sm">
               {pt("Record the outcome for each referral of")}{" "}
               <strong>{hiringApplicant.name}</strong>. {pt("A Not Hired outcome keeps the applicant eligible for new job matching. Declined refers to referral processing, not an employment outcome.")}
@@ -905,8 +1117,7 @@ export default function ApplicantsPage() {
                 Cancel
               </Button>
             </div>
-          </Card>
-        </div>
+        </Modal>
       )}
 
       <Modal open={!!hireTarget} onClose={() => { if (!isHiring) setHireTarget(null) }} title="Confirm Hired"
@@ -943,19 +1154,9 @@ export default function ApplicantsPage() {
       </Modal>
 
       {emailPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
-          <Card className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
-              <div>
-                <p className="text-xs font-bold uppercase text-brand-600">{pt("Manual status notification")}</p>
-                <h2 className="mt-1 text-xl font-bold text-slate-900">{pt("Review email before sending")}</h2>
-                <p className="mt-1 text-sm text-slate-500">{pt("Nothing is sent until you confirm below.")}</p>
-              </div>
-              <button type="button" onClick={() => { setEmailPreview(null); setEmailPreviewApplicantId(null); }} className="rounded p-2 text-slate-500 hover:bg-slate-100" aria-label={pt("Close")}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="overflow-y-auto p-6">
+        <Modal open onClose={() => { if (!emailSending) { setEmailPreview(null); setEmailPreviewApplicantId(null); } }} title="Review email before sending" dismissible={!emailSending} size="lg">
+            <p className="mb-4 text-[14px] text-slate-500">{pt("Nothing is sent until you confirm below.")}</p>
+            <div className="overflow-y-auto">
               <dl className="grid gap-4 rounded border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
                 <div><dt className="font-semibold text-slate-500">{pt("Applicant")}</dt><dd className="mt-1 font-bold text-slate-900">{emailPreview.applicantName}</dd></div>
                 <div><dt className="font-semibold text-slate-500">{pt("Recipient")}</dt><dd className="mt-1 break-all font-bold text-slate-900">{emailPreview.recipientEmail}</dd></div>
@@ -970,30 +1171,19 @@ export default function ApplicantsPage() {
                 <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{emailPreview.text}</p>
               </div>
             </div>
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-5 sm:flex-row sm:justify-end">
+            <div className="mt-4 flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
               <Button variant="neutral" onClick={() => { setEmailPreview(null); setEmailPreviewApplicantId(null); }} disabled={emailSending}>{pt("Cancel")}</Button>
               <Button variant="primary" onClick={handleSendEmail} disabled={emailSending}>
                 <Send className="mr-2 h-4 w-4" /> {emailSending ? pt("Sending...") : pt("Confirm & Send Email")}
               </Button>
             </div>
-          </Card>
-        </div>
+        </Modal>
       )}
 
       {setupEmailApplicant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
-          <Card className="w-full max-w-xl overflow-hidden">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6">
-              <div>
-                <p className="text-xs font-bold uppercase text-brand-600">{pt("Applicant portal access")}</p>
-                <h2 className="mt-1 text-xl font-bold text-slate-900">{pt("Send welcome email")}</h2>
-                <p className="mt-1 text-sm text-slate-500">{pt("Nothing is sent until you confirm below.")}</p>
-              </div>
-              <button type="button" onClick={() => setSetupEmailApplicant(null)} className="rounded p-2 text-slate-500 hover:bg-slate-100" aria-label={pt("Close")}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="space-y-5 p-6">
+        <Modal open onClose={() => { if (!emailSending) setSetupEmailApplicant(null); }} title="Send Welcome Email" dismissible={!emailSending}>
+            <p className="mb-4 text-[14px] text-slate-500">{pt("Nothing is sent until you confirm below.")}</p>
+            <div className="space-y-4">
               <dl className="grid gap-4 rounded border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
                 <div><dt className="font-semibold text-slate-500">{pt("Applicant")}</dt><dd className="mt-1 font-bold text-slate-900">{setupEmailApplicant.name}</dd></div>
                 <div><dt className="font-semibold text-slate-500">{pt("Recipient")}</dt><dd className="mt-1 break-all font-bold text-slate-900">{setupEmailApplicant.email}</dd></div>
@@ -1002,19 +1192,54 @@ export default function ApplicantsPage() {
                 {pt("{name} will receive sign-in instructions for the PESOLUTION Applicant Portal: the login email above and the password printed on their account receipt. No password is emailed, and this welcome email can be sent again any time.", { name: setupEmailApplicant.name })}
               </div>
             </div>
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-white p-5 sm:flex-row sm:justify-end">
+            <div className="mt-4 flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
               <Button variant="neutral" onClick={() => setSetupEmailApplicant(null)} disabled={emailSending}>{pt("Cancel")}</Button>
               <Button variant="primary" onClick={handleSendSetupEmail} disabled={emailSending}>
                 <Send className="mr-2 h-4 w-4" /> {emailSending ? pt("Sending...") : pt("Confirm & Send Email")}
               </Button>
             </div>
-          </Card>
-        </div>
+        </Modal>
       )}
+
+      <Modal open={!!renewTarget} onClose={() => { if (!renewing) setRenewTarget(null); }} dismissible={!renewing} title="Renew Application" size="sm">
+        <p className="mb-4 text-[14px] text-slate-600">{pt('Review the resume before renewing this application.')}</p>
+        <label htmlFor="renewal-resume" className="block text-[14px] font-medium">{pt('Upload updated resume')}</label>
+        <input id="renewal-resume" type="file" accept="application/pdf,image/jpeg,image/png" disabled={renewing || resumeSaved} className="my-3 block w-full text-[13px]" onChange={event => { setRenewFile(event.target.files?.[0] || null); setKeepResume(false); }} />
+        {!resumeSaved && <SelectedFilePreview file={renewFile} />}
+        {resumeSaved && <p role="status" className="my-2 text-sm text-success-700">{pt("Updated resume saved.")}</p>}
+        {renewTarget?.resumeUrl && !renewFile && <label className="my-3 flex items-start gap-2 text-[14px]"><input type="checkbox" checked={keepResume} disabled={renewing} onChange={event => setKeepResume(event.target.checked)} />{pt('I reviewed the existing resume and it is still current.')}</label>}
+        <p className="text-[12px] text-slate-500">{pt('PDF, JPG or PNG, up to 10 MB. Existing resume history and verified skills are preserved. Uploading does not automatically re-extract skills.')}</p>
+        <div className="mt-4 flex justify-end gap-2"><Button variant="neutral" disabled={renewing} onClick={() => setRenewTarget(null)}>Cancel</Button><Button disabled={renewing || (!renewFile && !keepResume)} onClick={() => void handleRenew(renewTarget.id)}>{renewing ? pt('Saving...') : pt('Confirm Renewal')}</Button></div>
+      </Modal>
+      <Modal
+        open={!!statusTargets?.length}
+        onClose={() => { if (!statusSaving) setStatusTargets(null); }}
+        dismissible={!statusSaving}
+        title={statusNext === "Inactive" ? "Inactivate Applicant" : "Reactivate Applicant"}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="neutral" disabled={statusSaving} onClick={() => setStatusTargets(null)}>{pt("Cancel")}</Button>
+            <Button variant="primary" disabled={statusSaving} onClick={() => void confirmApplicantStatus()}>
+              {statusSaving ? pt("Saving…") : statusNext === "Inactive" ? pt("Yes, Inactivate") : pt("Yes, Activate")}
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          {statusTargets && statusTargets.length === 1 && (statusNext === "Inactive"
+            ? pt("Inactivating {name} keeps the record and its history, but removes the applicant from active rosters and matching. You can reactivate anytime.", { name: statusTargets[0].name })
+            : pt("Reactivating {name} returns the applicant to active rosters and matching with their previous status.", { name: statusTargets[0].name }))}
+          {statusTargets && statusTargets.length > 1 && (statusNext === "Inactive"
+            ? pt("Inactivating {n} applicants keeps their records and history, but removes them from active rosters and matching. You can reactivate them anytime.", { n: statusTargets.length })
+            : pt("Reactivating {n} applicants returns them to active rosters and matching with their previous statuses.", { n: statusTargets.length }))}
+        </p>
+      </Modal>
 
       {isEditModalOpen && (
         <EditApplicantModal
           applicant={selectedApplicant}
+          onAvatarSaved={reload}
           onClose={() => setIsEditModalOpen(false)}
           onSaved={() => {
             setIsEditModalOpen(false);

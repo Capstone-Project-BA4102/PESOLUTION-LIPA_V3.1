@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { matchCountLabel } from './activityPresentation'
 import { qualificationSkills } from './jobQualifications'
 import { referralSignatoryName, referralRecipient } from './referralDefaults'
 import { supabase } from './supabase'
@@ -125,7 +126,8 @@ export interface Applicant {
   avatarUrl?: string;
   experience: ApplicantExperience[];
   status: ApplicantStatus;
-  accountStatus: RecordStatus;
+  /** applicants.account_status — Active records only appear in active rosters and matching. */
+  accountStatus: 'Active' | 'Inactive' | 'Suspended';
   dateRegistered: string;
   dateAdded: string; 
   passwordChangedAt?: string;
@@ -334,7 +336,7 @@ function mapApplicant(r: any): Applicant {
       id: e.id, company: e.company || '', position: e.position || '', years: e.years || ''
     })),
     status: (latestHistory?.status || latestApp?.status || 'Active') as ApplicantStatus,
-    accountStatus: (r.account_status || 'Active') as RecordStatus,
+    accountStatus: (r.account_status || 'Active') as Applicant['accountStatus'],
     dateRegistered: r.date_registered || '',
     dateAdded: fmtDate(r.date_registered),
     passwordChangedAt: r.password_changed_at || '',
@@ -360,7 +362,7 @@ async function fetchAvatarUrls(): Promise<Record<string, string>> {
     await Promise.all(
       folders.map(async (folder: any) => {
         const { data: inner } = await supabase.storage.from('avatars').list(folder.name)
-        const file = (inner || []).find((o: any) => o.id)
+        const file = (inner || []).find((o: any) => o.id && o.name === 'profile.png') || (inner || []).find((o: any) => o.id)
         if (file) {
           map[String(folder.name).toLowerCase()] = versioned(`${folder.name}/${file.name}`, (file as any).updated_at)
         }
@@ -522,6 +524,110 @@ export async function fetchDashboard(range: '6m' | 'year' = '6m'): Promise<any> 
   }))
 
   return { totals: { applicants, companies, jobs, matches }, trend, activities }
+}
+
+export interface AdminOverview {
+  totals: {
+    applicants: number
+    activeJobs: number
+    openVacancies: number
+    referrals: number
+    hired: number
+    matched: number
+  }
+  pipeline: { matched: number; referred: number; hired: number; needsMatch: number }
+  recentApplicants: Array<{
+    id: string
+    code: string
+    name: string
+    education: string
+    barangay: string
+    status: string
+    registeredAt: string
+  }>
+  addedThisMonth: number
+  referralsThisMonth: number
+}
+
+/** Sidebar record counts, keyed by admin route. */
+export async function fetchAdminNavCounts(): Promise<Record<string, number>> {
+  const countOf = async (table: string) => {
+    const { count, error } = await supabase.from(table).select('*', { count: 'exact', head: true })
+    if (error) throw error
+    return count || 0
+  }
+  const [applicants, companies, jobs] = await Promise.all([countOf('applicants'), countOf('companies'), countOf('job_listings')])
+  return { '/admin/applicants': applicants, '/admin/companies': companies, '/admin/jobs': jobs }
+}
+
+/** Live dashboard snapshot: record totals, referral pipeline and newest registrations. */
+export async function fetchAdminOverview(): Promise<AdminOverview> {
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+
+  // applicants has account_status, not status; the workflow status lives on applications.
+  const results = await Promise.all([
+    supabase.from('applicants').select('id, full_name, education, barangay, account_status, date_registered, applicant_number', { count: 'exact' }).order('date_registered', { ascending: false }),
+    supabase.from('job_listings').select('id, status, vacancies, date_posted'),
+    supabase.from('referrals').select('id, date_issued', { count: 'exact' }),
+    supabase.from('applications').select('applicant_id, status, created_at'),
+    supabase.from('job_matches').select('applicant_id, job_listings!inner(status)').eq('job_listings.status', 'Active'),
+  ])
+  const failure = results.find(result => result.error)?.error
+  if (failure) throw failure
+  const [applicantResult, jobResult, referralResult, applicationResult, matchResult] = results
+
+  const applicants = applicantResult.data || []
+  const activeJobs = (jobResult.data || []).filter((job: any) => job.status === 'Active' && jobDaysLeft(job.date_posted) > 0)
+  const openVacancies = activeJobs.reduce((sum: number, job: any) => sum + Number(job.vacancies || 0), 0)
+  const referrals = referralResult.data || []
+  const applications = applicationResult.data || []
+  const distinctApplicantsWith = (status: string) => new Set(applications
+    .filter((row: any) => row.status === status)
+    .map((row: any) => String(row.applicant_id))).size
+  const totalApplicants = applicantResult.count ?? applicants.length
+  const matched = new Set((matchResult.data || []).map((row: any) => String(row.applicant_id))).size
+  const hired = distinctApplicantsWith('Hired')
+  const referred = distinctApplicantsWith('Referred')
+  const inMonth = (iso?: string | null) => !!iso && new Date(iso) >= monthStart
+  const latestApplication = new Map<string, { status: string; at: string }>()
+  for (const row of applications) {
+    const id = String(row.applicant_id)
+    const current = latestApplication.get(id)
+    if (!current || new Date(row.created_at || 0) >= new Date(current.at || 0)) {
+      latestApplication.set(id, { status: row.status, at: row.created_at })
+    }
+  }
+  // Latest application status wins; a plain registration falls back to the account state.
+  const statusOf = (row: any) => {
+    const application = latestApplication.get(String(row.id))
+    if (application?.status && application.status !== 'Registered') return application.status
+    return row.account_status || 'Active'
+  }
+
+  return {
+    totals: {
+      applicants: totalApplicants,
+      activeJobs: activeJobs.length,
+      openVacancies,
+      referrals: referralResult.count ?? referrals.length,
+      hired,
+      matched,
+    },
+    pipeline: { matched, referred, hired, needsMatch: Math.max(0, totalApplicants - matched) },
+    recentApplicants: applicants.slice(0, 5).map((row: any) => ({
+      id: String(row.id),
+      code: `APP-${getYear(row.date_registered)}-${String(row.applicant_number || 0).padStart(4, '0')}`,
+      name: row.full_name || '—',
+      education: row.education || '',
+      barangay: row.barangay || '',
+      status: statusOf(row),
+      registeredAt: fmtDate(row.date_registered),
+    })),
+    addedThisMonth: applicants.filter((row: any) => inMonth(row.date_registered)).length,
+    referralsThisMonth: referrals.filter((row: any) => inMonth(row.date_issued)).length,
+  }
 }
 
 export type ReportPeriod = 'weekly' | 'monthly'
@@ -720,7 +826,6 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
 }
 
 export async function fetchMatchingSummary(): Promise<any> {
-  const { count: matches } = await supabase.from('job_matches').select('*', { count: 'exact', head: true })
   const { count: referrals } = await supabase
     .from('referrals')
     .select('id, applications!inner(status)', { count: 'exact', head: true })
@@ -728,18 +833,22 @@ export async function fetchMatchingSummary(): Promise<any> {
   
   const { data, error } = await supabase
     .from('applicants')
-    .select('id, full_name, education, course, date_registered, applicant_number, profile_id')
+    .select('id, full_name, education, course, date_registered, applicant_number, profile_id, account_status')
     .order('date_registered', { ascending: false })
     
   if (error) throw error
 
   // Per-applicant match count + latest application status for the status badge
-  const [{ data: matchRows }, { data: appRows }] = await Promise.all([
-    supabase.from('job_matches').select('applicant_id'),
+  const [matchResult, applicationResult] = await Promise.all([
+    supabase.from('job_matches').select('applicant_id, job_listings!inner(status)').eq('job_listings.status', 'Active'),
     supabase.from('applications').select('applicant_id, status'),
   ])
+  if (matchResult.error) throw matchResult.error
+  if (applicationResult.error) throw applicationResult.error
+  const matchRows = matchResult.data || []
+  const appRows = applicationResult.data || []
   const matchCounts: Record<string, number> = {}
-  for (const m of matchRows || []) {
+  for (const m of matchRows) {
     const k = String(m.applicant_id)
     matchCounts[k] = (matchCounts[k] || 0) + 1
   }
@@ -751,7 +860,9 @@ export async function fetchMatchingSummary(): Promise<any> {
   }
 
   const avatarMap = await fetchAvatarUrls()
-  const applicants = (data || []).map((r: any) => {
+  const applicants = (data || [])
+    .filter((r: any) => (r.account_status || 'Active') === 'Active')
+    .map((r: any) => {
     const year = getYear(r.date_registered);
     const numStr = String(r.applicant_number || 0).padStart(4, '0');
     const idKey = String(r.id)
@@ -767,7 +878,7 @@ export async function fetchMatchingSummary(): Promise<any> {
       matchStatus: appStatus[idKey] || (matchCount > 0 ? 'Matched' : 'Needs Match'),
     }})
 
-  return { totalMatches: matches || 0, referralsGenerated: referrals || 0, applicants }
+  return { totalMatches: matchRows.length, referralsGenerated: referrals || 0, applicants }
 }
 
 export interface MatchingRunResult {
@@ -795,7 +906,7 @@ export function runApplicantMatching(applicantId: string, options: { force?: boo
     const out = await backendRequest<MatchingRunResult>(`/match/${encodeURIComponent(applicantId)}`, { method: 'POST', body: { force } })
     if (!options.automatic) {
       const { data: a } = await supabase.from('applicants').select('full_name').eq('id', applicantId).maybeSingle()
-      await logActivity('referral', 'Skill matching run', `${a?.full_name || 'Applicant'} — ${out.matchesFound ?? 0} match(es) found`)
+      await logActivity('referral', 'Skill matching run', `${a?.full_name || 'Applicant'} — ${matchCountLabel(out.matchesFound ?? 0)}`)
     }
     return out
   })().finally(() => { if (matchingRequests.get(key) === request) matchingRequests.delete(key) })
@@ -1117,6 +1228,13 @@ export async function setCompanyStatus(id: string, status: string): Promise<void
   const { data, error } = await supabase.from('companies').update({ status }).eq('id', id).select('name').maybeSingle()
   if (error) throw new Error(error.message)
   await logActivity('company', status === 'Active' ? 'Company activated' : 'Company inactivated', data?.name || '')
+}
+
+/** Applicant records use `account_status`; the workflow status on applications is left untouched. */
+export async function setApplicantStatus(id: string, status: 'Active' | 'Inactive'): Promise<void> {
+  const { data, error } = await supabase.from('applicants').update({ account_status: status }).eq('id', id).select('full_name').maybeSingle()
+  if (error) throw new Error(error.message)
+  await logActivity('applicant', status === 'Active' ? 'Applicant reactivated' : 'Applicant inactivated', data?.full_name || '')
 }
 
 // Slip preview for a match that has no referral yet — nothing is written to

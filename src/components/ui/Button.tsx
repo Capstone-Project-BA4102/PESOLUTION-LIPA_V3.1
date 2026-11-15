@@ -7,14 +7,14 @@ export type ButtonVariant = 'primary' | 'secondary' | 'neutral' | 'ghost' | 'suc
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-colors ' +
-  'disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-200'
+  'ui-button inline-flex items-center justify-center gap-2 rounded-md font-semibold transition-colors ' +
+  'disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-200'
 
 const variants: Record<ButtonVariant, string> = {
   /** Main action on a page — PESO red filled */
   primary: 'bg-brand-600 text-white shadow-sm hover:bg-brand-700',
   /** Secondary action — red outline */
-  secondary: 'border-2 border-brand-600 bg-white text-brand-700 hover:bg-brand-50',
+  secondary: 'border border-brand-600 bg-white text-brand-700 hover:bg-brand-50',
   /** Neutral / cancel / clear — gray outline */
   neutral: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
   /** Text-only action */
@@ -23,9 +23,9 @@ const variants: Record<ButtonVariant, string> = {
 }
 
 const sizes: Record<ButtonSize, string> = {
-  sm: 'min-h-10 px-4 py-1 text-[0.95rem]',
-  md: 'min-h-12 px-5 py-1 text-base',
-  lg: 'min-h-14 px-7 py-1 text-lg',
+  sm: 'min-h-[32px] px-2.5 py-1 text-[13px]',
+  md: 'min-h-[38px] px-3.5 py-1.5 text-[14px]',
+  lg: 'min-h-[44px] px-4 py-2 text-[15px]',
 }
 
 interface CommonProps {
