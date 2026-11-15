@@ -517,7 +517,7 @@ registerFil({
   'The sentiment service is not configured on the server, so nothing could be analyzed.': 'Hindi naka-configure ang sentiment service sa server, kaya wala masuring komento.',
   'The sentiment service did not answer. The comments stay Waiting and can be analyzed again in a minute.': 'Hindi tumugon ang sentiment service. Nananatiling Naghihintay ang mga komento at maaaring suriin muli pagkatapos ng isang minuto.',
   'The sentiment service could not be reached.': 'Hindi maabot ang sentiment service.',
-  'The sentiment model runs on the office computer. Open the portal there to analyze waiting feedback.': 'Gumagana ang sentiment model sa computer ng opisina. Buksan ang portal doon para suriin ang naghihintay na feedback.',
+  'The sentiment service is not answering right now. Waiting comments are kept and can be analyzed again once it is back.': 'Hindi sumasagot ang sentiment service ngayon. Naitatago ang mga naghihintay na komento at muling masusuri kapag bumalik ito.',
   'Feedback received': 'Natanggap na feedback',
   'Feedback overview': 'Pangkalahatang tanaw ng feedback',
   'No analyzed comments yet.': 'Wala pang nasuring komento.',

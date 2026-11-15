@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { reclassifyPending, inferenceReady } = require('../backend/feedback.cjs');
+const { normalizeInferenceUrl } = require('../backend/config.cjs');
 
 const ROWS = [
   { id: 'fb-1', feedback_text: 'Helpful and accomodating. Thank you for the job assistance!' },
@@ -108,4 +109,23 @@ test('the answer is reused for a minute so a page load does not re-probe', async
   const twice = async () => { await inferenceReady({ sentimentInferenceUrl: url }); return inferenceReady({ sentimentInferenceUrl: url }); };
   assert.equal(await withInference(handler, twice), true);
   assert.equal(calls, 1);
+});
+
+test('a Space root and its /predict endpoint resolve to the same service', () => {
+  assert.equal(normalizeInferenceUrl('https://demo.hf.space'), 'https://demo.hf.space');
+  assert.equal(normalizeInferenceUrl('https://demo.hf.space/predict'), 'https://demo.hf.space');
+  assert.equal(normalizeInferenceUrl(' https://demo.hf.space/predict/ '), 'https://demo.hf.space');
+  assert.equal(normalizeInferenceUrl(''), '');
+});
+
+test('the readiness probe carries the shared key', async () => {
+  const headers = [];
+  const asked = [];
+  await withInference(async (url, options) => {
+    asked.push(url);
+    headers.push(options.headers);
+    return { ok: true, json: async () => ({ status: 'ready' }) };
+  }, () => inferenceReady({ sentimentInferenceUrl: freshUrl(), sentimentInferenceKey: 'fixture-key' }));
+  assert.match(asked[0], /\/health$/);
+  assert.equal(headers[0].Authorization, 'Bearer fixture-key');
 });

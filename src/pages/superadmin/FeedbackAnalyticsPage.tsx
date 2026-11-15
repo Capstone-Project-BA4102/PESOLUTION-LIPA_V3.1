@@ -148,7 +148,7 @@ export default function FeedbackAnalyticsPage({ embedded = false }: { embedded?:
       <div className="flex flex-wrap items-center justify-end gap-2">
         {pending > 0 && (data?.inferenceReady
           ? <Button size="sm" variant="neutral" icon={<BrainCircuit className="h-4 w-4"/>} onClick={() => setConfirmOpen(true)}>{pt('Analyze waiting feedback')}</Button>
-          : <span className="flex max-w-xl items-center gap-2 rounded-md bg-warning-50 px-2.5 py-1.5 text-[11.5px] font-semibold leading-snug text-warning-700"><CircleHelp className="h-4 w-4 shrink-0"/>{pt('The sentiment model runs on the office computer. Open the portal there to analyze waiting feedback.')}</span>)}
+          : <span className="flex max-w-xl items-center gap-2 rounded-md bg-warning-50 px-2.5 py-1.5 text-[11.5px] font-semibold leading-snug text-warning-700"><CircleHelp className="h-4 w-4 shrink-0"/>{pt('The sentiment service is not answering right now. Waiting comments are kept and can be analyzed again once it is back.')}</span>)}
         <Button size="sm" variant="neutral" disabled={refreshing} onClick={reload} icon={<RefreshCw aria-hidden="true" className="h-4 w-4"/>}>{pt('Refresh data')}</Button>
       </div>
     </div>

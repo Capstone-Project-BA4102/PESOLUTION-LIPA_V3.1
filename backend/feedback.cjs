@@ -62,21 +62,25 @@ async function submitFeedback(supabase, actor, input, config) {
     updated_at: new Date().toISOString(), ...prediction }, { onConflict: 'application_id' }).select('*').single());
 }
 
-// The inference service runs on the office computer, so the hosted backend usually has nothing to
-// call. The dashboard asks this before offering an action that could only fail.
+// The service may be the local process or the hosted Space; either way the probe asks the same
+// root for /health, so a Space URL copied with or without /predict still works.
 const readinessProbes = new Map();
 
 async function inferenceReady(config) {
-  const url = config?.sentimentInferenceUrl;
-  if (!url) return false;
-  const cached = readinessProbes.get(url);
+  const base = config?.sentimentInferenceBase
+    || String(config?.sentimentInferenceUrl || '').replace(/\/predict\/?$/i, '');
+  if (!base) return false;
+  const cached = readinessProbes.get(base);
   if (cached && Date.now() - cached.at < 60000) return cached.ready;
   let ready = false;
   try {
-    const response = await fetch(`${url.replace(/\/predict\/?$/, '')}/health`, { signal: AbortSignal.timeout(2000) });
+    const response = await fetch(`${base}/health`, {
+      headers: config.sentimentInferenceKey ? { Authorization: `Bearer ${config.sentimentInferenceKey}` } : {},
+      signal: AbortSignal.timeout(4000),
+    });
     ready = response.ok && (await response.json()).status === 'ready';
   } catch { ready = false; }
-  readinessProbes.set(url, { at: Date.now(), ready });
+  readinessProbes.set(base, { at: Date.now(), ready });
   return ready;
 }
 

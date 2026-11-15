@@ -11,60 +11,77 @@ short_description: XLM-RoBERTa sentiment service for PESOLUTION hired-applicant 
 
 # PESOLUTION Sentiment Inference
 
-> **Optional path, not the current arrangement.** Since July 2026 Hugging Face requires a paid
-> PRO account ($9/month) to create a Docker Space. PESOLUTION today runs this same code on the
-> office computer with `npm run sentiment:start` and labels live feedback from there; see
-> *Feedback Sentiment Service* in the repository README. These files stay ready in case fully
-> automatic live classification is ever paid for.
+This folder deploys the fine-tuned XLM-RoBERTa feedback model as a Hugging Face **Docker Space**
+on CPU. The Express backend calls `POST /predict` on it whenever an applicant submits feedback,
+and again whenever an office administrator presses **Analyze waiting feedback** in Feedback
+Analytics.
 
-This is the deployment folder for a Hugging Face **CPU Space** that runs
-`sentiment_inference.py`. The Express backend calls `POST /predict` on it whenever an
-applicant submits feedback, and again whenever an office administrator presses
-**Analyze waiting feedback** on the Feedback Analytics page.
+It exists because the checkpoint is 1.1 GB and its Python environment is another 1.1 GB: neither
+belongs in the PESOLUTION Git repository, and neither fits the Render web service that hosts the
+portal. The checkpoint stays in the private Hub repository
+`Lorx-20/pesolution-xlmr-sentiment`; the Space downloads it on first boot into its container cache,
+so nothing large is ever committed here.
 
-It exists because the trained model is 1.1 GB and the Python environment is another
-1.1 GB: neither belongs in the PESOLUTION Git repository, and neither fits the Render
-web service that hosts the portal. The model itself is already stored on the Hub, so
-this Space downloads it at boot and nothing large is ever committed.
+## Create the Space
 
-## Pushing this folder to a Space
-
-1. Create a **new Space** (Docker SDK, CPU basic hardware, private) in the `Lorx-20` account.
+1. Create a **new Space** (Docker SDK, CPU basic, private or public) in the `Lorx-20` account.
 2. Copy these four files into the Space repository and commit:
    `README.md`, `Dockerfile`, `requirements.txt`, `sentiment_inference.py`.
-3. The Space builds the image, then loads the model. Watch `GET /health` — it reports
-   `"status": "downloading"`, then `"loading"`, then `"ready"`.
+3. Add the secrets below in **Settings → Variables and secrets**.
+4. Watch `GET /health`: it reports `"status": "downloading"`, then `"loading"`, then `"ready"`.
+   The first boot downloads 1.1 GB, so expect a few minutes before `ready`.
 
 `sentiment_inference.py` is a copy of `backend/sentiment_inference.py` and must stay
 identical to it; `tests/sentiment-space.test.cjs` fails the test suite if the two drift.
 
 ## Secrets the Space needs
 
-Set these in the Space's **Settings → Repository secrets / Variables**, never in a file:
-
 | Name | Required | What it is for |
 | --- | --- | --- |
 | `HF_TOKEN` | **Yes** | A read token that can reach the private model repo `Lorx-20/pesolution-xlmr-sentiment`. Without it the loader reports *"Local model files are unavailable and HF_TOKEN is not configured"*. |
-| `SENTIMENT_INFERENCE_KEY` | Recommended | A bearer token you invent. The service rejects any `POST /predict` that does not carry it. |
+| `SENTIMENT_INFERENCE_KEY` | Recommended | A long random string you invent. The service rejects any `POST /predict` that does not carry it as `Authorization: Bearer <value>`. Leave it unset only for a public Space you are happy to expose. |
+| `SENTIMENT_MODEL_REPO` | Optional | Overrides the model repo, default `Lorx-20/pesolution-xlmr-sentiment`. |
 | `SENTIMENT_MAX_LENGTH` | Optional | Token cut-off, default `256`. |
 
-## Point the portal at it
+## Point the backend at it
 
-On the backend service (Render), set:
+On the backend service (Render, or the local `.env`), set:
 
-- `SENTIMENT_INFERENCE_URL` = `https://<your-space>.hf.space/predict`
-- `SENTIMENT_INFERENCE_KEY` = the same value you gave the Space
-- `SENTIMENT_TIMEOUT_MS` = `30000` by default; raise it only if cold starts are common
+- `SENTIMENT_INFERENCE_URL` = `https://<owner>-<space>.hf.space` — the Space root is enough; the
+  backend appends `/predict`. A full `.../predict` URL is also accepted.
+- `SENTIMENT_INFERENCE_KEY` = the same string you gave the Space.
+- `SENTIMENT_TIMEOUT_MS` = `30000` by default; raise it only if cold starts are common.
 
-A free CPU Space sleeps after inactivity. The first request after a sleep can fail while
-the container wakes, and that is deliberate: the backend keeps the comment
-`sentiment_status = pending` rather than losing it, so pressing **Analyze waiting
-feedback** a minute later classifies it. The applicant's own submission never fails
-because of sentiment.
+Verify from any machine:
+
+```bash
+curl -s https://<owner>-<space>.hf.space/health
+
+curl -s -X POST https://<owner>-<space>.hf.space/predict \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <SENTIMENT_INFERENCE_KEY>" \
+  -d '{"text":"Mabilis ang tulong at natanggap agad ako."}'
+```
+
+The answer is `{"label":"positive|neutral|negative","confidence":0.0-1.0,"model_version":"…","probabilities":{…}}`.
+
+A **private** Space also requires a Hub read token on every request. Easiest arrangement: keep the
+Space public and protect `/predict` with `SENTIMENT_INFERENCE_KEY`. If the Space must stay private,
+use an HF read token as the backend's `SENTIMENT_INFERENCE_KEY` and leave the Space's own
+`SENTIMENT_INFERENCE_KEY` unset, so the app accepts that header from the proxy.
+
+## Cold starts
+
+Free CPU Spaces sleep after inactivity. The first request after a sleep can time out while the
+container wakes, and that is deliberate: the backend stores the comment with
+`sentiment_status = pending` (the **Waiting** chip) instead of losing it, so pressing **Analyze
+waiting feedback** a minute later classifies it. The applicant's submission never fails because
+of sentiment. The dashboard's readiness probe asks `/health` with a 4-second timeout and caches
+the answer for a minute.
 
 ## Running it locally instead
 
-The office machine keeps the same code path without a Space:
+The office machine can run the same code without a Space:
 
 ```
 npm run sentiment:start     # loads backend/model-artifacts/pesolution_xlmr_sentiment on CPU

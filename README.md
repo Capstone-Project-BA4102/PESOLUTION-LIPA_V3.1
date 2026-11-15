@@ -157,23 +157,24 @@ a *nice to have*: if the service does not answer, the comment is stored as
 `sentiment_status = pending` (the **Waiting** chip), the submission still succeeds, and nothing is
 lost.
 
-**Current arrangement, chosen for cost: the model runs only on the office computer.**
+**Deployment: the model runs in a Hugging Face Docker Space on CPU.**
 
-- `npm run sentiment:start` serves the local artifact on `http://127.0.0.1:8001/predict`, which is
-  the default the backend reads. With `npm run start` on the same machine, feedback is labeled as
-  it arrives and pending rows can be replayed.
-- The Render service has no inference process, so live submissions are stored as Waiting. To
-  label them, run both commands on the office machine and press **Analyze waiting feedback** in
-  the local portal — the local backend writes to the same Supabase project the live portal reads,
-  so the deployed dashboard updates. Up to 100 comments per run. Star ratings are never touched
-  and no applicant is contacted by it.
+- `sentiment-space/` holds the Dockerfile, requirements and a copy of the same inference script.
+  The checkpoint stays in the private Hub repository `Lorx-20/pesolution-xlmr-sentiment` and the
+  Space downloads it on boot, so neither the model nor torch is pushed to GitHub or Render.
+- Point the backend at the Space with `SENTIMENT_INFERENCE_URL` (the Space root or its `/predict`
+  endpoint) plus the matching `SENTIMENT_INFERENCE_KEY`; `sentiment-space/README.md` lists the
+  Space secrets and the verification commands.
+- A free CPU Space sleeps when idle, so the first request after a sleep can time out. The comment
+  is then stored as Waiting and **Analyze waiting feedback** replays it (up to 100 per run); an
+  applicant's submission never fails because of sentiment. Star ratings are never touched.
+- Running everything locally is still supported: `npm run sentiment:start` serves the local
+  artifact on `http://127.0.0.1:8001/predict`, which is the default the backend reads.
 - The Feedback Analytics page asks the configured service whether it is ready and, when nothing
-  answers, shows that instruction instead of a button that could only fail.
+  answers, shows the retry instruction instead of a button that could only fail.
 
-`sentiment-space/` is kept ready in case fully automatic live classification is ever wanted. Since
-July 2026 Hugging Face requires a paid PRO account to create a Docker Space, so that path costs
-$9/month and would send feedback text to a third party — which needs a privacy-notice disclosure
-first.
+Sending feedback text to a third-party host needs a matching privacy-notice disclosure before
+the hosted Space is used with real applicant comments.
 
 ## Checks and Research
 
