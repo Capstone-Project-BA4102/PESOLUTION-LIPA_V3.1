@@ -29,3 +29,34 @@ test('ZeroGPU readiness uses the app header without pretending it is a Hugging F
  const {inferenceReady}=require('../backend/feedback.cjs');
  await mocked(async(url,options)=>{assert.equal(url,'https://zerogpu-readiness-fixture.hf.space/health');assert.equal(options.headers['X-PESOLUTION-Key'],'synthetic-key');assert.equal(options.headers.Authorization,undefined);return {ok:true,json:async()=>({status:'ready'})};},async()=>assert.equal(await inferenceReady({...config,sentimentInferenceBase:'https://zerogpu-readiness-fixture.hf.space'}),true));
 });
+
+test('HTTP auth, routing and quota failures expose safe categories rather than generic availability', async () => {
+ for (const [status, code] of [[401,'unauthorized'],[403,'unauthorized'],[404,'endpoint_not_found'],[429,'quota_exceeded'],[503,'service_unavailable'],[504,'timeout']]) {
+  await mocked(async()=>({ok:false,status}),()=>assert.rejects(predictSentiment('private comment',config),error=>error.code===code && error.status===status && error.stage==='queue'));
+ }
+});
+test('SSE quota failures are distinguishable without exposing the service error body', async () => {
+ let n=0;
+ await mocked(async()=>++n===1?{ok:true,json:async()=>({event_id:'quota'})}:stream(['event: error\ndata: "GPU quota exceeded; private details"\n\n']),()=>assert.rejects(predictSentiment('test',config),error=>error.code==='quota_exceeded' && !error.message.includes('private details')));
+});
+test('diagnostics and public health never include secrets, payloads, hosts or raw exception text', () => {
+ const {inferenceDiagnostic,sentimentHealth}=require('../backend/sentiment-transport.cjs');
+ const privateValue='synthetic-private-secret';
+ const input={sentimentTransport:'gradio',sentimentInferenceKey:privateValue,sentimentInferenceUrl:'https://private.invalid/'+privateValue,sentimentTimeoutMs:60000};
+ const result=inferenceDiagnostic({message:privateValue,code:privateValue,stage:privateValue,status:401},input);
+ assert.deepEqual(result,{code:'inference_error',stage:'request',status:401,transport:'gradio'});
+ assert.equal(JSON.stringify({result,health:sentimentHealth(input)}).includes(privateValue),false);
+ assert.equal(sentimentHealth({...input,sentimentTransport:privateValue}).transport,'invalid');
+});
+
+test('public backend health exposes readiness configuration only and performs no inference or database access', async()=>{
+ const {createApp}=require('../backend/app.cjs');
+ const app=createApp({supabase:null,gemini:{model:'fixture'},config:{origins:[],version:'test',sentimentTransport:'gradio',sentimentInferenceUrl:'https://private.invalid/synthetic-secret',sentimentInferenceKey:'synthetic-secret',sentimentTimeoutMs:60000}});
+ const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+ try {
+  const response=await fetch(`http://127.0.0.1:${server.address().port}/api/health`);assert.equal(response.status,200);
+  const result=await response.json();assert.equal(result.status,'ok');assert.equal(result.version,'test');
+  assert.deepEqual(result.sentiment,{transport:'gradio',configured:true,keyConfigured:true,timeoutMs:60000});
+  assert.equal(JSON.stringify(result).includes('synthetic-secret'),false);assert.equal(JSON.stringify(result).includes('private.invalid'),false);
+ } finally {await new Promise(resolve=>server.close(resolve));}
+});

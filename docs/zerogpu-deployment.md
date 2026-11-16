@@ -55,3 +55,16 @@ Free access is subject to HF eligibility and daily quota/queue limitations; no a
 Sources: https://huggingface.co/docs/hub/spaces-zerogpu
 https://huggingface.co/docs/hub/spaces-overview
 https://huggingface.co/docs/hub/spaces-config-reference
+
+
+## Connection diagnostics
+
+GET /api/health now includes the Render Git revision (when provided by Render), active
+sentiment transport, URL/key configured booleans and timeout. No key value or URL is returned.
+A failed classification writes a [sentiment-inference] log with whitelisted code, stage,
+HTTP status and transport only. It never prints headers, request/response bodies, comments,
+keys or arbitrary exception messages. The existing Waiting behavior is unchanged.
+Codes distinguish unauthorized, endpoint_not_found, quota_exceeded, timeout,
+service_unavailable, invalid_response and network_unavailable. A ready HF health check does
+not guarantee that the Render request has valid authentication or available GPU quota.
+Diagnostic patch verification: all 197 local Node tests passed; focused lint clean.

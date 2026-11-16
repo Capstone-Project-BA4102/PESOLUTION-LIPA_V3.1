@@ -1,3 +1,4 @@
+const { sentimentHealth } = require('./sentiment-transport.cjs');
 const express = require('express');
 const { employmentAnalytics } = require('./employment-analytics.cjs');
 const { manageReferral } = require('./referrals.cjs');
@@ -57,7 +58,9 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
     available();
     res.json(await manageReferral(supabase, req.actor, req.body));
   }));
-  app.get('/api/health', (req, res) => res.json({ status: 'ok', version: config.version }));
+  app.get('/api/health', (req, res) => res.json({ status: 'ok', version: config.version,
+    revision: /^[a-f0-9]{40}$/i.test(process.env.RENDER_GIT_COMMIT || '') ? process.env.RENDER_GIT_COMMIT.slice(0, 12) : null,
+    sentiment: sentimentHealth(config) }));
   app.get('/api/applicant/feedback', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
     res.json(await feedbackEligibility(supabase, req.actor));
   }));

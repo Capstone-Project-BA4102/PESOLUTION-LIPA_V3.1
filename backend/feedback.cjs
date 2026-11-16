@@ -1,4 +1,4 @@
-const { predictSentiment } = require('./sentiment-transport.cjs');
+const { predictSentiment, inferenceDiagnostic } = require('./sentiment-transport.cjs');
 const { HttpError, check, requireUuid } = require('./domain.cjs');
 
 async function ownedHiredApplication(supabase, actor, applicationId) {
@@ -39,7 +39,8 @@ async function classifyFeedback(text, config) {
     if (!['positive','neutral','negative'].includes(label)) throw new Error('Invalid inference response');
     return { sentiment_status: 'classified', sentiment_label: label, sentiment_confidence: Number.isFinite(Number(value.confidence)) ? Number(value.confidence) : null,
       sentiment_model: String(value.model_version || 'xlm-roberta'), sentiment_details: value };
-  } catch {
+  } catch (error) {
+    console.warn('[sentiment-inference]', JSON.stringify(inferenceDiagnostic(error, config)));
     return { sentiment_status: 'pending', sentiment_details: { reason: 'Classification unavailable; queued for retry.' } };
   }
 }
