@@ -12,12 +12,13 @@ import { ErrorBlock } from '@/components/shared/QueryState'
 import { FeedbackAnalyticsSkeleton } from '@/components/shared/Skeletons'
 import { useQuery } from '@/lib/useQuery'
 import { backendRequest } from '@/lib/backend'
+import { fetchAvatarUrls } from '@/lib/api'
 import { usePT } from '@/lib/portalCopy'
 import { StarRating } from '@/components/ui/StarRating'
 import { usePublicPreferences } from '@/lib/publicPreferences'
 
 type Sentiment = 'positive' | 'neutral' | 'negative'
-type RecordRow = { id:string; rating:number; feedback_text:string; submitted_at:string; sentiment_status:string; sentiment_label?:Sentiment; sentiment_confidence?:number; applications?: { job_listings?: { title?:string; companies?:{name?:string} }; applicants?:{full_name?:string} } }
+type RecordRow = { id:string; rating:number; feedback_text:string; submitted_at:string; sentiment_status:string; sentiment_label?:Sentiment; sentiment_confidence?:number; applications?: { job_listings?: { title?:string; companies?:{name?:string} }; applicants?:{full_name?:string; profile_id?:string; avatarUrl?:string} } }
 type Trend = {month:string;positive:number;neutral:number;negative:number}
 type Analytics = { total:number; eligible:number; responseRate:number; averageRating:number|null; pending:number; distribution:Record<Sentiment,number>; trends:Trend[]; records:RecordRow[]; inferenceReady?:boolean }
 
@@ -26,7 +27,16 @@ const sentimentName: Record<Sentiment,string> = { positive:'Positive', neutral:'
 export default function FeedbackAnalyticsPage({ embedded = false }: { embedded?: boolean }) {
   const pt = usePT()
   const { locale, theme } = usePublicPreferences()
-  const fetcher = useCallback(() => backendRequest<Analytics>('/admin/feedback-analytics'), [])
+  const fetcher = useCallback(async () => {
+    const analytics = await backendRequest<Analytics>('/admin/feedback-analytics')
+    const avatarMap = await fetchAvatarUrls()
+    for (const row of analytics.records || []) {
+      const applicant = row.applications?.applicants
+      const pid = applicant?.profile_id
+      if (applicant && pid && avatarMap[String(pid).toLowerCase()]) applicant.avatarUrl = avatarMap[String(pid).toLowerCase()]
+    }
+    return analytics
+  }, [])
   const { data, loading, refreshing, error, reload } = useQuery(fetcher, [])
   useLiveRefresh(reload, ['hired_application_feedback', 'applications'])
   const [removeTarget, setRemoveTarget] = useState<RecordRow | null>(null)
@@ -99,7 +109,7 @@ export default function FeedbackAnalyticsPage({ embedded = false }: { embedded?:
       render: (row) => {
         const name = row.applications?.applicants?.full_name || pt('Applicant')
         return <div className="flex min-w-0 items-center gap-2.5">
-          <Avatar name={name} size="sm" className="shrink-0" />
+          <Avatar name={name} src={row.applications?.applicants?.avatarUrl} size="sm" className="shrink-0" />
           <div className="min-w-0">
             <p className="text-[13.5px] font-semibold leading-snug break-words text-slate-900">{name}</p>
             <p className="text-[12px] leading-snug break-words text-slate-500">{row.applications?.job_listings?.title || '—'}</p>

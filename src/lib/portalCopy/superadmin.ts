@@ -2,6 +2,7 @@ import { registerFil } from './core'
 
 /** Administrative website-management copy. */
 registerFil({
+  'The sentiment service is unavailable or still starting. Waiting feedback is saved; retry when the service is ready.': 'Hindi available o nagsisimula pa ang sentiment service. Naka-save ang naghihintay na feedback; subukan muli kapag handa na ang serbisyo.',
   'Remove review': 'Alisin ang review',
   'Remove selected review?': 'Alisin ang napiling review?',
   'Removing…': 'Inaalis…',

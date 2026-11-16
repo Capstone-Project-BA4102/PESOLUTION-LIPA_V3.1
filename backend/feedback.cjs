@@ -108,7 +108,7 @@ async function feedbackAnalytics(supabase, config) {
   const eligibleResult = await supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'Hired');
   if (eligibleResult.error) throw eligibleResult.error;
   const eligible = eligibleResult.count || 0;
-  const rows = check(await supabase.from('hired_application_feedback').select('id,rating,feedback_text,submitted_at,sentiment_status,sentiment_label,sentiment_confidence,sentiment_model,applications(job_listings(title,companies(name)),applicants(full_name))').not('submitted_at', 'is', null).order('submitted_at', { ascending: false })) || [];
+  const rows = check(await supabase.from('hired_application_feedback').select('id,rating,feedback_text,submitted_at,sentiment_status,sentiment_label,sentiment_confidence,sentiment_model,applications(job_listings(title,companies(name)),applicants(full_name,profile_id))').not('submitted_at', 'is', null).order('submitted_at', { ascending: false })) || [];
   const classified = rows.filter(row => row.sentiment_status === 'classified' && row.sentiment_label);
   const distribution = Object.fromEntries(['positive','neutral','negative'].map(label => [label, classified.filter(row => row.sentiment_label === label).length]));
   const trends = new Map();

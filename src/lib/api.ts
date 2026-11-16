@@ -343,7 +343,7 @@ function mapApplicant(r: any): Applicant {
   }
 }
 
-async function fetchAvatarUrls(): Promise<Record<string, string>> {
+export async function fetchAvatarUrls(): Promise<Record<string, string>> {
   const map: Record<string, string> = {}
   // Public storage URLs are cached by the browser for an hour (max-age=3600),
   // so pin each URL to the object's own updated_at to bust stale images.

@@ -2,6 +2,7 @@
 import hmac
 import json
 import os
+import traceback
 from pathlib import Path
 
 # Must precede torch import so ZeroGPU can configure CUDA emulation.
@@ -40,6 +41,17 @@ except Exception as error:
     state = "error"
     print("Sentiment startup failed:", type(error).__name__, "- check model access and Space Secrets", flush=True)
 
+def log_diagnostic(stage, error=None, **fields):
+    """Log structure only: never exception messages, request bodies, or headers."""
+    entry = {"stage": stage, **fields}
+    if error is not None:
+        entry["exception"] = type(error).__name__
+        entry["frames"] = [
+            {"file": Path(frame.filename).name, "function": frame.name, "line": frame.lineno}
+            for frame in traceback.extract_tb(error.__traceback__)[-6:]
+        ]
+    print("[sentiment-space] " + json.dumps(entry), flush=True)
+
 @spaces.GPU(duration=10)
 def gpu_prediction(text):
     with torch.inference_mode():
@@ -58,7 +70,15 @@ def classify(text):
     text = (text or "").strip()
     if not text or len(text) > 4000:
         raise gr.Error("Feedback must contain 1 to 4000 characters.")
-    return gpu_prediction(text)
+    log_diagnostic("inference_started")
+    try:
+        result = gpu_prediction(text)
+    except Exception as error:
+        log_diagnostic("inference_failed", error)
+        # Return a fixed message; third-party errors may contain private data.
+        raise gr.Error("Sentiment inference failed. Check Space diagnostics.") from None
+    log_diagnostic("inference_completed")
+    return result
 
 api = FastAPI(title="PESOLUTION ZeroGPU Sentiment")
 
@@ -66,8 +86,20 @@ api = FastAPI(title="PESOLUTION ZeroGPU Sentiment")
 async def protect_inference(request: Request, call_next):
     if request.url.path not in {"/", "/health", "/gradio_api/startup-events"}:
         if not KEY or not hmac.compare_digest(request.headers.get("x-pesolution-key", "").encode(), KEY.encode()):
+            log_diagnostic("request_rejected", status=401)
             return JSONResponse({"error": "Unauthorized"}, status_code=401)
-    return await call_next(request)
+    # Categorize paths without recording arbitrary URLs or event IDs.
+    is_queue = request.url.path.startswith("/gradio_api/call/sentiment")
+    if is_queue:
+        log_diagnostic("queue_request_received")
+    try:
+        response = await call_next(request)
+    except Exception as error:
+        log_diagnostic("request_failed", error)
+        return JSONResponse({"error": "Sentiment service request failed"}, status_code=500)
+    if is_queue:
+        log_diagnostic("queue_response", status=response.status_code)
+    return response
 
 @api.get("/health")
 def health():

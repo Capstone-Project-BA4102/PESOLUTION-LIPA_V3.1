@@ -2,6 +2,8 @@
 import ast
 import asyncio
 import hmac
+import json
+import traceback
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -19,18 +21,18 @@ class Guards(unittest.TestCase):
         calls = []
         async def next_handler(request):
             calls.append(request.url.path)
-            return "allowed"
-        fn = load_function("protect_inference", {"KEY": "synthetic-key", "hmac": hmac, "Request": object,
+            return SimpleNamespace(status_code=200)
+        fn = load_function("protect_inference", {"log_diagnostic": lambda *args, **kwargs: None, "KEY": "synthetic-key", "hmac": hmac, "Request": object,
             "JSONResponse": lambda body, status_code: status_code})
         for path in ["/gradio_api/call/sentiment", "/gradio_api/call/sentiment/event", "/config", "/file=private"]:
             self.assertEqual(asyncio.run(fn(SimpleNamespace(url=SimpleNamespace(path=path), headers={}), next_handler)), 401)
         self.assertEqual(calls, [])
         for path in ["/", "/health", "/gradio_api/call/sentiment"]:
-            self.assertEqual(asyncio.run(fn(SimpleNamespace(url=SimpleNamespace(path=path), headers={"x-pesolution-key":"synthetic-key"}), next_handler)), "allowed")
+            self.assertEqual(asyncio.run(fn(SimpleNamespace(url=SimpleNamespace(path=path), headers={"x-pesolution-key":"synthetic-key"}), next_handler)).status_code, 200)
 
     def test_validation_happens_before_gpu_allocation(self):
         calls = []
-        namespace = {"state": "ready", "gr": SimpleNamespace(Error=ValueError), "gpu_prediction": lambda text: calls.append(text) or {"label":"neutral"}}
+        namespace = {"log_diagnostic": lambda *args, **kwargs: None, "state": "ready", "gr": SimpleNamespace(Error=ValueError), "gpu_prediction": lambda text: calls.append(text) or {"label":"neutral"}}
         fn = load_function("classify", namespace)
         for text in ["", "   ", "a" * 4001]:
             with self.assertRaises(ValueError): fn(text)
@@ -39,6 +41,30 @@ class Guards(unittest.TestCase):
         self.assertEqual(calls, ["synthetic"])
         namespace["state"] = "error"
         with self.assertRaises(ValueError): fn("test")
+
+    def test_inference_errors_are_logged_without_private_messages(self):
+        logs = []
+        def fail(text):
+            raise RuntimeError("PRIVATE-COMMENT SECRET-KEY")
+        fn = load_function("classify", {"state": "ready", "gr": SimpleNamespace(Error=ValueError),
+            "gpu_prediction": fail, "log_diagnostic": lambda *args, **kwargs: logs.append(args)})
+        with self.assertRaisesRegex(ValueError, "Check Space diagnostics") as result:
+            fn("PRIVATE-COMMENT")
+        self.assertNotIn("PRIVATE", str(result.exception))
+        self.assertEqual(logs[-1][0], "inference_failed")
+
+    def test_diagnostics_omit_exception_message_and_source_text(self):
+        output = []
+        fn = load_function("log_diagnostic", {"Path": Path, "traceback": traceback, "json": json,
+            "print": lambda message, **kwargs: output.append(message)})
+        try:
+            raise RuntimeError("PRIVATE-COMMENT SECRET-KEY")
+        except RuntimeError as error:
+            fn("inference_failed", error)
+        self.assertNotIn("PRIVATE-COMMENT", output[0])
+        self.assertNotIn("SECRET-KEY", output[0])
+        self.assertIn("RuntimeError", output[0])
+        self.assertIn('"frames"', output[0])
 
     def test_public_app_does_not_use_the_reserved_worker_port(self):
         source = SOURCE.read_text(encoding="utf-8")

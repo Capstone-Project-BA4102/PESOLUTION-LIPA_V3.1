@@ -3,36 +3,43 @@ title: PESOLUTION Sentiment Inference
 emoji: 🧠
 colorFrom: red
 colorTo: indigo
-sdk: docker
-app_port: 8001
+sdk: gradio
 pinned: false
 short_description: XLM-RoBERTa sentiment service for PESOLUTION hired-applicant feedback
 ---
 
 # PESOLUTION Sentiment Inference
 
-This folder deploys the fine-tuned XLM-RoBERTa feedback model as a Hugging Face **Docker Space**
+> For a free **ZeroGPU** Space, use the separate `sentiment-zerogpu-space` folder.
+> This folder is the legacy CPU/REST deployment. Current HF eligibility and pricing
+> must be checked; selecting Gradio alone does not guarantee free CPU hosting.
+> ZeroGPU uses the Gradio queue, not this folder's direct CPU /predict endpoint.
+
+This folder deploys the fine-tuned XLM-RoBERTa feedback model as a Hugging Face **Gradio Space**
 on CPU. The Express backend calls `POST /predict` on it whenever an applicant submits feedback,
 and again whenever an office administrator presses **Analyze waiting feedback** in Feedback
-Analytics.
+Analytics. The Space root shows a small Gradio UI for trying the model in a browser.
 
-It exists because the checkpoint is 1.1 GB and its Python environment is another 1.1 GB: neither
-belongs in the PESOLUTION Git repository, and neither fits the Render web service that hosts the
-portal. The checkpoint stays in the private Hub repository
-`Lorx-20/pesolution-xlmr-sentiment`; the Space downloads it on first boot into its container cache,
-so nothing large is ever committed here.
+This legacy package uses the Gradio SDK while retaining the original REST contract. The checkpoint is 1.1 GB
+and its Python environment is another 1.1 GB: neither belongs in the PESOLUTION Git repository,
+and neither fits the Render web service that hosts the portal. The checkpoint stays in the
+private Hub repository `Lorx-20/pesolution-xlmr-sentiment`; the Space downloads it on first boot
+into its container cache, so nothing large is ever committed here.
 
 ## Create the Space
 
-1. Create a **new Space** (Docker SDK, CPU basic, private or public) in the `Lorx-20` account.
+1. Create a **new Space** (Gradio SDK, Blank template, CPU basic hardware, private) in the
+   `Lorx-20` account.
 2. Copy these four files into the Space repository and commit:
-   `README.md`, `Dockerfile`, `requirements.txt`, `sentiment_inference.py`.
+   `README.md`, `requirements.txt`, `app.py`, `sentiment_inference.py`.
 3. Add the secrets below in **Settings → Variables and secrets**.
 4. Watch `GET /health`: it reports `"status": "downloading"`, then `"loading"`, then `"ready"`.
    The first boot downloads 1.1 GB, so expect a few minutes before `ready`.
 
 `sentiment_inference.py` is a copy of `backend/sentiment_inference.py` and must stay
 identical to it; `tests/sentiment-space.test.cjs` fails the test suite if the two drift.
+`app.py` only wraps it: it serves the same FastAPI `/health` and `/predict` routes and mounts
+the Gradio UI at the root.
 
 ## Secrets the Space needs
 

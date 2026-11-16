@@ -190,11 +190,14 @@ a *nice to have*: if the service does not answer, the comment is stored as
 `sentiment_status = pending` (the **Waiting** chip), the submission still succeeds, and nothing is
 lost.
 
-**Deployment: the model runs in a Hugging Face Docker Space on CPU.**
+**Deployment: the model runs in a Hugging Face Gradio Space on CPU.**
 
-- `sentiment-space/` holds the Dockerfile, requirements and a copy of the same inference script.
-  The checkpoint stays in the private Hub repository `Lorx-20/pesolution-xlmr-sentiment` and the
-  Space downloads it on boot, so neither the model nor torch is pushed to GitHub or Render.
+- `sentiment-space/` holds the Space entry (`app.py`), requirements and a copy of the same
+  inference script. It uses the Gradio SDK because Hugging Face moved the Docker SDK behind a
+  paywall on the free tier; `app.py` serves the same FastAPI `/health` and `/predict` routes and
+  mounts a small Gradio UI at the root. The checkpoint stays in the private Hub repository
+  `Lorx-20/pesolution-xlmr-sentiment` and the Space downloads it on boot, so neither the model
+  nor torch is pushed to GitHub or Render.
 - Point the backend at the Space with `SENTIMENT_INFERENCE_URL` (the Space root or its `/predict`
   endpoint) plus the matching `SENTIMENT_INFERENCE_KEY`; `sentiment-space/README.md` lists the
   Space secrets and the verification commands.
