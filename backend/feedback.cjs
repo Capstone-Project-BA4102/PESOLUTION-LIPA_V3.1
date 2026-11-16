@@ -1,3 +1,4 @@
+const { predictSentiment } = require('./sentiment-transport.cjs');
 const { HttpError, check, requireUuid } = require('./domain.cjs');
 
 async function ownedHiredApplication(supabase, actor, applicationId) {
@@ -33,11 +34,9 @@ async function markFeedbackEvent(supabase, actor, applicationId, event) {
 async function classifyFeedback(text, config) {
   if (!config.sentimentInferenceUrl) return { sentiment_status: 'pending', sentiment_details: { reason: 'XLM-RoBERTa inference service is not configured.' } };
   try {
-    const response = await fetch(config.sentimentInferenceUrl, { method: 'POST', headers: { 'Content-Type': 'application/json',
-      ...(config.sentimentInferenceKey ? { Authorization: `Bearer ${config.sentimentInferenceKey}` } : {}) }, body: JSON.stringify({ text }), signal: AbortSignal.timeout(config.sentimentTimeoutMs || 30000) });
-    const value = await response.json();
+    const value = await predictSentiment(text, config);
     const label = String(value.label || '').toLowerCase();
-    if (!response.ok || !['positive','neutral','negative'].includes(label)) throw new Error('Invalid inference response');
+    if (!['positive','neutral','negative'].includes(label)) throw new Error('Invalid inference response');
     return { sentiment_status: 'classified', sentiment_label: label, sentiment_confidence: Number.isFinite(Number(value.confidence)) ? Number(value.confidence) : null,
       sentiment_model: String(value.model_version || 'xlm-roberta'), sentiment_details: value };
   } catch {
@@ -75,7 +74,8 @@ async function inferenceReady(config) {
   let ready = false;
   try {
     const response = await fetch(`${base}/health`, {
-      headers: config.sentimentInferenceKey ? { Authorization: `Bearer ${config.sentimentInferenceKey}` } : {},
+      headers: config.sentimentInferenceKey ? (config.sentimentTransport === 'gradio'
+        ? { 'X-PESOLUTION-Key': config.sentimentInferenceKey } : { Authorization: `Bearer ${config.sentimentInferenceKey}` }) : {},
       signal: AbortSignal.timeout(4000),
     });
     ready = response.ok && (await response.json()).status === 'ready';

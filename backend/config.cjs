@@ -31,6 +31,7 @@ module.exports = {
   skillNlpTimeoutMs: Number(process.env.SKILL_NLP_TIMEOUT_MS || 30000),
   sentimentArtifactDir: process.env.SENTIMENT_ARTIFACT_DIR || '',
   sentimentModelDir: process.env.SENTIMENT_MODEL_DIR || path.join(__dirname, 'model-artifacts', 'pesolution_xlmr_sentiment'),
+  sentimentTransport: process.env.SENTIMENT_TRANSPORT || 'rest',
   sentimentInferenceUrl: sentimentBase ? `${sentimentBase}/predict` : '',
   sentimentInferenceBase: sentimentBase,
   sentimentInferenceKey: process.env.SENTIMENT_INFERENCE_KEY || '',
