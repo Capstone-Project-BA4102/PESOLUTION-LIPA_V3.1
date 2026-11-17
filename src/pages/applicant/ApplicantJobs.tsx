@@ -15,6 +15,7 @@ import { useAuth } from '@/lib/auth'
 import { fetchApplicantMatchedJobs, fetchJobs, refreshOwnApplicantMatching, type ApplicantJobMatch, type ApplicantJobsData, type Job } from '@/lib/api'
 import { useQuery } from '@/lib/useQuery'
 import { useReactiveMatching } from '@/lib/useReactiveMatching'
+import { withMatchEvidence } from '@/lib/matchEvidence'
 import { rankedMatches } from '@/lib/prescriptiveAnalytics'
 import { EMPLOYMENT_TYPES, INDUSTRIES, WORK_SETUPS } from '@/constants/options'
 import { usePT } from '@/lib/portalCopy'
@@ -69,8 +70,7 @@ export default function ApplicantJobs() {
   const matchedJobs = data.matchedJobs
   const byJobId: Record<string, ApplicantJobMatch> = {}
   for (const match of matchedJobs) byJobId[match.jobId] = { ...match, audit: {
-    ...match.audit, nlpAudit: matching?.jobAudits?.[match.jobId] ||
-      (matching?.nlpAudit?.audit.some(row => row.job_id === match.jobId) ? matching.nlpAudit : undefined),
+    ...withMatchEvidence(match.audit, matching),
   } }
   const selectedMatch = selectedJobId ? byJobId[selectedJobId] : undefined
   const selectedJob = selectedJobId ? jobsById[selectedJobId] : undefined

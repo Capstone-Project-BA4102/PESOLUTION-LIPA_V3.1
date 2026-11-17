@@ -16,6 +16,7 @@ import { fetchJobs } from '@/lib/api'
 import { usePT } from '@/lib/portalCopy'
 import { useQuery } from '@/lib/useQuery'
 import { useReactiveMatching } from '@/lib/useReactiveMatching'
+import { withMatchEvidence } from '@/lib/matchEvidence'
 
 export default function MatchDetailsPage() {
   const pt = usePT()
@@ -35,7 +36,8 @@ export default function MatchDetailsPage() {
   if (!data) return <ErrorBlock message={error || pt('Applicant not found')} onRetry={() => refresh(false)} />
 
   const { applicant, matches: appMatches } = data
-  const selected = appMatches.find(match => match.jobId === selectedJobId)
+  const selectedRecord = appMatches.find(match => match.jobId === selectedJobId)
+  const selected = selectedRecord ? withMatchEvidence(selectedRecord, matching) : undefined
   const openReferral = (match: typeof appMatches[number]) => {
     const base = `/admin/matching/${applicant.id}/referral`
     navigate(match.referralId ? `${base}?refId=${match.referralId}` : `${base}?jobId=${match.jobId}`)
