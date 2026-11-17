@@ -1,3 +1,5 @@
+import { backgroundRefreshScheduler, REFRESH_POLL_MS } from './refreshPolicy'
+import { shareQueryData } from './queryData'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchApplicantMatchDetails, runApplicantMatching, type MatchingRunResult } from './api'
 import { supabase } from './supabase'
@@ -24,9 +26,15 @@ export function useReactiveMatching<T = AdminData>(applicantId: string, options:
     let active = true
     let subscribed = false
     let publishedRun = false
+    let foregroundRequested = false
     const queue = matchingRefreshQueue(async force => {
       if (!active) return
-      setState(previous => ({ ...(previous.applicantId === applicantId ? previous : { applicantId, data: null, realtime: 'connecting' }), loading: true, error: null }))
+      const foreground=foregroundRequested;foregroundRequested=false
+      setState(previous => {
+        const base=previous.applicantId===applicantId?previous:{applicantId,data:null,realtime:'connecting',loading:true,error:null}
+        const loading=foreground || !base.data
+        return base.loading===loading && (!foreground || !base.error) ? base : {...base,loading,error:foreground?null:base.error}
+      })
       let matching: MatchingRunResult | undefined
       let error: string | null = null
       try { matching = await run(applicantId, { force, automatic: !force }) }
@@ -35,7 +43,7 @@ export function useReactiveMatching<T = AdminData>(applicantId: string, options:
       const data = await load(applicantId)
       if (!active) return
       publishedRun = true
-      setState(previous => ({ ...previous, applicantId, data, loading: false, error,
+      setState(previous => shareQueryData(previous, { ...previous, applicantId, data, loading: false, error,
         matching: matching ? { ...matching, nlpAudit: matching.nlpAudit ||
           (matching.matchingKey === previous.matching?.matchingKey ? previous.matching?.nlpAudit : undefined) } : undefined }))
     }, failure => {
@@ -44,35 +52,39 @@ export function useReactiveMatching<T = AdminData>(applicantId: string, options:
     const check = (immediate = false) => {
       if (navigator.onLine && document.visibilityState !== 'hidden') queue.request(false, immediate)
     }
-    refreshRef.current = queue.request
-    const stopWatching = watchMatchingInputs(supabase, applicantId, () => check(), status => {
+    const background=backgroundRefreshScheduler(()=>check(true),()=>navigator.onLine&&document.visibilityState!=='hidden')
+    refreshRef.current = (force=false,immediate=true)=>{foregroundRequested=true;queue.request(force,immediate)}
+    const stopWatching = watchMatchingInputs(supabase, applicantId, () => background.request('change'), status => {
       if (!active) return
-      setState(previous => ({ ...(previous.applicantId === applicantId ? previous : { applicantId, data: null, loading: true, error: null }), realtime: !navigator.onLine ? 'offline' : status === 'SUBSCRIBED' ? 'live' : 'polling' }))
-      if (status === 'SUBSCRIBED') { if (subscribed) check(true); subscribed = true }
+      const realtime=!navigator.onLine?'offline':status==='SUBSCRIBED'?'live':'polling'
+      setState(previous=>previous.applicantId===applicantId&&previous.realtime===realtime?previous:{...(previous.applicantId===applicantId?previous:{applicantId,data:null,loading:true,error:null}),realtime})
+      if (status === 'SUBSCRIBED') { if (subscribed) background.request('reconnect'); subscribed = true }
     })
     const focus = () => {
       if (navigator.onLine) setState(previous => previous.realtime === 'offline' ? { ...previous, realtime: 'polling' } : previous)
-      check(true)
+      background.request('focus')
     }
     const offline = () => { if (active) setState(previous => ({ ...previous, realtime: 'offline' })) }
+    const online=()=>{if(navigator.onLine)setState(previous=>previous.realtime==='offline'?{...previous,realtime:'polling'}:previous);background.request('online')}
     window.addEventListener('focus', focus)
-    window.addEventListener('online', focus)
+    window.addEventListener('online', online)
     window.addEventListener('offline', offline)
     document.addEventListener('visibilitychange', focus)
     // Also catches missed events, missing publications, resume deletes and configuration changes.
-    const poll = window.setInterval(() => check(), 30000)
+    const poll = window.setInterval(() => background.request('poll'), REFRESH_POLL_MS)
     // Show saved results immediately while the controlled freshness check runs.
     void load(applicantId).then(data => {
-      if (active && !publishedRun) setState(previous => ({ ...previous, applicantId, data }))
+      if (active && !publishedRun) setState(previous => shareQueryData(previous, { ...previous, applicantId, data }))
     }).catch(() => { /* The queued refresh owns error reporting and retry. */ })
     queue.request(false, true)
     return () => {
       active = false
+      background.dispose()
       queue.dispose()
       refreshRef.current = () => {}
       window.clearInterval(poll)
       window.removeEventListener('focus', focus)
-      window.removeEventListener('online', focus)
+      window.removeEventListener('online', online)
       window.removeEventListener('offline', offline)
       document.removeEventListener('visibilitychange', focus)
       stopWatching()

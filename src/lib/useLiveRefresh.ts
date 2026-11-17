@@ -1,28 +1,25 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from './supabase'
 import { watchRows } from './rowChanges'
-/** Refresh the mounted view only; never clear a form or recalculate other applicants. */
-export function useLiveRefresh(refresh: () => void, tables: string[], enabled = true) {
+import { BACKGROUND_REFRESH, backgroundRefreshScheduler, REFRESH_POLL_MS } from './refreshPolicy'
+/** Realtime stays enabled; background checks never request foreground loading UI. */
+export function useLiveRefresh(refresh: (reason?: unknown) => void, tables: string[], enabled = true) {
   const latest = useRef(refresh)
   useEffect(() => { latest.current = refresh }, [refresh])
   const key = tables.join(',')
   useEffect(() => {
     if (!enabled) return
-    let timer: ReturnType<typeof setTimeout> | undefined
-    const request = () => {
-      clearTimeout(timer)
-      if (navigator.onLine && document.visibilityState !== 'hidden') timer = setTimeout(() => latest.current(), 400)
-    }
-    const stops = key.split(',').filter(Boolean).map(table => watchRows(supabase, table, undefined, request,
-      status => { if (status === 'SUBSCRIBED') request() }))
-    window.addEventListener('focus', request)
-    window.addEventListener('online', request)
-    document.addEventListener('visibilitychange', request)
-    const poll = window.setInterval(request, 60000)
-    return () => {
-      clearTimeout(timer); window.clearInterval(poll); stops.forEach(stop => stop())
-      window.removeEventListener('focus', request); window.removeEventListener('online', request)
-      document.removeEventListener('visibilitychange', request)
-    }
+    const scheduler=backgroundRefreshScheduler(()=>latest.current(BACKGROUND_REFRESH),()=>navigator.onLine&&document.visibilityState!=='hidden')
+    const stops=key.split(',').filter(Boolean).map(table=>{
+      let connected=false,reconnecting=false
+      return watchRows(supabase,table,undefined,()=>scheduler.request('change'),status=>{
+        if(status==='SUBSCRIBED') {scheduler.request(connected&&reconnecting?'reconnect':'focus');connected=true;reconnecting=false}
+        else if(connected)reconnecting=true
+      })
+    })
+    const focus=()=>scheduler.request('focus'),online=()=>scheduler.request('online'),poll=()=>scheduler.request('poll')
+    window.addEventListener('focus',focus);window.addEventListener('online',online);document.addEventListener('visibilitychange',focus)
+    const timer=window.setInterval(poll,REFRESH_POLL_MS)
+    return()=>{scheduler.dispose();stops.forEach(stop=>stop());window.clearInterval(timer);window.removeEventListener('focus',focus);window.removeEventListener('online',online);document.removeEventListener('visibilitychange',focus)}
   }, [key, enabled])
 }

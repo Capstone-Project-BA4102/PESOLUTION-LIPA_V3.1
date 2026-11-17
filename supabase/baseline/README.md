@@ -48,9 +48,6 @@ as references for existing installations. In particular:
   and `20261015_hired_feedback.sql` describe retired features.
 - `20261019_auth_user_cascade_cleanup.sql` includes references to old tables;
   deleting earlier migrations would break a historical replay.
-- `migrations/cleanup/20261014_remove_resume_evaluation_UNEXECUTED.sql` is an
-  obsolete, unexecuted proposal. Do not run it for current retirement. It does
-  not constitute an approved cleanup plan.
 - The old post-baseline script contains destructive evaluation cleanup and
   feedback/public-story additions. It is not needed after the new baseline.
 

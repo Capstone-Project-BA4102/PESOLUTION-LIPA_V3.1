@@ -143,7 +143,7 @@ export function DataTable<T extends { id: string }>({
               {rowActions.length > 0 && <th style={{ width: 48 }} aria-label={pt('Row actions')} />}
             </tr>
           </thead>
-          <tbody key={`${pagination?.page ?? 1}:${rows[0]?.id ?? 'empty'}:${rows.length}`} className="ui-page-enter">
+          <tbody key={pagination?.page ?? 1} className="ui-page-enter">
             {rows.map(row => (
               <tr
                 key={row.id}

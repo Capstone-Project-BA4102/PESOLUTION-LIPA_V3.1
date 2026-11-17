@@ -1,6 +1,5 @@
 import { ArrowRight, Briefcase, Sparkles, Users } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { SummaryReportCard } from '@/components/admin/SummaryReportCard'
 import { EmploymentAnalytics } from '@/components/admin/EmploymentAnalytics'
 import { usePT } from '@/lib/portalCopy'
 
@@ -19,7 +18,6 @@ export default function AnalyticsPage() {
     />
 
     <div aria-label={pt('Employment analytics')} className="space-y-4">
-        <SummaryReportCard />
 
         <nav aria-label={pt('Analytics sections')} className="ui-stagger grid min-w-0 gap-3 md:grid-cols-3">
           {SCOPES.map(({ id, label, hint, Icon }) => <a key={id} href={`#${id}`}

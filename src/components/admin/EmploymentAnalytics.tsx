@@ -1,13 +1,13 @@
 import { useCallback, useState, type ReactNode } from 'react'
-import toast from 'react-hot-toast'
-import { Users, Briefcase, UserCheck, Layers, RefreshCw, ChevronDown, Download, FileText } from 'lucide-react'
+import { Users, Briefcase, UserCheck, Layers, ChevronDown } from 'lucide-react'
 import { Button, Input, Select } from '@/components/ui'
 import { ErrorBlock } from '@/components/shared/QueryState'
 import { EmploymentAnalyticsSkeleton } from '@/components/shared/Skeletons'
 import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { BARANGAYS } from '@/constants/options'
 import { fetchEmploymentAnalytics, initialAnalyticsFilters } from '@/lib/employmentAnalytics'
-import { downloadAnalyticsViewCsv, downloadAnalyticsViewPdf } from '@/lib/analyticsViewReport'
+import { reportingMonthRange, currentReportingMonth } from '@/lib/reportingPeriod'
+import { AnalyticsExportMenu } from './AnalyticsExportMenu'
 import { useQuery } from '@/lib/useQuery'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
 import { usePT } from '@/lib/portalCopy'
@@ -29,42 +29,35 @@ export function EmploymentAnalytics({ sidebar }: { sidebar?: ReactNode }) {
   const [filters, setFilters] = useState(initialAnalyticsFilters)
   const [draft, setDraft] = useState(filters)
   const [filterError, setFilterError] = useState('')
-  const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null)
   const fetcher = useCallback(() => fetchEmploymentAnalytics(filters), [filters])
   const { data, loading, refreshing, error, reload } = useQuery(fetcher, [filters])
   useLiveRefresh(reload, ['applicants','applications','job_listings','companies','job_matches'])
-  const exportView = async (format: 'csv' | 'pdf') => {
-    if (!data || exporting) return
-    setExporting(format)
-    try {
-      if (format === 'csv') {
-        downloadAnalyticsViewCsv(data)
-        toast.success(pt('Filtered analytics exported as CSV.'))
-      } else {
-        const pages = await downloadAnalyticsViewPdf(data)
-        toast.success(pt('Filtered analytics PDF downloaded ({count} pages).', { count: pages }))
-      }
-    } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : pt('The filtered analytics export could not be generated.'))
-    } finally {
-      setExporting(null)
-    }
-  }
   const educationOptions = [...new Set([...(data?.options.education || []), ...(draft.education ? [draft.education] : [])])]
   const companyOptions = [...(data?.options.companies || [])]
   if (draft.company && !companyOptions.some(option => option.value === draft.company)) companyOptions.push({ value: draft.company, label: pt('Selected company (unavailable)') })
+  const exportData=data && Object.entries(filters).every(([key,value])=>data.filters[key as keyof typeof filters]===value) ? data : null
   return <section className="space-y-3" aria-label={pt('Employment Analytics')}>
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div><h2 className="text-base font-bold text-slate-900">{pt('Employment overview')}</h2><p className="text-xs text-slate-500">{data?.filters.from || filters.from} – {data?.filters.to || filters.to}{data && [data.filters.barangay, data.filters.education, data.options.companies.find(company => company.value === data.filters.company)?.label, data.filters.jobStatus].filter(Boolean).map(value => ` · ${pt(value!)}`)}</p></div>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button size="sm" variant="neutral" disabled={!data || !!exporting} title={pt('Downloads the current filtered view as a spreadsheet.')} onClick={() => exportView('csv')} icon={<Download aria-hidden="true" className="h-4 w-4"/>}>{pt(exporting === 'csv' ? 'Preparing CSV…' : 'Export CSV')}</Button>
-        <Button size="sm" variant="neutral" disabled={!data || !!exporting} title={pt('Downloads the current filtered view as a printable PDF.')} onClick={() => exportView('pdf')} icon={<FileText aria-hidden="true" className="h-4 w-4"/>}>{pt(exporting === 'pdf' ? 'Preparing PDF…' : 'Export PDF')}</Button>
-        <Button size="sm" variant="neutral" disabled={refreshing} onClick={reload} icon={<RefreshCw aria-hidden="true" className="h-4 w-4"/>}>{pt('Refresh')}</Button>
+      <div><h2 className="text-base font-bold text-slate-900">{pt('Employment overview')}</h2><p className="text-xs text-slate-500">{new Date(`${data?.filters.from || filters.from}T12:00:00+08:00`).toLocaleDateString('en-PH',{month:'long',year:'numeric',timeZone:'Asia/Manila'})}{data && [data.filters.barangay, data.filters.education, data.options.companies.find(company => company.value === data.filters.company)?.label, data.filters.jobStatus].filter(Boolean).map(value => ` · ${pt(value!)}`)}</p></div>
+      <div className="ml-auto flex min-w-0 max-w-full items-end justify-end">
+        <AnalyticsExportMenu data={exportData} disabled={loading || refreshing} refreshing={refreshing} onRefresh={reload}/>
       </div>
     </div>
     <details className="studio-card"><summary className="cursor-pointer px-3 py-2 text-[12.5px] font-semibold text-slate-700">{pt('Filters')}</summary><div className="border-t border-slate-200 p-3">
-<form className="space-y-3" onSubmit={event => { event.preventDefault(); if (!draft.from || !draft.to || draft.from > draft.to) { setFilterError(pt('Choose a valid date range.')); return } setFilterError(''); setFilters({ ...draft }) }}>
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2"><Input label="From" type="date" required value={draft.from} onChange={event => setDraft({ ...draft, from: event.target.value })}/><Input label="To" type="date" required value={draft.to} onChange={event => setDraft({ ...draft, to: event.target.value })}/></div>
+<form className="space-y-3" onSubmit={event => {
+      event.preventDefault()
+      try {
+        const month=draft.from.slice(0,7)
+        if(month>currentReportingMonth())throw new Error(pt('Choose the current month or an earlier month.'))
+        const range=reportingMonthRange(month)
+        setFilterError('');setFilters({...draft,...range})
+      } catch { setFilterError(pt('Choose a valid reporting month.')) }
+    }}>
+      <div className="max-w-xs"><Input label="Reporting month" type="month" required min="2000-01" max={currentReportingMonth()} value={draft.from.slice(0,7)} onChange={event=>{
+        const month=event.target.value
+        if(!month){setDraft({...draft,from:'',to:''});return}
+        try{setDraft({...draft,...reportingMonthRange(month)});setFilterError('')}catch{setFilterError(pt('Choose a valid reporting month.'))}
+      }}/></div>
       <div className="grid gap-4 lg:grid-cols-2"><fieldset className="min-w-0 space-y-2"><legend className="text-xs font-bold text-slate-500">{pt('Applicant filters · registration date')}</legend><div className="grid gap-3 sm:grid-cols-2"><Select label="Barangay" placeholder="All barangays" options={BARANGAYS} value={draft.barangay} onChange={event => setDraft({ ...draft, barangay: event.target.value })}/><Select label="Education" placeholder="All education levels" options={educationOptions} value={draft.education} onChange={event => setDraft({ ...draft, education: event.target.value })}/></div></fieldset>
       <fieldset className="min-w-0 space-y-2"><legend className="text-xs font-bold text-slate-500">{pt('Job filters · posting date')}</legend><div className="grid gap-3 sm:grid-cols-2"><Select label="Company" placeholder="All companies" options={companyOptions} value={draft.company} onChange={event => setDraft({ ...draft, company: event.target.value })}/><Select label="Job status" placeholder="All statuses" options={['Active','Closed','Inactive']} value={draft.jobStatus} onChange={event => setDraft({ ...draft, jobStatus: event.target.value })}/></div></fieldset></div>
       {filterError && <p role="alert" className="text-sm text-brand-700">{filterError}</p>}<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="neutral" size="sm" onClick={() => { const defaults = initialAnalyticsFilters(); setDraft(defaults); setFilters(defaults); setFilterError('') }}>{pt('Reset filters')}</Button><Button type="submit" size="sm">{pt('Apply filters')}</Button></div>

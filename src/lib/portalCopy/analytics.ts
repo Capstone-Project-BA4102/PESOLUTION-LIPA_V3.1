@@ -1,5 +1,16 @@
 import { registerFil } from './core'
 registerFil({
+  'Choose a valid reporting month.': 'Pumili ng wastong buwan ng ulat.',
+  'Reporting month': 'Buwan ng ulat',
+  'Export': 'I-export',
+  'Preparing…': 'Inihahanda…',
+  'Preparing monthly report…': 'Inihahanda ang buwanang ulat…',
+  'Monthly report downloaded.': 'Na-download ang buwanang ulat.',
+  'Choose the current month or an earlier month.': 'Piliin ang kasalukuyang buwan o nakaraang buwan.',
+  'The report could not be generated.': 'Hindi nagawa ang ulat.',
+  'Monthly report exports': 'Mga pag-export ng buwanang ulat',
+  'Export PDF Report': 'I-export ang PDF na Ulat',
+  'Uses applied category filters. Skill gaps reflect current matches, not past monthly results.': 'Gamit ang inilapat na mga filter. Ang skill gaps ay mula sa kasalukuyang matches, hindi sa dating buwanang resulta.',
   'Review Removed': 'Inalis na Review',
   'Feedback Review Removed': 'Inalis ang Feedback Review',
   'A feedback review was removed. Application and referral history was kept.': 'Inalis ang isang feedback review. Pinanatili ang kasaysayan ng aplikasyon at referral.',

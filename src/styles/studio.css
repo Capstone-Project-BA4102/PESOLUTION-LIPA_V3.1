@@ -347,3 +347,11 @@
   color: var(--color-slate-500);
   font-size: 13px;
 }
+
+/* Compact report toolbar; preserve larger touch targets on coarse pointers. */
+.analytics-report-tools .ui-button { min-height: 32px; height: 32px; }
+.analytics-report-tools .analytics-refresh { min-width: 32px; }
+@media (pointer: coarse) {
+  .analytics-report-tools .ui-button { min-height: 44px; height: 44px; }
+  .analytics-report-tools .analytics-refresh { min-width: 44px; }
+}

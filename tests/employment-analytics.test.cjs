@@ -58,7 +58,7 @@ test('analytics endpoint is staff-only, returns aggregates without applicant ide
  const server=createApp({supabase:db,gemini:{model:'fixture',request:assert.fail},config:{origins:[],version:'fixture'}}).listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
  const url=`http://127.0.0.1:${server.address().port}/api/admin/employment-analytics?from=2026-11-01&to=2026-11-30`;
  try{assert.equal((await fetch(url)).status,401);assert.equal((await fetch(url,{headers:{Authorization:'Bearer invalid'}})).status,401);assert.equal((await fetch(url,{headers:{Authorization:'Bearer valid'}})).status,403);assert.equal(reads,0);
- staff=true;const response=await fetch(url,{headers:{Authorization:'Bearer valid'}});assert.equal(response.status,200);const json=await response.json();assert.equal(json.totals.applicants,4);const serialized=JSON.stringify(json);for(const name of ['applicant_id','profile_id','email','full_name','a1'])assert.equal(serialized.includes(`"${name}"`),false);
+ staff=true;const response=await fetch(url,{headers:{Authorization:'Bearer valid'}});assert.equal(response.status,200);const json=await response.json();assert.equal(json.totals.applicants,4);assert.equal(json.reporting.applicantDenominator,4);assert.ok(Array.isArray(json.reporting.trainingNeeds));assert.equal(json.reporting.historicalGapSnapshotsAvailable,false);const serialized=JSON.stringify(json);for(const name of ['applicant_id','profile_id','email','full_name','a1'])assert.equal(serialized.includes(`"${name}"`),false);
  assert.equal((await fetch(url+'&barangay=Tingloy',{headers:{Authorization:'Bearer valid'}})).status,400);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });

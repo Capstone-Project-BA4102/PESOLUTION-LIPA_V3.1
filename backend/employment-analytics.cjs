@@ -1,3 +1,4 @@
+const { trainingNeeds } = require('./employment-reporting.cjs');
 const { HttpError, check, MATCHING_THRESHOLD } = require('./domain.cjs');
 const { names: barangays } = require('../src/constants/lipa-barangays.json');
 const key = value => typeof value === 'string' ? value.trim().toLowerCase().replace(/\s+/g, ' ') : '';
@@ -50,6 +51,12 @@ function aggregateAnalytics(records, input={}, now=Date.now()) {
     demographics:{gender:distribution(applicants.map(a=>a.gender)),education:distribution(applicants.map(a=>a.education)),barangay:distribution(applicants.map(a=>barangays.find(name=>key(name)===key(a.barangay))||(key(a.barangay)?'Other / historical location':'Unknown / not recorded'))),status:distribution(applicants.map(a=>latest.get(a.id)?.status||(applications.some(row=>row.applicant_id===a.id)?'Application date not recorded':'No recorded application')))},
     demand:{monthly,status:distribution(jobs.map(j=>j.status)),industry:byIndustry,company:distribution(jobs.map(j=>companyMap.get(j.company_id)?.name)),positions:distribution(jobs.map(j=>j.title))},
     skills:{hard:frequency(jobs,'hard_skills'),soft:frequency(jobs,'soft_skills'),missingHard:frequency(matches,'missing_hard_skills','applicant_id'),missingSoft:frequency(matches,'missing_soft_skills','applicant_id')},
+    reporting:{
+      ...trainingNeeds(matches,jobs,applicants.length),
+      applicantDenominator:applicants.length,
+      activeJobListings:jobs.filter(j=>j.status==='Active' && Number.isFinite(Date.parse(j.date_posted)) && Date.parse(j.date_posted)<=now).length,
+      gapBasis:'current-saved-matches', historicalGapSnapshotsAvailable:false,
+    },
     options:{education:[...new Set(allApplicants.map(a=>text(a.education)))].sort(),companies:companies.map(c=>({value:c.id,label:text(c.name)})).sort((a,b)=>a.label.localeCompare(b.label))},
   };
 }

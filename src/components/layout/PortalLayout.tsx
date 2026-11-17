@@ -80,9 +80,10 @@ export function PortalLayout({ nav, homePath }: { nav: NavItem[]; homePath: stri
 
   useEffect(() => {
     window.addEventListener('pesolution:avatar-updated', reloadAvatar)
-    window.addEventListener('focus', reloadAvatar)
-    return () => { window.removeEventListener('pesolution:avatar-updated', reloadAvatar); window.removeEventListener('focus', reloadAvatar) }
+    return () => { window.removeEventListener('pesolution:avatar-updated', reloadAvatar) }
   }, [reloadAvatar])
+
+  useLiveRefresh(reloadAvatar, [], !!user?.id)
 
   // Close mobile drawer when navigating
   useEffect(() => setDrawer(false), [location.pathname])
