@@ -16,7 +16,9 @@
     "verify:live": "node scripts/verify-live.cjs",
     "user:delete": "node scripts/delete-user.cjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:render": "bash scripts/render-build.sh",
+    "start:render": "node scripts/start-render.cjs"
   },
   "dependencies": {
     "@fontsource/source-sans-3": "^5.3.0",

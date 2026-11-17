@@ -114,3 +114,25 @@ Unchanged data subtrees keep their identity, counters animate only on initial
 reveal, and background checks do not insert a moving status line. Existing data,
 filters, forms and table state stay mounted; meaningful updates and errors remain
 visible. Session/inactivity policy and matching/scoring rules are unchanged.
+
+## Render: API and Local NLP in one Linux service
+
+Use Python 3.12 and Node 24. Set Render **Build Command** to
+`npm run build:render` and **Start Command** to `npm run start:render`.
+Keep the repository root as Root Directory. Set `PYTHON_VERSION=3.12.8`
+and `NODE_VERSION=24` in the hosting environment.
+
+Set `SKILL_NLP_URL=http://127.0.0.1:8002/match`. The build installs CPU-only
+PyTorch and caches the model; startup runs Python privately on port 8002, waits
+for its model health, then starts Express on `0.0.0.0:$PORT`. If either process
+fails, both stop so the deployment cannot silently appear healthy without NLP.
+No public NLP endpoint or additional API credentials are needed in this mode.
+The frontend remains on its separate host; this build does not build Vite.
+
+This requires sufficient RAM for Node, Python, PyTorch and model inference.
+Render Free provides 512 MB; this combined runtime is not verified to fit.
+If logs show an out-of-memory termination, use a larger instance or host NLP
+separately and keep the API-only `npm start` with that service URL.
+Never use the Windows `.venv-nlp\Scripts` commands on Render Linux.
+Remove obsolete `SENTIMENT_*` variables from the hosting dashboard separately.
+After deployment, confirm the NLP-ready log before recalculating matches.
