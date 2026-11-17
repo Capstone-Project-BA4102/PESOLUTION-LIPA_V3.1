@@ -2,15 +2,6 @@ import { registerFil } from './core'
 
 /** Administrative website-management copy. */
 registerFil({
-  'The sentiment service is unavailable or still starting. Waiting feedback is saved; retry when the service is ready.': 'Hindi available o nagsisimula pa ang sentiment service. Naka-save ang naghihintay na feedback; subukan muli kapag handa na ang serbisyo.',
-  'Remove review': 'Alisin ang review',
-  'Remove selected review?': 'Alisin ang napiling review?',
-  'Removing…': 'Inaalis…',
-  'The selected review was removed.': 'Naalis na ang napiling review.',
-  'The review was removed, but its activity log could not be saved.': 'Naalis ang review, ngunit hindi naitala ang activity log nito.',
-  'Could not remove this review. Please retry.': 'Hindi maalis ang review na ito. Pakisubukang muli.',
-  'This permanently removes the selected rating, comment, sentiment result, and any public testimonial. Employment and referral history are kept. This cannot be undone.': 'Permanenteng aalisin ang napiling rating, komento, resulta ng sentiment, at anumang pampublikong testimonial. Mananatili ang employment at referral history. Hindi na ito maibabalik.',
-
   // Service Status screen
   Healthy: 'Maayos',
   Unavailable: 'Hindi Magagamit',
@@ -67,7 +58,6 @@ registerFil({
   Introduction: 'Panimula',
   Services: 'Mga Serbisyo',
   Announcements: 'Mga Anunsyo',
-  'Applicant Testimonials': 'Mga Testimonya ng mga Aplikante',
   'Service Name': 'Pangalan ng Serbisyo',
   'Remove service': 'Alisin ang serbisyo',
   Description: 'Paglalarawan',
@@ -77,7 +67,6 @@ registerFil({
   'Official Link': 'Opisyal na Link',
   'Display Name': 'Pangalang Ipakita',
   'Applicant or Employment Outcome': 'Aplikante o Resulta ng Trabaho',
-  'Approved Testimonial': 'Aprubadong Testimonya',
   'Public website updated.': 'Na-update ang pampublikong website.',
   'Content could not be saved.': 'Hindi masave ang content.',
 

@@ -63,6 +63,37 @@ function fixture() {
 
 const counts = state => Object.fromEntries(Object.entries(state.calls).map(([key, value]) => [key, value.length]));
 
+test('renewal waits for an in-flight matching run; subsequent refresh uses the renewed qualifications', async () => {
+  const { runner, state } = fixture();
+  let release;
+  state.pause = new Promise(resolve => { release = resolve; });
+  const initial = runner.run(id);
+  await new Promise(resolve => setImmediate(resolve));
+  let saved = false;
+  const renewal = runner.withRenewal(id, async () => {
+    state.records.resumes = { hard_skills: ['Excel', 'SQL'], soft_skills: ['Communication'] };
+    state.pause = null;
+    saved = true;
+  });
+  assert.equal(saved, false);
+  const after = runner.run(id);
+  release();
+  await Promise.all([initial, renewal, after]);
+  assert.equal(saved, true);
+  assert.equal(state.calls.nlp.length, 2);
+  assert.equal(state.records.job_matches[0].final_match_score, 100);
+});
+
+test('archiving recorded NLP evidence does not invoke NLP, Gemini or database writes', async () => {
+  const { runner, state } = fixture();
+  await runner.run(id);
+  const before = counts(state);
+  const evidence = await runner.archiveEvidence(id);
+  assert.equal(evidence.source, 'previously_recorded_cache');
+  assert.ok(Object.keys(evidence.jobs).length > 0);
+  assert.deepEqual(counts(state), before);
+});
+
 test('initial automatic matching persists results; unchanged visits and backend restarts reuse them', async () => {
   const { state, runner, makeRunner } = fixture();
   const first = await runner.run(id);

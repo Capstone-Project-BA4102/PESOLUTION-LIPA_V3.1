@@ -1,4 +1,3 @@
-const { sentimentHealth } = require('./sentiment-transport.cjs');
 const express = require('express');
 const { employmentAnalytics } = require('./employment-analytics.cjs');
 const { manageReferral } = require('./referrals.cjs');
@@ -11,8 +10,7 @@ const { normalizeOcrResult } = require('./ocr.cjs');
 const { createMatchingRefresh, recommendationFingerprint } = require('./matching-refresh.cjs');
 const { validateContent } = require('./content.cjs');
 const { registerApplicant } = require('./registration.cjs');
-const { registerFeedbackModeration } = require('./feedback-moderation.cjs');
-const { feedbackEligibility, markFeedbackEvent, submitFeedback, reclassifyPending, feedbackAnalytics } = require('./feedback.cjs');
+const { renewalContext, renewalHistory, renewApplicant } = require('./renewals.cjs');
 const { listNotificationEvents, listCurrentNotificationEvents, previewNotification, sendNotification } = require('./notifications.cjs');
 const { sendAccountEmail } = require('./account-email.cjs');
 const { changePassword, issueNewCredential, logReceiptEvent } = require('./credentials.cjs');
@@ -46,6 +44,18 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
   const fingerprintFor = (gaps, educationScore, title) =>
     recommendationFingerprint(gaps, educationScore, title, gemini.model);
 
+  app.get('/api/admin/applicants/:applicantId/renewal', authenticate, admin, asyncRoute(async (req, res) => {
+    res.json(await renewalContext(supabase, req.actor, req.params.applicantId));
+  }));
+  app.get('/api/admin/applicants/:applicantId/qualification-versions', authenticate, admin, asyncRoute(async (req, res) => {
+    res.json(await renewalHistory(supabase, req.actor, req.params.applicantId));
+  }));
+  app.post('/api/admin/applicants/:applicantId/renewal', authenticate, admin, asyncRoute(async (req, res) => {
+    const id = requireUuid(req.params.applicantId);
+    res.json(await matchingRefresh.withRenewal(id, () =>
+      renewApplicant(supabase, req.actor, id, req.body, matchingRefresh.archiveEvidence)));
+  }));
+
   app.get('/api/admin/runtime-cache', authenticate, admin, asyncRoute(async (_req, res) => {
     res.json(await matchingRefresh.maintainCache(false));
   }));
@@ -59,30 +69,9 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
     res.json(await manageReferral(supabase, req.actor, req.body));
   }));
   app.get('/api/health', (req, res) => res.json({ status: 'ok', version: config.version,
-    revision: /^[a-f0-9]{40}$/i.test(process.env.RENDER_GIT_COMMIT || '') ? process.env.RENDER_GIT_COMMIT.slice(0, 12) : null,
-    sentiment: sentimentHealth(config) }));
-  app.get('/api/applicant/feedback', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
-    res.json(await feedbackEligibility(supabase, req.actor));
-  }));
-  app.post('/api/applicant/feedback/:applicationId/acknowledge', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
-    res.json(await markFeedbackEvent(supabase, req.actor, req.params.applicationId, 'acknowledge'));
-  }));
-  app.post('/api/applicant/feedback/:applicationId/dismiss', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
-    res.json(await markFeedbackEvent(supabase, req.actor, req.params.applicationId, 'dismiss'));
-  }));
-  app.post('/api/applicant/feedback/:applicationId/submit', authenticate, requireRole('applicant'), asyncRoute(async (req, res) => {
-    res.status(201).json(await withLock(`feedback:${req.params.applicationId}`, () => submitFeedback(supabase, req.actor,
-      { ...req.body, applicationId: req.params.applicationId }, config)));
-  }));
+    revision: /^[a-f0-9]{40}$/i.test(process.env.RENDER_GIT_COMMIT || '') ? process.env.RENDER_GIT_COMMIT.slice(0, 12) : null }));
   app.get('/api/admin/employment-analytics', authenticate, admin, asyncRoute(async (req, res) => {
     res.json(await employmentAnalytics(supabase, req.query));
-  }));
-  app.get('/api/admin/feedback-analytics', authenticate, admin, asyncRoute(async (req, res) => {
-    res.json(await feedbackAnalytics(supabase, config));
-  }));
-  registerFeedbackModeration(app, { supabase, authenticate, admin, asyncRoute, withLock });
-  app.post('/api/admin/feedback/reclassify', authenticate, admin, asyncRoute(async (req, res) => {
-    res.json(await withLock('feedback:reclassify', () => reclassifyPending(supabase, config)));
   }));
   app.get('/api/admin/applicants/:applicantId/status-events', authenticate, admin, asyncRoute(async (req, res) => {
     available();
@@ -199,14 +188,11 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
     const contentResult = await supabase.from('site_content').select('content, updated_at').eq('id', 'public').eq('published', true).maybeSingle();
     if (contentResult.error && !['42P01', 'PGRST205'].includes(contentResult.error.code)) check(contentResult);
     const jobs = check(await supabase.from('job_listings').select('id, vacancies').eq('status', 'Active')) || [];
-    const approved = check(await supabase.from('hired_application_feedback')
-      .select('id,feedback_text,public_story_display_name,submitted_at,applications(job_listings(title))')
-      .eq('public_story_consent', true).not('submitted_at', 'is', null)
-      .order('submitted_at', { ascending: false }).limit(6)) || [];
-    res.json({ content: contentResult.data?.content || null, updatedAt: contentResult.data?.updated_at || null,
-      jobs: jobs.length, vacancies: jobs.reduce((sum, job) => sum + Math.max(0, Number(job.vacancies) || 0), 0),
-      approvedTestimonials: approved.map(row => ({ id: `feedback-${row.id}`, name: row.public_story_display_name || 'PESOLUTION Applicant',
-        role: row.applications?.job_listings?.title || 'Hired applicant', quote: row.feedback_text })) });
+    const publicContent = contentResult.data?.content ? { ...contentResult.data.content } : null;
+    // Legacy published content may still contain quotes. Do not expose them after retirement.
+    if (publicContent) delete publicContent.testimonials;
+    res.json({ content: publicContent, updatedAt: contentResult.data?.updated_at || null,
+      jobs: jobs.length, vacancies: jobs.reduce((sum, job) => sum + Math.max(0, Number(job.vacancies) || 0), 0) });
   }));
   app.post('/api/registrations/walk-in', authenticate, admin, asyncRoute(async (req, res) => {
     res.status(201).json(await withLock(`registration:${String(req.body?.input?.emailAddress).toLowerCase()}`, () => registerApplicant(supabase, req.body, config, req.actor.id)));

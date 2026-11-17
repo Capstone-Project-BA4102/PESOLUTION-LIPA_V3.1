@@ -16,7 +16,6 @@ import { ErrorBlock } from '@/components/shared/QueryState'
 import { ApplicationStatusSkeleton } from '@/components/shared/Skeletons'
 import { useCallback } from 'react'
 import { usePT } from '@/lib/portalCopy'
-import { HiredFeedbackFlow } from '@/components/features/HiredFeedbackFlow'
 
 export default function ApplicationStatus({ tab }: { tab: 'current' | 'previous' }) {
   const { user } = useAuth();
@@ -42,7 +41,6 @@ export default function ApplicationStatus({ tab }: { tab: 'current' | 'previous'
     <div className="space-y-4">
       <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
       <PageHeader title="Application Status" description="Track the status of your applications and view your records." />
-      <div className="flex flex-wrap gap-2"><HiredFeedbackFlow applications={applications.filter((app) => app.status === 'Hired')} onChanged={reload} /></div>
 
       <nav className="flex gap-5 border-b border-slate-200" aria-label={pt('Status Tabs')}>
         <Link

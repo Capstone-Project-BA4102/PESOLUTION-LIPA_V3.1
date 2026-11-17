@@ -28,10 +28,9 @@ dist-ssr
 .env.*
 !.env.example
 
-# Trained sentiment model binaries are runtime artifacts, not source files.
+# Local NLP weights and matching cache stay local, outside Git.
 backend/model-artifacts/
-.venv-sentiment/
-.venv-nlp/
+.venv*/
 
 # Generated caches and test output
 __pycache__/
@@ -44,3 +43,9 @@ coverage/
 .coverage
 *.tmp
 *.temp
+
+# Local-only development notes, synthetic previews and CLI cache.
+/docs/
+/tests/ui/
+/scripts/seed-sample.cjs
+/supabase/.temp/

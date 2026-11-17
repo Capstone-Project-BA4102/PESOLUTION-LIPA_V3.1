@@ -1,4 +1,4 @@
-import { ArrowRight, Banknote, Bell, BriefcaseBusiness, Building2, CalendarDays, Camera, CheckCircle2, ChevronDown, Clock3, Download, FileText, LogIn, Mail, MapPin, Phone, Quote, Search, UserRoundCheck } from 'lucide-react'
+import { ArrowRight, Banknote, Bell, BriefcaseBusiness, Building2, CalendarDays, Camera, CheckCircle2, ChevronDown, Clock3, Download, FileText, LogIn, Mail, MapPin, Phone, Search, UserRoundCheck } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { InfiniteMarquee } from '@/components/public/InfiniteMarquee'
@@ -13,7 +13,7 @@ import { usePublicPreferences } from '@/lib/publicPreferences'
 import { fetchJobs, type Job } from '@/lib/api'
 import { useQuery } from '@/lib/useQuery'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
-import { initials, peso } from '@/lib/utils'
+import { peso } from '@/lib/utils'
 
 const scrollToJobs = () => document.getElementById('open-positions')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
@@ -28,7 +28,6 @@ export default function LandingPage() {
   useLiveRefresh(jobsQuery.reload, ['job_listings'])
 
   const announcements = (office?.announcements || []).filter(item => Date.parse(item.publishedAt) <= now).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-  const testimonials = [...(data?.approvedTestimonials || []), ...(office?.testimonials || []).filter(item => item.consentConfirmed)]
   const servicePhotos = (office?.services || []).filter(item => item.imageUrl)
   const value = (number?: number) => loading || error || number === undefined ? '—' : <CountUp value={number} />
 
@@ -54,16 +53,6 @@ export default function LandingPage() {
   ]
   const portalUses = [t('portalUse1'), t('portalUse2'), t('portalUse3'), t('portalUse4')]
   const visibleJobs = matchedJobs.slice(0, 6)
-  const visibleTestimonials = testimonials.slice(0, 8)
-
-  const renderTestimonialCard = (item: (typeof testimonials)[number], single = false) => <figure key={item.id} className={`ui-card-hover flex ${single ? 'w-full' : 'w-[320px] shrink-0 sm:w-[380px]'} flex-col rounded-xl border border-white/10 bg-white/[0.06] p-5`}>
-    <Quote className="h-5 w-5 text-brand-300" />
-    <blockquote className="mt-3 flex-1 text-[13.5px] leading-relaxed text-white/80">“{item.quote}”</blockquote>
-    <figcaption className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4">
-      {item.imageUrl ? <img src={item.imageUrl} alt={`Portrait of ${item.name}`} className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/20" /> : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-600 text-[13px] font-bold text-white">{initials(item.name)}</span>}
-      <div className="min-w-0"><strong className="block text-[13.5px] break-words text-white">{item.name}</strong>{item.role && <span className="mt-0.5 block text-[11.5px] leading-snug break-words text-white/60">{item.role}</span>}</div>
-    </figcaption>
-  </figure>
 
   const renderJobCard = (job: Job) => {
     const salary = job.salaryMin > 0 && job.salaryMax > 0 ? `${peso(job.salaryMin)} – ${peso(job.salaryMax)} / ${job.salaryUnit}` : ''
@@ -288,23 +277,6 @@ export default function LandingPage() {
 
     {servicePhotos.length > 0 && <section className="border-y border-slate-200 bg-slate-50"><div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:py-16"><p className="text-[11.5px] font-semibold tracking-[0.12em] text-brand-700 uppercase">{t('officeName')}</p><h2 className="mt-1.5 text-[26px] font-semibold tracking-[-0.02em] text-slate-900 sm:text-[30px]">Programs and community updates</h2><div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{servicePhotos.slice(0, 6).map(item => <figure key={item.id} className="ui-card-hover overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-[var(--ui-shadow)]"><img src={item.imageUrl} alt={item.title} className="aspect-square w-full object-cover" /><figcaption className="p-4"><h3 className="text-[15px] font-semibold text-slate-900">{item.title}</h3>{item.description && <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">{item.description}</p>}</figcaption></figure>)}</div></div></section>}
 
-    {testimonials.length > 0 && <section className="border-y border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:py-16">
-        <div className="relative overflow-hidden rounded-[12px] bg-ink px-6 py-10 sm:px-10">
-          <div aria-hidden className="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full bg-brand-600/20 blur-3xl" />
-          <div className="relative">
-            <div>
-              <p className="text-[11.5px] font-semibold tracking-[0.12em] text-brand-300 uppercase">{t('experiences')}</p>
-              <h2 className="mt-1.5 text-[26px] font-semibold tracking-[-0.02em] !text-white sm:text-[30px]">{t('stories')}</h2>
-              <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-white/60">{t('storiesConsent')}</p>
-            </div>
-            {visibleTestimonials.length === 1
-              ? <div className="mt-6 max-w-2xl">{renderTestimonialCard(visibleTestimonials[0], true)}</div>
-              : <InfiniteMarquee className="mt-6" label={t('stories')} secondsPerItem={8} items={visibleTestimonials.map(item => renderTestimonialCard(item))} />}
-          </div>
-        </div>
-      </div>
-    </section>}
 
     <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:py-16">
       <div className="relative overflow-hidden rounded-[12px] bg-ink px-6 py-10 sm:px-10">

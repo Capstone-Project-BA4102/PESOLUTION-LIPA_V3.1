@@ -41,7 +41,7 @@ export default function MatchingPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [matching, setMatching] = useState(false)
   const { data, loading, refreshing, error, reload } = useQuery(fetchMatchingSummary)
-  useLiveRefresh(reload, ['applicants', 'applications', 'referrals', 'job_matches', 'job_listings', 'resumes'])
+  useLiveRefresh(reload, ['applicants', 'applications', 'referrals', 'job_matches', 'job_listings', 'resumes', 'status_history'])
 
   const runMatching = async (rows: MatchingRow[]) => {
     if (matching || !rows.length) return

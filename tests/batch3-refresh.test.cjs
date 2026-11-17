@@ -26,7 +26,7 @@ test('query serializes overlapping generations and discards stale responses whil
  let cells=[],effects=[],cursor=0,current;const React={useState(initial){const i=cursor++;if(!(i in cells))cells[i]=initial;return[cells[i],value=>{cells[i]=typeof value==='function'?value(cells[i]):value}]},useRef(initial){const i=cursor++;if(!(i in cells))cells[i]={current:initial};return cells[i]},useCallback:fn=>fn,useEffect(fn,deps){const i=cursor++,old=effects[i];if(!old||!deps||deps.some((d,n)=>!Object.is(d,old.deps?.[n]))){old?.cleanup?.();effects[i]={deps,cleanup:fn()}}}};
  const {useQuery}=loadHook('src/lib/useQuery.ts',{react:React});const releases=[];let calls=0,active=0,max=0;
  const fetcher=()=>{calls++;active++;max=Math.max(max,active);return new Promise(resolve=>releases.push(value=>{active--;resolve(value)}))};
- const render=dep=>{cursor=0;current=useQuery(fetcher,[dep]);return current};
+ const render=function QueryHarness(dep){cursor=0;current=useQuery(fetcher,[dep]);return current};
  render('one');await sleep(15);assert.equal(calls,1);render('two');await sleep(15);assert.equal(calls,1);releases.shift()('stale');await sleep(15);assert.equal(calls,2);assert.equal(render('two').data,null);
  releases.shift()('latest');await sleep(15);assert.equal(render('two').data,'latest');assert.equal(max,1);
  current.reload();render('two');await sleep(15);assert.equal(render('two').loading,false);assert.equal(current.data,'latest');releases.shift()('refreshed');await sleep(15);assert.equal(render('two').data,'refreshed');

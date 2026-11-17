@@ -60,9 +60,8 @@ test('undefined metrics are reported as null, not fabricated perfect scores', ()
 test('public content rejects unsafe links and invalid training entries', () => {
   assert.throws(() => validateContent({ title: 'PESO', tagline: 'Lipa', facebookUrl: 'javascript:alert(1)' }), /HTTPS/);
 });
-test('public content requires testimonial consent and validates service photos', () => {
-  const base = { title: 'PESO', tagline: 'Lipa', services: [], announcements: [], trainingCatalog: [], testimonials: [] };
-  assert.throws(() => validateContent({ ...base, testimonials: [{ id: 't1', name: 'Applicant', role: 'Hired', quote: 'Approved quote' }] }), /consent/);
+test('public content validates service photos', () => {
+  const base = { title: 'PESO', tagline: 'Lipa', services: [], announcements: [], trainingCatalog: [] };
   const withPhoto = validateContent({ ...base, services: [{ id: 's1', title: 'Job Matching', description: 'Referral assistance',
     imageUrl: 'https://example.com/media.jpg' }] });
   assert.equal(withPhoto.services[0].imageUrl, 'https://example.com/media.jpg');

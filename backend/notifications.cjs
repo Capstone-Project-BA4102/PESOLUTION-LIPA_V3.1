@@ -33,7 +33,7 @@ function templateFor(event, publicUrl) {
     Hired: {
       subject: `PESOLUTION application update: Hired for ${position}`,
       heading: 'Congratulations on your employment update',
-      message: `PESO Lipa City has recorded your application for ${position}${employer ? ` at ${employer}` : ''} as Hired. Please sign in to your Applicant Portal to review the update and complete the feedback process.`,
+      message: `PESO Lipa City has recorded your application for ${position}${employer ? ` at ${employer}` : ''} as Hired. Please sign in to your Applicant Portal to review the employment update.`,
     },
     'Not Hired': {
       subject: `PESOLUTION employment outcome for ${position}`,

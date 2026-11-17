@@ -9,5 +9,6 @@ import './adminOps'
 import './adminCatalog'
 import './adminMatch'
 import './superadmin'
+import './renewal'
 
 export * from './core'

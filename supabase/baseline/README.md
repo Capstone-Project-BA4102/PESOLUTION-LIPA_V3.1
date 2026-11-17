@@ -1,41 +1,67 @@
-# PESOLUTION-LIPA-V3 clean Supabase baseline
+# PESOLUTION V3.1 SQL setup
 
-Use `20261015_pesolution_lipa_v3_baseline.sql` only on a new, empty Supabase project.
+## New, empty Supabase project
 
-If an earlier version of the baseline was already run, do not run the full baseline again.
-Run `20261015_post_baseline_cleanup_and_public_media.sql` instead. It preserves application
-data while removing the retired SuperAdmin service/evaluation tables and adding the
-permission-based public-story fields and `promotional-media` bucket.
+Use **`20261117_pesolution_v3_1_clean_install.sql`** once, in the SQL Editor of a
+new empty project. Verify the project before running. The file is transactional
+and refuses an installation containing `public.profiles`.
 
-The baseline creates:
+It creates the retained application schema, RLS, matching/referral functions,
+password-change gate and limits, receipt serials, renewal versions, email audit,
+public website content and Storage policies. Buckets: `avatars`, `resumes`,
+`referral-slips`, `promotional-media` and `company-logos`.
 
-- Core PESOLUTION application tables and foreign keys
-- Admin and applicant row-level security policies
-- Application-status and account-email audit tables
-- Hired-applicant feedback with explicit public-story consent fields
-- Public website content and matching helper functions
-- `avatars`, `resumes`, `referral-slips`, and `promotional-media` Storage buckets
-- Storage access policies and the deleted-user cleanup queue
+It creates no Auth users or sample applicant/company/job records. It does not
+create feedback, star-rating, sentiment or legacy evaluation tables. The public
+website seed contains no testimonials. Administrator provisioning is separate.
 
-The baseline intentionally does not create Auth users or sample applicants. Run
-the guarded `npm run seed:sample` workflow only after the application has been
-pointed at the new project and the baseline has been verified.
+This is a complete clean-install entry point through 17 November 2026. It includes
+the retained October baseline and the applicable 20–26 October, referral-safeguard
+and renewal migrations. Do not replay those source migrations after this file.
+Do not run the root `supabase_schema.sql`, `supabase_rls_and_functions.sql`,
+`supabase_seed.sql` or old baselines afterward. This manual SQL-editor workflow
+does not reconcile Supabase CLI migration tracking automatically.
 
-## Dashboard installation
+## Existing Supabase project
 
-1. Open the new Supabase project and select **SQL Editor**.
-2. Create a new query and paste the complete baseline SQL file.
-3. Confirm that the target project is the new `PESOLUTION-LIPA-V3` project.
-4. Run the query once. The entire file is wrapped in a transaction.
-5. Verify that the final result is `Success. No rows returned`.
+**Do not run any baseline against existing data.** Keep migration history intact.
+Removing local SQL files would not remove database objects. Use only incremental
+changes reviewed for the actual schema and applied migration state.
 
-Do not run the historical root schema and migration files after this baseline.
-They are retained for audit history and contain superseded structures.
+`../audits/20261117_retired_features_read_only.sql` is an optional read-only
+inventory: retired tables, estimated row counts, policies and dependencies. It
+reads metadata only, returns no feedback text or credentials, and changes no
+records. It does not prove objects are safe to drop.
 
-## Storage cleanup caveat
+No live retirement migration has been applied or approved by this cleanup.
+Existing retired tables may still contain data. Before a separate removal:
+inspect the inventory and external clients/jobs, take a verified backup, review
+explicit objects to remove, and test on a disposable copy. Preserve applicants,
+applications, outcomes, referrals, activity history and active Local NLP data.
 
-Deleting an Auth user cascades the related PostgreSQL rows and queues owned
-Storage paths in `user_storage_cleanup_queue`. Physical Storage objects are
-removed by the `cleanup-deleted-user` Edge Function/webhook, because PostgreSQL
-foreign-key cascades cannot call the Storage API. Until that webhook is deployed,
-use the guarded `npm run user:delete` command for complete row-and-file cleanup.
+## Historical SQL — not the setup path
+
+The two `20261015_*` baseline files and dated migrations remain as history and
+as references for existing installations. In particular:
+
+- `20261013_resume_parser_evaluation.sql`, `20261014_sentiment_evaluation.sql`
+  and `20261015_hired_feedback.sql` describe retired features.
+- `20261019_auth_user_cascade_cleanup.sql` includes references to old tables;
+  deleting earlier migrations would break a historical replay.
+- `migrations/cleanup/20261014_remove_resume_evaluation_UNEXECUTED.sql` is an
+  obsolete, unexecuted proposal. Do not run it for current retirement. It does
+  not constitute an approved cleanup plan.
+- The old post-baseline script contains destructive evaluation cleanup and
+  feedback/public-story additions. It is not needed after the new baseline.
+
+## Storage and verification
+
+Deleted-user file cleanup still requires the existing `cleanup-deleted-user`
+Edge Function/webhook. Database cascades alone do not delete stored files.
+Do not remove live Storage objects or buckets as part of SQL tidying.
+
+The new baseline passed an isolated PGlite PostgreSQL test with synthetic
+Supabase Auth/Storage primitives and real uuid-ossp/pgcrypto extensions. Checks
+cover absent retired tables, retained RLS, server-only matching/referral/renewal
+functions, required buckets, no applicant/Auth seed and replay refusal. This is
+not a live Supabase deployment or a Storage API/GoTrue integration test.

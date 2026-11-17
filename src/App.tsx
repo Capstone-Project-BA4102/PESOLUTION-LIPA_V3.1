@@ -19,15 +19,6 @@ import JobsPage from '@/pages/public/JobsPage'
 import HowItWorksPage from '@/pages/public/HowItWorksPage'
 import ContactPage from '@/pages/public/ContactPage'
 import LegalPage from '@/pages/public/LegalPage'
-// Batch 5 visual reference screens (fixtures only, no auth, not linked from the app)
-import DesignPreviewIndex from '@/pages/design-preview/DesignPreviewIndex'
-import DesignPreviewLanding from '@/pages/design-preview/DesignPreviewLanding'
-import DesignPreviewAdminDashboard from '@/pages/design-preview/DesignPreviewAdminDashboard'
-import DesignPreviewAdminApplicants from '@/pages/design-preview/DesignPreviewAdminApplicants'
-import DesignPreviewAdminCompanies from '@/pages/design-preview/DesignPreviewAdminCompanies'
-import DesignPreviewAdminMatching from '@/pages/design-preview/DesignPreviewAdminMatching'
-import DesignPreviewApplicantDashboard from '@/pages/design-preview/DesignPreviewApplicantDashboard'
-import DesignPreviewApplicantJobs from '@/pages/design-preview/DesignPreviewApplicantJobs'
 // Route modules are declared once so each portal can warm them after the splash.
 const lazyPages = {
   applicantDashboard: () => import('@/pages/applicant/ApplicantDashboard'),
@@ -226,15 +217,7 @@ export default function App() {
             </Route>
             <Route path="/login" element={<Navigate to="/" replace />} />
 
-            {/* Batch 5 visual reference (fixtures only, no auth) */}
-            <Route path="/design-preview" element={<DesignPreviewIndex />} />
-            <Route path="/design-preview/landing" element={<DesignPreviewLanding />} />
-            <Route path="/design-preview/admin-dashboard" element={<DesignPreviewAdminDashboard />} />
-            <Route path="/design-preview/admin-applicants" element={<DesignPreviewAdminApplicants />} />
-            <Route path="/design-preview/admin-companies" element={<DesignPreviewAdminCompanies />} />
-            <Route path="/design-preview/admin-matching" element={<DesignPreviewAdminMatching />} />
-            <Route path="/design-preview/applicant-dashboard" element={<DesignPreviewApplicantDashboard />} />
-            <Route path="/design-preview/applicant-jobs" element={<DesignPreviewApplicantJobs />} />
+
 
             {/* Applicant portal */}
             <Route
@@ -264,6 +247,7 @@ export default function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="applicants" element={<ApplicantsPage />} />
               <Route path="applicants/register" element={<RegisterWalkIn />} />
+              <Route path="applicants/:applicantId/renew" element={<RegisterWalkIn />} />
               <Route path="applicants/:applicantId/account-receipt" element={<ApplicantAccountReceiptPage />} />
               <Route path="companies" element={<CompaniesPage />} />
               <Route path="companies/new" element={<AddCompanyPage />} />
@@ -272,7 +256,7 @@ export default function App() {
               <Route path="matching" element={<MatchingPage />} />
               <Route path="activities" element={<ActivitiesPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="feedback" element={<Navigate to="/admin/analytics?tab=feedback" replace />} />
+              <Route path="feedback" element={<Navigate to="/admin/analytics" replace />} />
               <Route path="website" element={<AdminWebsitePage />} />
               <Route path="matching/:applicantId" element={<MatchDetailsPage />} />
               <Route path="matching/:applicantId/referral" element={<ReferralSlipPage />} />

@@ -74,8 +74,7 @@ registerFil({
 
   'Analytics sections': 'Mga Seksyon ng Pagsusuri',
   'Employment analytics': 'Pagsusuri sa Empleyo',
-  'Feedback sentiment': 'Sentiment ng Feedback',
-  'Employment analytics and hired-applicant feedback across Lipa City.': 'Pagsusuri sa empleyo at feedback ng mga na-hire na aplikante sa buong Lipa City.',
+  'Employment analytics across Lipa City.': 'Pagsusuri sa empleyo sa buong Lipa City.',
   'Gender, education, barangay and latest application status.': 'Kasarian, edukasyon, barangay at pinakahuling katayuan ng aplikasyon.',
   'Monthly posting volume, industries, positions and companies.': 'Bilang ng pag-post bawat buwan, industriya, posisyon at kumpanya.',
   'Required skills in listings and the gaps saved for applicants.': 'Mga kasanayang kailangan sa trabaho at mga kakulangang naka-save para sa mga aplikante.',

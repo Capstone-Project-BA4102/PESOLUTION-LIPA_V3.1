@@ -6,7 +6,7 @@ const ts = require('typescript');
 const { validateContent } = require('../backend/content.cjs');
 const { createApp } = require('../backend/app.cjs');
 const defaults = require('../src/lib/referralDefaults.ts');
-const base = { title: 'PESO', tagline: 'Lipa', services: [], announcements: [], trainingCatalog: [], testimonials: [] };
+const base = { title: 'PESO', tagline: 'Lipa', services: [], announcements: [], trainingCatalog: [] };
 
 test('default signatory resolves saved settings, with the initial manager only as the unconfigured default', () => {
   assert.equal(defaults.referralSignatoryName('  Future Manager  '), 'Future Manager');

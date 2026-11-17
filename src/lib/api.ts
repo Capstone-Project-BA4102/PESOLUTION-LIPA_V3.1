@@ -330,7 +330,7 @@ function mapApplicant(r: any): Applicant {
     resumePath: latestResume?.file_path ? String(latestResume.file_path).replace(/^resumes\//, '') : '',
     resumeUrl: '',
     avatarUrl: r.profile_id
-      ? supabase.storage.from('avatars').getPublicUrl(`${r.profile_id}/profile.png`).data.publicUrl
+      ? supabase.storage.from('avatars').getPublicUrl(r.avatar_path || `${r.profile_id}/profile.png`).data.publicUrl
       : '',
     experience: (r.applicant_experience || []).map((e: any) => ({
       id: e.id, company: e.company || '', position: e.position || '', years: e.years || ''
@@ -351,9 +351,8 @@ export async function fetchAvatarUrls(): Promise<Record<string, string>> {
     `${supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl}?v=${encodeURIComponent(updatedAt || String(Date.now()))}`
   try {
     const { data: root } = await supabase.storage.from('avatars').list()
-    if (!root) return map
-    const folders = root.filter((o: any) => !o.id)
-    for (const f of root.filter((o: any) => o.id)) {
+    const folders = (root || []).filter((o: any) => !o.id)
+    for (const f of (root || []).filter((o: any) => o.id)) {
       const m = String(f.name).match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i)
       if (m && !map[m[1].toLowerCase()]) {
         map[m[1].toLowerCase()] = versioned(f.name, (f as any).updated_at)
@@ -362,7 +361,7 @@ export async function fetchAvatarUrls(): Promise<Record<string, string>> {
     await Promise.all(
       folders.map(async (folder: any) => {
         const { data: inner } = await supabase.storage.from('avatars').list(folder.name)
-        const file = (inner || []).find((o: any) => o.id && o.name === 'profile.png') || (inner || []).find((o: any) => o.id)
+        const file = (inner || []).find((o: any) => o.id && o.name === 'profile.png') || (inner || []).find((o: any) => o.id && !String(o.name).startsWith('renewal-'))
         if (file) {
           map[String(folder.name).toLowerCase()] = versioned(`${folder.name}/${file.name}`, (file as any).updated_at)
         }
@@ -370,6 +369,13 @@ export async function fetchAvatarUrls(): Promise<Record<string, string>> {
     )
   } catch {
     // bucket unreachable — initials fallback is fine
+  }
+  // Renewal photos are staged under immutable paths and published by the atomic DB save.
+  // Older databases may not have this additive column yet; keep the existing fallback.
+  const { data: renewedAvatars, error: avatarError } = await supabase.from('applicants')
+    .select('profile_id,avatar_path').not('avatar_path', 'is', null)
+  if (!avatarError) for (const row of renewedAvatars || []) {
+    if (row.profile_id && row.avatar_path) map[String(row.profile_id).toLowerCase()] = versioned(row.avatar_path)
   }
   return map
 }
@@ -833,7 +839,7 @@ export async function fetchMatchingSummary(): Promise<any> {
   
   const { data, error } = await supabase
     .from('applicants')
-    .select('id, full_name, education, course, date_registered, applicant_number, profile_id, account_status')
+    .select('id, full_name, education, course, date_registered, applicant_number, profile_id, account_status, status_history(application_id,status,changed_at)')
     .order('date_registered', { ascending: false })
     
   if (error) throw error
@@ -841,7 +847,7 @@ export async function fetchMatchingSummary(): Promise<any> {
   // Per-applicant match count + latest application status for the status badge
   const [matchResult, applicationResult] = await Promise.all([
     supabase.from('job_matches').select('applicant_id, job_listings!inner(status)').eq('job_listings.status', 'Active'),
-    supabase.from('applications').select('applicant_id, status'),
+    supabase.from('applications').select('id, applicant_id, status, created_at'),
   ])
   if (matchResult.error) throw matchResult.error
   if (applicationResult.error) throw applicationResult.error
@@ -853,8 +859,14 @@ export async function fetchMatchingSummary(): Promise<any> {
     matchCounts[k] = (matchCounts[k] || 0) + 1
   }
   const appStatus: Record<string, string> = {}
+  const historyByApplicant = new Map((data || []).map((row: any) => [String(row.id), row.status_history || []]))
   for (const a of appRows || []) {
     const k = String(a.applicant_id)
+    const history = historyByApplicant.get(k) as any[] || []
+    const timestamps = (rows: any[], field: string) => rows.map(row => Date.parse(row[field])).filter(Number.isFinite)
+    const renewedAt = Math.max(-Infinity, ...timestamps(history.filter(row => row.status === 'Renewal'), 'changed_at'))
+    const statusAt = Math.max(Date.parse(a.created_at) || 0, ...timestamps(history.filter(row => row.application_id === a.id && row.status === a.status), 'changed_at'))
+    if (statusAt < renewedAt) continue
     if (a.status === 'Hired') appStatus[k] = 'Hired'
     else if (a.status === 'Referred' && appStatus[k] !== 'Hired') appStatus[k] = 'Referred'
   }
@@ -1326,11 +1338,6 @@ export async function fetchApplicationStatusData(email: string): Promise<any> {
   ])
 
   return { applications: applications || [], history }
-}
-export async function renewApplicant(id: string): Promise<void> {
-  await logStatusHistory(id, 'Renewal', 'Application renewed - back to job search')
-  const { data: a } = await supabase.from('applicants').select('full_name').eq('id', id).maybeSingle()
-  await logActivity('applicant', 'Application renewed', a?.full_name || '')
 }
 const slotsLabel = (n: number) => `${n} slot${n === 1 ? '' : 's'}`
 

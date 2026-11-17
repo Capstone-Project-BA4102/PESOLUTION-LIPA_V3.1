@@ -3,7 +3,7 @@ const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
-const { check, skills, requireUuid, MATCHING_WEIGHTS, MATCHING_THRESHOLD, filterRecommendations, validateRecommendations } = require('./domain.cjs');
+const { HttpError, check, skills, requireUuid, MATCHING_WEIGHTS, MATCHING_THRESHOLD, filterRecommendations, validateRecommendations } = require('./domain.cjs');
 const { loadMatchingInputs, analyzeApplicant, completeRecommendations } = require('./matching.cjs');
 const { recommendationPrompt } = require('./prompts.cjs');
 const { skillNlpService, exactAudit } = require('./skill-nlp.cjs');
@@ -49,6 +49,7 @@ function fileCache(directory = path.join(__dirname, 'model-artifacts', 'matching
 
 function createMatchingRefresh({ supabase, gemini, nlp = skillNlpService(), cache = fileCache(), now = Date.now }) {
   const pending = new Map();
+  const renewals = new Map();
   const savedMatches = async id => matchRows(check(await supabase.from('job_matches').select('*').eq('applicant_id', id)) || []);
   async function refresh(id, force) {
     const inputs = await loadMatchingInputs(supabase, id);
@@ -157,12 +158,27 @@ function createMatchingRefresh({ supabase, gemini, nlp = skillNlpService(), cach
   }
 
   return {
+    withRenewal(id, save) {
+      requireUuid(id);
+      if (renewals.has(id)) throw new HttpError(409, 'This applicant renewal is already processing.');
+      const promise = Promise.resolve(pending.get(id)?.promise).catch(() => {}).then(save)
+        .finally(() => { if (renewals.get(id) === promise) renewals.delete(id); });
+      renewals.set(id, promise);
+      return promise;
+    },
+    async archiveEvidence(id) {
+      const previous = await cache.get(id);
+      return { observedAt: new Date(now()).toISOString(), source: 'previously_recorded_cache',
+        jobs: Object.fromEntries(Object.entries(previous?.jobs || {}).filter(([, entry]) =>
+          entry.evidence && entry.evidenceHash === hash(entry.evidence)).map(([jobId, entry]) => [jobId, entry.evidence])) };
+    },
     async maintainCache(execute = false) {
       if (!cache.pruneExpired) throw new Error('Runtime cache maintenance is unavailable.');
       return cache.pruneExpired({ execute, now: now(), protect: id => pending.has(id) });
     },
     run(id, { force = false } = {}) {
     requireUuid(id);
+    if (renewals.has(id)) return renewals.get(id).then(() => this.run(id, { force }));
     const current = pending.get(id);
     if (current) {
       if (!force || current.force) return current.promise;

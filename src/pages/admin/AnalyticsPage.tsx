@@ -1,15 +1,8 @@
-import { lazy, Suspense } from 'react'
-import { ArrowRight, BarChart3, Briefcase, Sparkles, Star, Users } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { ArrowRight, Briefcase, Sparkles, Users } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Tabs } from '@/components/ui/Tabs'
 import { SummaryReportCard } from '@/components/admin/SummaryReportCard'
 import { EmploymentAnalytics } from '@/components/admin/EmploymentAnalytics'
-import { FeedbackAnalyticsSkeleton } from '@/components/shared/Skeletons'
 import { usePT } from '@/lib/portalCopy'
-
-// Feedback charts pull in recharts; load them only when that tab is opened.
-const FeedbackAnalyticsPage = lazy(() => import('@/pages/superadmin/FeedbackAnalyticsPage'))
 
 const SCOPES = [
   { id: 'applicant-demographics', label: 'Applicant demographics', hint: 'Gender, education, barangay and latest application status.', Icon: Users },
@@ -17,32 +10,15 @@ const SCOPES = [
   { id: 'common-skills', label: 'Common skills', hint: 'Required skills in listings and the gaps saved for applicants.', Icon: Sparkles },
 ]
 
-const TABS = [
-  { key: 'employment', label: 'Employment analytics', icon: <BarChart3 /> },
-  { key: 'feedback', label: 'Feedback sentiment', icon: <Star /> },
-]
-
 export default function AnalyticsPage() {
   const pt = usePT()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get('tab') === 'feedback' ? 'feedback' : 'employment'
-  const setTab = (key: string) => setSearchParams(params => {
-    const next = new URLSearchParams(params)
-    if (key === 'employment') next.delete('tab')
-    else next.set('tab', key)
-    return next
-  }, { replace: true })
-
   return <div className="space-y-4">
     <PageHeader
       title="Analytics"
-      description="Employment analytics and hired-applicant feedback across Lipa City."
+      description="Employment analytics across Lipa City."
     />
 
-    <Tabs items={TABS} active={tab} onChange={setTab} />
-
-    {tab === 'employment'
-      ? <div role="tabpanel" aria-label={pt('Employment analytics')} className="space-y-4">
+    <div aria-label={pt('Employment analytics')} className="space-y-4">
         <SummaryReportCard />
 
         <nav aria-label={pt('Analytics sections')} className="ui-stagger grid min-w-0 gap-3 md:grid-cols-3">
@@ -59,10 +35,5 @@ export default function AnalyticsPage() {
 
         <EmploymentAnalytics />
       </div>
-      : <div role="tabpanel" aria-label={pt('Feedback sentiment')}>
-        <Suspense fallback={<FeedbackAnalyticsSkeleton label={pt('Loading feedback dashboard...')} embedded />}>
-          <FeedbackAnalyticsPage embedded />
-        </Suspense>
-      </div>}
   </div>
 }

@@ -154,7 +154,7 @@ export default function AdminDashboard() {
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700" aria-hidden="true"><BarChart3 className="h-4 w-4" /></span>
             <div className="min-w-0">
               <h2 id="analytics-shortcut-heading" className="text-[13.5px] font-bold text-slate-900">{pt('Descriptive analytics')}</h2>
-              <p className="mt-0.5 text-[12px] leading-5 text-slate-500">{pt('Applicant demographics · Job demand trends · Common skills, plus hired-applicant feedback.')}</p>
+              <p className="mt-0.5 text-[12px] leading-5 text-slate-500">{pt('Applicant demographics · Job demand trends · Common skills.')}</p>
             </div>
           </div>
           <ButtonLink to="/admin/analytics" variant="ghost" size="sm" className="mt-1" iconRight={<ArrowRight className="h-3.5 w-3.5" />}>{pt('Open analytics')}</ButtonLink>

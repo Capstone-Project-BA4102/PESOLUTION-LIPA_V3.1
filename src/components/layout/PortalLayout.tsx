@@ -126,7 +126,7 @@ export function PortalLayout({ nav, homePath }: { nav: NavItem[]; homePath: stri
         {drawer && <MobileDrawer onClose={() => setDrawer(false)}>{sidebar(false)}</MobileDrawer>}
         <main id="portal-content" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
           <PortalBreadcrumbs nav={nav} homePath={homePath} pathname={location.pathname} />
-          <div ref={pageRef} key={location.pathname} className={cn('ui-page-enter mx-auto px-3 py-4 sm:px-6 sm:py-5 lg:px-8', /\/(new|register|website|profile)$/.test(location.pathname) ? 'max-w-[1040px]' : 'max-w-[1600px]')}><Outlet /></div>
+          <div ref={pageRef} key={location.pathname} className={cn('ui-page-enter mx-auto px-3 py-4 sm:px-6 sm:py-5 lg:px-8', /\/(new|register|renew|website|profile)$/.test(location.pathname) ? 'max-w-[1040px]' : 'max-w-[1600px]')}><Outlet /></div>
         </main>
       </div>
     </div>
@@ -198,7 +198,7 @@ function PortalBreadcrumbs({ nav, homePath, pathname }: { nav: NavItem[]; homePa
     crumbs.push({ label: 'Match Results', to: matchPath })
   }
   const suffix = pathname.split('/').at(-1) || ''
-  const labels: Record<string, string> = { new: 'Add New', register: 'Register Applicant', 'account-receipt': 'Account Receipt', referral: 'Referral Slip', 'referral-slip': 'Referral Slip', previous: 'Previous Applications' }
+  const labels: Record<string, string> = { new: 'Add New', register: 'Register Applicant', renew: 'Renew Applicant Registration', 'account-receipt': 'Account Receipt', referral: 'Referral Slip', 'referral-slip': 'Referral Slip', previous: 'Previous Applications' }
   if (labels[suffix]) crumbs.push({ label: labels[suffix], to: pathname })
   return <nav aria-label={pt('Breadcrumb')} className="flex min-h-[36px] flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-200 bg-white px-3 py-1.5 text-[12.5px] sm:px-6">
     {crumbs.map((crumb, index) => <span key={`${crumb.to}-${index}`} className="inline-flex min-w-0 items-center gap-1.5">

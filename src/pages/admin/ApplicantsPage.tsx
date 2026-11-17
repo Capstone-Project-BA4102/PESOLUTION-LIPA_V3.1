@@ -1,6 +1,4 @@
 // @ts-nocheck
-import { SelectedFilePreview } from "@/components/shared/SelectedFilePreview";
-import { saveRenewalResume } from "@/lib/applicantFiles";
 import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
 import { useState, useEffect, useRef } from "react";
@@ -55,7 +53,6 @@ import {
   type ApplicantSetupEmailStatus,
   type StatusEmailPreview,
   fetchPendingReferralRequest,
-  renewApplicant,
   setApplicantStatus,
 } from "@/lib/api";
 import { useQuery } from "@/lib/useQuery";
@@ -65,6 +62,7 @@ import { LoadingBlock, ErrorBlock } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import { hasStructuredApplicantName } from "@/lib/applicantName";
 
+import { QualificationHistory } from "@/components/admin/QualificationHistory";
 import { EditApplicantModal } from "@/components/modals/EditApplicantModal";
 
 export default function ApplicantsPage() {
@@ -217,30 +215,6 @@ export default function ApplicantsPage() {
     } finally {
       setIsRejecting(false);
     }
-  };
-
-  const [renewTarget, setRenewTarget] = useState<Applicant | null>(null);
-  const [renewFile, setRenewFile] = useState<File | null>(null);
-  const [keepResume, setKeepResume] = useState(false);
-  const [renewing, setRenewing] = useState(false);
-  const [resumeSaved, setResumeSaved] = useState(false);
-  const renewalRequest = useRef(false);
-  const handleRenew = async (appId: string) => {
-    if (!renewTarget || renewalRequest.current || (!renewFile && !keepResume)) return;
-    renewalRequest.current = true;
-    setRenewing(true);
-    try {
-      if (renewFile && !resumeSaved) { await saveRenewalResume(renewTarget, renewFile); setResumeSaved(true); }
-      await renewApplicant(appId);
-      setRenewTarget(null);
-      toast.success(pt("Application successfully renewed!"));
-      reload();
-      if (activeTab === "history") {
-        loadStatusEvents(appId).catch(() => {});
-      }
-    } catch (failure) {
-      toast.error(failure instanceof Error ? failure.message : pt("Failed to renew application. Please retry."));
-    } finally { renewalRequest.current = false; setRenewing(false); }
   };
 
   const applicants = data ?? [];
@@ -953,6 +927,7 @@ export default function ApplicantsPage() {
 
               {activeTab === "history" && (
                 <div className="p-4">
+                  <QualificationHistory key={selectedApplicant.id} applicantId={selectedApplicant.id} />
                   <div className="relative pl-4">
                     <div className="absolute top-2 bottom-2 left-[21px] w-px bg-slate-200" />
 
@@ -1042,7 +1017,7 @@ export default function ApplicantsPage() {
                 <Button
                   variant="neutral"
                   className="flex-1 text-[14px]"
-                  onClick={() => { setRenewTarget(selectedApplicant); setRenewFile(null); setKeepResume(false); setResumeSaved(false); }}
+                  onClick={() => navigate(`/admin/applicants/${selectedApplicant.id}/renew`)}
                 >
                   Renew Application
                 </Button>
@@ -1201,16 +1176,6 @@ export default function ApplicantsPage() {
         </Modal>
       )}
 
-      <Modal open={!!renewTarget} onClose={() => { if (!renewing) setRenewTarget(null); }} dismissible={!renewing} title="Renew Application" size="sm">
-        <p className="mb-4 text-[14px] text-slate-600">{pt('Review the resume before renewing this application.')}</p>
-        <label htmlFor="renewal-resume" className="block text-[14px] font-medium">{pt('Upload updated resume')}</label>
-        <input id="renewal-resume" type="file" accept="application/pdf,image/jpeg,image/png" disabled={renewing || resumeSaved} className="my-3 block w-full text-[13px]" onChange={event => { setRenewFile(event.target.files?.[0] || null); setKeepResume(false); }} />
-        {!resumeSaved && <SelectedFilePreview file={renewFile} />}
-        {resumeSaved && <p role="status" className="my-2 text-sm text-success-700">{pt("Updated resume saved.")}</p>}
-        {renewTarget?.resumeUrl && !renewFile && <label className="my-3 flex items-start gap-2 text-[14px]"><input type="checkbox" checked={keepResume} disabled={renewing} onChange={event => setKeepResume(event.target.checked)} />{pt('I reviewed the existing resume and it is still current.')}</label>}
-        <p className="text-[12px] text-slate-500">{pt('PDF, JPG or PNG, up to 10 MB. Existing resume history and verified skills are preserved. Uploading does not automatically re-extract skills.')}</p>
-        <div className="mt-4 flex justify-end gap-2"><Button variant="neutral" disabled={renewing} onClick={() => setRenewTarget(null)}>Cancel</Button><Button disabled={renewing || (!renewFile && !keepResume)} onClick={() => void handleRenew(renewTarget.id)}>{renewing ? pt('Saving...') : pt('Confirm Renewal')}</Button></div>
-      </Modal>
       <Modal
         open={!!statusTargets?.length}
         onClose={() => { if (!statusSaving) setStatusTargets(null); }}

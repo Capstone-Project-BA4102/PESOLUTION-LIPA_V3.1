@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate, Link, useParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { User, FileText, Image as ImageIcon, CheckCircle2, ChevronRight, ArrowLeft, Edit, Mail, Lock, FileOutput, Briefcase, GitCompareArrows, X, Copy, AlertCircle, RefreshCw, Printer } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
@@ -19,9 +19,17 @@ import { EDUCATION_LEVELS } from '@/constants/options'
 import { BarangayField, CityMunicipalityField } from '@/components/shared/BarangayField'
 import { cityFromAddress, addressWithCity, barangayError, addressCityError } from '@/lib/applicantAddress'
 import { parseSkillText, formatSkillText } from '@/lib/skillText'
+import { fetchRenewalContext, confirmRenewal } from '@/lib/renewals'
+import { mergeRenewalOcr } from '@/lib/renewalForm'
+import { useQuery } from '@/lib/useQuery'
+import { LoadingBlock, ErrorBlock } from '@/components/shared'
+import { QualificationComparison } from '@/components/admin/QualificationComparison'
+import { Avatar } from '@/components/ui/Display'
+import { supabase } from '@/lib/supabase'
+import { SelectedFilePreview } from '@/components/shared/SelectedFilePreview'
 import type { AmbiguousSkill } from '@/lib/ocr'
 
-const STEPS = [
+const WALKIN_STEPS = [
   'Documents & Resume',
   'OCR Processing',
   'Applicant Information\n(Review & Edit)',
@@ -99,15 +107,38 @@ const EMPTY_FORM = {
 }
 
 export default function RegisterWalkIn() {
+  const { applicantId } = useParams()
+  return applicantId ? <RenewalRegistration key={applicantId} applicantId={applicantId} /> : <RegistrationForm />
+}
+
+function RenewalRegistration({ applicantId }) {
+  const pt = usePT()
+  const load = useCallback(() => fetchRenewalContext(applicantId), [applicantId])
+  const { data, loading, error, reload } = useQuery(load, [applicantId])
+  if (loading && !data) return <LoadingBlock label={pt('Loading applicant for re-registration...')} />
+  if (error || !data) return <ErrorBlock message={error || pt('Applicant not found.')} onRetry={reload} />
+  if (!data.eligible) return <ErrorBlock message={pt('Renewal requires a previous hired record and no active referral. Review the applicant status first.')} onRetry={reload} />
+  return <RegistrationForm key={data.token} renewal={{ ...data, applicantId }} />
+}
+
+function RegistrationForm({ renewal = null }) {
   const pt = usePT()
   const navigate = useNavigate()
+  const [requestId] = useState(() => crypto.randomUUID())
+  const submitting = useRef(false)
+  const STEPS = renewal ? ['Updated Resume', 'OCR Processing', 'Review Applicant Information', 'Confirm Changes', 'Renewal Complete'] : WALKIN_STEPS
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [resumeFile, setResumeFile] = useState(null)
   const [photoFile, setPhotoFile] = useState(null)
   const [result, setResult] = useState(null)
-  const [formData, setFormData] = useState(EMPTY_FORM)
+  const [formData, setFormData] = useState(() => renewal ? {
+    ...EMPTY_FORM, ...Object.fromEntries(Object.entries(renewal.snapshot.applicant).map(([key, value]) => [key, value ?? ''])),
+    city_municipality: cityFromAddress(renewal.snapshot.applicant.address || '') || 'Lipa City',
+    hard_skills: formatSkillText(renewal.snapshot.resume?.hard_skills || []),
+    soft_skills: formatSkillText(renewal.snapshot.resume?.soft_skills || []),
+  } : EMPTY_FORM)
   const [ocrPhase, setOcrPhase] = useState(0)
   const [ocrMessage, setOcrMessage] = useState('')
   const [ambiguousSkills, setAmbiguousSkills] = useState<AmbiguousSkill[]>([])
@@ -139,6 +170,7 @@ export default function RegisterWalkIn() {
 
   useEffect(() => {
     if (step === 2) {
+      let cancelled = false
       skipOcrRef.current = false
       setOcrPhase(0)
       setAmbiguousSkills([])
@@ -149,26 +181,27 @@ export default function RegisterWalkIn() {
         try {
           parsed = await geminiExtract(resumeFile)
         } catch (e: any) {
-          failMsg = `${e?.message || pt('Gemini OCR failed for this file.')} ${pt('You can still fill in the form manually.')}`
+          failMsg = `${e?.message || pt('Gemini OCR failed for this file.')} ${pt(renewal ? 'Retry resume extraction before confirming renewal.' : 'You can still fill in the form manually.')}`
         }
-        if (skipOcrRef.current) return
+        if (cancelled || skipOcrRef.current) return
+        if (renewal && failMsg) { setOcrMessage(failMsg); toast.error(failMsg); setStep(1); return }
 
         // Walk the checklist through the remaining phases so each step
         // reflects what actually happened, then merge the prefill.
         setOcrPhase(1)
         await new Promise((r) => setTimeout(r, 400))
-        if (skipOcrRef.current) return
+        if (cancelled || skipOcrRef.current) return
         setOcrPhase(2)
         await new Promise((r) => setTimeout(r, 400))
-        if (skipOcrRef.current) return
+        if (cancelled || skipOcrRef.current) return
         setOcrPhase(3)
 
         const prefilled = ['first_name', 'middle_surname', 'last_surname', 'suffix', 'date_of_birth', 'gender', 'contact_number', 'email_address', 'barangay', 'address', 'civil_status', 'nationality', 'education', 'course', 'school', 'hard_skills', 'soft_skills']
           .filter((k) => parsed[k])
-        if (prefilled.length) {
+        if (prefilled.length || renewal) {
           setFormData((cur) => {
-            const next = { ...cur }
-            prefilled.forEach((k) => { next[k] = parsed[k] })
+            const next = renewal ? mergeRenewalOcr(cur, parsed) : { ...cur }
+            if (!renewal) prefilled.forEach((k) => { next[k] = parsed[k] })
             if (parsed.address) next.city_municipality = cityFromAddress(parsed.address)
             return next
           })
@@ -180,10 +213,10 @@ export default function RegisterWalkIn() {
           setOcrMessage(failMsg)
         }
         await new Promise((r) => setTimeout(r, 500))
-        if (!skipOcrRef.current) setStep(3)
+        if (!cancelled && !skipOcrRef.current) setStep(3)
       }
       run()
-      return
+      return () => { cancelled = true }
     }
   }, [step])
 
@@ -201,10 +234,15 @@ export default function RegisterWalkIn() {
   }
 
   const handleCreate = async () => {
+    if (submitting.current) return
+    submitting.current = true
     setShowConfirm(false)
     setIsSubmitting(true)
     try {
-      const res = await registerWalkIn({
+      const submit = renewal
+        ? (input, files) => confirmRenewal(renewal.applicantId, renewal, requestId, input, files.resume, files.photo)
+        : registerWalkIn
+      const res = await submit({
         firstName: formData.first_name,
         middleSurname: formData.middle_surname,
         lastSurname: formData.last_surname,
@@ -225,11 +263,12 @@ export default function RegisterWalkIn() {
         softSkills: parseSkills(formData.soft_skills),
       }, { resume: resumeFile, photo: photoFile })
       setResult(res)
-      toast.success(pt('Applicant registered successfully!'))
+      toast.success(pt(renewal ? 'Re-registration saved. Qualifications are now updated.' : 'Applicant registered successfully!'))
       setStep(5)
     } catch (e) {
-      toast.error(e?.message || pt('Failed to register applicant.'))
+      toast.error(e?.message || pt(renewal ? 'Failed to save renewal. Please retry.' : 'Failed to register applicant.'))
     } finally {
+      submitting.current = false
       setIsSubmitting(false)
     }
   }
@@ -244,7 +283,7 @@ export default function RegisterWalkIn() {
   // The receipt is the point of a walk-in registration, so the print dialog opens on its own.
   const receiptPrintedRef = useRef(false)
   useEffect(() => {
-    if (step !== 5 || !result || receiptPrintedRef.current) return
+    if (renewal || step !== 5 || !result || receiptPrintedRef.current) return
     receiptPrintedRef.current = true
     const timer = setTimeout(handlePrintReceipt, 400)
     return () => clearTimeout(timer)
@@ -252,16 +291,17 @@ export default function RegisterWalkIn() {
 
   return (
     <div className="max-w-5xl space-y-4 pb-12">
+      <fieldset disabled={isSubmitting} className="contents" aria-label={pt(renewal ? 'Renew Applicant Registration' : 'Register Walk-in Applicant')}>
       <div className="print:hidden">
         <PageHeader
-          title="Register Walk-in Applicant"
+          title={renewal ? "Renew Applicant Registration" : "Register Walk-in Applicant"}
           description={
             <>
-              {step === 1 && pt("Upload the applicant's resume and 2x2 photo.")}
+              {step === 1 && pt(renewal ? "Upload an updated resume. The existing applicant account and history will be kept." : "Upload the applicant's resume and 2x2 photo.")}
               {step === 2 && pt('Extracting information from the uploaded resume using Gemini AI.')}
               {step === 3 && pt("Fill in the applicant's information. Skills entered here drive job matching.")}
-              {step === 4 && pt("Review the information and create the applicant's account.")}
-              {step === 5 && pt("Print the account receipt and hand it to the applicant — it holds their login email and initial password.")}
+              {step === 4 && pt(renewal ? "Review Before and After qualifications before confirming renewal." : "Review the information and create the applicant's account.")}
+              {step === 5 && pt(renewal ? "A new qualification version was saved. The login and prior employment records are unchanged." : "Print the account receipt and hand it to the applicant — it holds their login email and initial password.")}
             </>
           }
         />
@@ -298,7 +338,7 @@ export default function RegisterWalkIn() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="p-5">
             <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Required Documents')}</h2>
-            <p className="text-sm text-slate-500 mb-6">{pt("Upload the applicant's resume and 2x2 photo. Both are required to continue.")}</p>
+            <p className="text-sm text-slate-500 mb-6">{pt(renewal ? "An updated resume is required. Replacing the photo is optional." : "Upload the applicant's resume and 2x2 photo. Both are required to continue.")}</p>
 
             <div className="space-y-4 mb-6">
               <div className={cn(
@@ -329,7 +369,7 @@ export default function RegisterWalkIn() {
               )}>
                 <ImageIcon className="h-5 w-5 text-slate-500 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium text-slate-700 block">{pt('2x2 Photo')} <span className="text-brand-600">{pt('(Required)')}</span></span>
+                  <span className="font-medium text-slate-700 block">{pt('2x2 Photo')} <span className="text-brand-600">{pt(renewal ? '(Optional)' : '(Required)')}</span></span>
                   {photoFile ? (
                     <span className="text-xs text-slate-500 block truncate">{photoFile.name} • {(photoFile.size / 1024 / 1024).toFixed(1)} MB</span>
                   ) : (
@@ -345,6 +385,8 @@ export default function RegisterWalkIn() {
                 </label>
               </div>
             </div>
+            {renewal && !photoFile && <div className="mb-3 flex items-center gap-3 text-xs text-slate-500"><Avatar name={fullName} src={supabase.storage.from('avatars').getPublicUrl(renewal.snapshot.applicant.avatar_path || `${renewal.snapshot.applicant.profile_id}/profile.png`).data.publicUrl} /><span>{pt('Keep current photo')}</span></div>}
+            {photoFile && <SelectedFilePreview file={photoFile} avatar />}
 
             <div className="bg-info-50 border border-info-100 rounded-lg p-3 text-xs text-info-700 font-medium flex gap-2 mb-6">
               <ImageIcon className="h-4 w-4 shrink-0 mt-0.5" />
@@ -355,7 +397,7 @@ export default function RegisterWalkIn() {
               <Button variant="neutral" onClick={() => navigate('/admin/applicants')}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> {pt('Cancel')}
               </Button>
-              <Button onClick={() => setStep(2)} disabled={!resumeFile || !photoFile}>
+              <Button onClick={() => setStep(2)} disabled={!resumeFile || (!renewal && !photoFile)}>
                 {pt('Process with OCR')} <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -401,9 +443,9 @@ export default function RegisterWalkIn() {
             })}
           </div>
 
-          <Button variant="neutral" className="mt-8" onClick={() => { skipOcrRef.current = true; setOcrMessage(pt('Automatic extraction was skipped. Please fill in the form manually.')); setStep(3) }}>
+          {!renewal && <Button variant="neutral" className="mt-8" onClick={() => { skipOcrRef.current = true; setOcrMessage(pt('Automatic extraction was skipped. Please fill in the form manually.')); setStep(3) }}>
             Skip and Fill Manually
-          </Button>
+          </Button>}
         </Card>
       )}
 
@@ -421,7 +463,7 @@ export default function RegisterWalkIn() {
               setStep(4)
             }}>
               <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Applicant Information (Editable)')}</h2>
-              <p className="text-sm text-slate-500 mb-4">{pt("Fill in or correct the applicant's details before creating the account.")}</p>
+              <p className="text-sm text-slate-500 mb-4">{pt(renewal ? "Review all personal details and verify the newly extracted qualifications before renewal." : "Fill in or correct the applicant's details before creating the account.")}</p>
 
               {ocrMessage && (
                 <div className="mb-6 rounded-lg border border-info-100 bg-info-50 px-4 py-3 text-sm font-medium text-info-700 flex items-start gap-2">
@@ -442,7 +484,7 @@ export default function RegisterWalkIn() {
                   <Input label="Date of Birth" type="date" required value={formData.date_of_birth} onChange={(e) => setField('date_of_birth', e.target.value)} />
                   <Select label="Gender" options={['Male', 'Female']} placeholder="Select gender" required value={formData.gender} onChange={(e) => setField('gender', e.target.value)} />
                   <Input label="Contact Number" required value={formData.contact_number} onChange={(e) => setField('contact_number', e.target.value)} />
-                  <Input label="Email Address" type="email" required value={formData.email_address} onChange={(e) => setField('email_address', e.target.value)} hint="This becomes the applicant's portal login." />
+                  <Input label="Email Address" type="email" required readOnly={!!renewal} value={formData.email_address} onChange={(e) => setField('email_address', e.target.value)} hint={renewal ? "Existing login email is kept. Renewal does not create a new account." : "This becomes the applicant's portal login."} />
                   <CityMunicipalityField required value={formData.city_municipality} onChange={value => setField('city_municipality', value)} />
                   <BarangayField city={formData.city_municipality} required value={formData.barangay} onChange={value => setField('barangay', value)} />
                   <Input label="Address" required value={formData.address} onChange={(e) => setField('address', e.target.value)} wrapperClassName="sm:col-span-2 lg:col-span-3" />
@@ -536,7 +578,7 @@ export default function RegisterWalkIn() {
                   <ArrowLeft className="mr-2 h-4 w-4" /> {pt('Back')}
                 </Button>
                 <Button type="submit" disabled={ambiguousSkills.length > 0}>
-                  {pt('Next: Confirm & Create Account')} <ChevronRight className="ml-2 h-4 w-4" />
+                  {pt(renewal ? 'Next: Review Renewal Changes' : 'Next: Confirm & Create Account')} <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </form>
@@ -551,8 +593,8 @@ export default function RegisterWalkIn() {
       {step === 4 && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4">
           <Card className="p-5">
-            <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Registration Summary')}</h2>
-            <p className="text-sm text-slate-500 mb-6">{pt("Please review the information below before creating the applicant's account.")}</p>
+            <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt(renewal ? 'Renewal Summary' : 'Registration Summary')}</h2>
+            <p className="text-sm text-slate-500 mb-6">{pt(renewal ? "Confirm the updated details and qualification changes. Previous versions will be retained." : "Please review the information below before creating the applicant's account.")}</p>
 
             <div className="flex items-center gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
               <div className="h-16 w-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center overflow-hidden shrink-0">
@@ -618,7 +660,7 @@ export default function RegisterWalkIn() {
                 </div>
                 <div className="grid grid-cols-2 gap-y-2">
                   <span className="text-slate-500">{pt('Resume')}</span><span className="font-medium text-slate-900 truncate">{resumeFile?.name || '—'}</span>
-                  <span className="text-slate-500">{pt('2x2 Photo')}</span><span className="font-medium text-slate-900 truncate">{photoFile?.name || '—'}</span>
+                  <span className="text-slate-500">{pt('2x2 Photo')}</span><span className="font-medium text-slate-900 truncate">{photoFile?.name || (renewal ? pt('Keep current photo') : '—')}</span>
                 </div>
               </div>
             </div>
@@ -631,7 +673,12 @@ export default function RegisterWalkIn() {
           </Card>
 
           <div className="space-y-4">
-            <Card className="p-5">
+            {renewal && <Card className="p-4 space-y-3">
+              <h2 className="text-sm font-semibold">{pt('Qualification changes')}</h2>
+              <QualificationComparison before={renewal.snapshot} after={{ applicant: formData, resume: { hard_skills: parseSkills(formData.hard_skills), soft_skills: parseSkills(formData.soft_skills) } }} />
+              <p className="text-xs text-slate-500">{pt('The latest confirmed qualifications will drive matching. Previous referrals and employment outcomes are retained.')}</p>
+            </Card>}
+            {!renewal && <><Card className="p-5">
               <h2 className="mb-1 text-[15px] font-semibold text-slate-900">{pt('Account Credentials')}</h2>
               <p className="text-xs text-slate-500 mb-6">{pt('A portal login will be created using this email address.')}</p>
 
@@ -651,14 +698,15 @@ export default function RegisterWalkIn() {
               </div>
             </div>
 
+            </>}
             <Button size="lg" fullWidth disabled={isSubmitting} onClick={() => setShowConfirm(true)}>
-              <User className="mr-2 h-5 w-5" /> {isSubmitting ? pt('Creating...') : pt('Create Applicant Account')} <ChevronRight className="ml-2 h-5 w-5" />
+              <User className="mr-2 h-5 w-5" /> {isSubmitting ? pt('Saving...') : pt(renewal ? 'Confirm Renewal' : 'Create Applicant Account')} <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </div>
       )}
 
-      {step === 5 && result && (
+      {step === 5 && result && !renewal && (
         <div className="space-y-4">
           <AccountReceiptSheet receipt={{ fullName, code: result.code, email: result.email, password: result.initialPassword, issuedAt: result.issuedAt, serial: result.receiptSerial }} />
 
@@ -790,25 +838,33 @@ export default function RegisterWalkIn() {
         </div>
       )}
 
+      {step === 5 && result && renewal && <Card className="p-5 space-y-4">
+        <CheckCircle2 className="h-8 w-8 text-success-600" />
+        <h2 className="text-lg font-semibold">{pt('Re-registration complete')}</h2>
+        <p className="text-sm text-slate-600">{pt('Renewal version {version}', { version: result.version })} · {fullName}</p>
+        <p className="text-sm text-slate-500">{pt('The existing account is active. New qualifications are used when matching refreshes; prior referrals and employment history remain unchanged.')}</p>
+        <div className="flex flex-wrap gap-2"><Button onClick={() => navigate(`/admin/matching/${renewal.applicantId}`)}>{pt('View Matches')}</Button><Button variant="neutral" onClick={() => navigate('/admin/applicants')}>{pt('Back to Applicants')}</Button></div>
+      </Card>}
       <Modal
         open={showConfirm}
         onClose={() => setShowConfirm(false)}
-        title="Create Applicant Account?"
+        title={renewal ? "Confirm Applicant Renewal?" : "Create Applicant Account?"}
         footer={
           <>
             <Button variant="neutral" onClick={() => setShowConfirm(false)}>Cancel</Button>
-            <Button onClick={handleCreate}>Yes, Create Account</Button>
+            <Button disabled={isSubmitting} onClick={handleCreate}>{pt(renewal ? 'Yes, Save Renewal' : 'Yes, Create Account')}</Button>
           </>
         }
       >
-        <p className="text-sm text-slate-600">
+        {renewal ? <p className="text-sm text-slate-600">{pt('Save these reviewed details as a new qualification version for')} <strong>{fullName}</strong>? {pt('The applicant keeps the same account. Previous qualifications, referrals and employment outcomes will be retained.')}</p> : <><p className="text-sm text-slate-600">
           {pt('This will create the portal login for')} <strong>{fullName}</strong> (<strong>{formData.email_address}</strong>),
           {pt('upload the resume and photo, and register the applicant as')} <strong>{pt('New')}</strong> {pt('in the system')}.
         </p>
         <p className="text-sm text-slate-600 mt-3">
           {pt("Double-check the email — it is the applicant's only way to log in.")}
-        </p>
+        </p></>}
       </Modal>
+      </fieldset>
     </div>
   )
 }

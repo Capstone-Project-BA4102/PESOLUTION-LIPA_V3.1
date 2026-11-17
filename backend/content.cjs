@@ -27,8 +27,8 @@ function validateContent(input) {
   output.sourceUrl = publicUrl(input.sourceUrl);
   output.heroImage = publicUrl(input.heroImage, true);
   for (const [key, fields] of Object.entries({ services: ['id', 'title', 'description', 'imageUrl'], announcements: ['id', 'title', 'body', 'publishedAt', 'url'],
-    trainingCatalog: ['id', 'skill', 'title', 'provider', 'url'], testimonials: ['id', 'name', 'role', 'quote', 'imageUrl'] })) {
-    const list = key === 'testimonials' && input[key] == null ? [] : input[key];
+    trainingCatalog: ['id', 'skill', 'title', 'provider', 'url'] })) {
+    const list = input[key];
     if (!Array.isArray(list) || list.length > 50) throw new HttpError(400, `Invalid ${key} list.`);
     output[key] = list.map(item => {
       if (!item || typeof item !== 'object') throw new HttpError(400, `Invalid ${key} entry.`);
@@ -39,14 +39,10 @@ function validateContent(input) {
             ? publicUrl(item[field], true)
             : text(item[field]);
       }
-      const primaryText = key === 'testimonials' ? result.name : result.title;
+      const primaryText = result.title;
       if (!result.id || !primaryText || Object.values(result).some(s => s.length > 3000)) throw new HttpError(400, `Invalid ${key} entry.`);
       if (key === 'trainingCatalog' && (!result.skill || !result.provider || !result.url)) throw new HttpError(400, 'Training entries need a skill, provider, and verified HTTPS link.');
       if (key === 'announcements' && (!result.publishedAt || Number.isNaN(Date.parse(result.publishedAt)))) throw new HttpError(400, 'Announcements need a valid publication date.');
-      if (key === 'testimonials') {
-        if (item.consentConfirmed !== true) throw new HttpError(400, 'Applicant testimonials require documented publication consent.');
-        result.consentConfirmed = true;
-      }
       return result;
     });
     if (new Set(output[key].map(item => item.id)).size !== output[key].length) throw new HttpError(400, `Duplicate ${key} IDs.`);
