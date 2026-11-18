@@ -1,0 +1,401 @@
+applicant_skill,job_skill,match
+control vehicles,drive vehicles,1
+prioritise tasks,adapt to change,0
+clean worktops,clean the surfaces,1
+have proficiency in MS office,utilise microsoft office software,1
+handle petty cash,use automatic car,0
+search for information online,use search engine,1
+show sense of initiative,iron,0
+issue official documents,run a cash point,0
+operate cash register,operate cash register,1
+carry out record management,carry out records management,1
+utilise microsoft office applications,supply official documents,0
+take incoming calls,openness to change,0
+clean worktops,lift heavy weights,0
+openness to change,solve problems,0
+cook and finish meat dishes,cook meat dishes,1
+adhere to written directions,adhere to verbal directions,0
+clean surfaces,clean surfaces,1
+handle helpdesk problems,solve helpdesk problems,1
+clean floors,clean surfaces,0
+answer visitor complaints,respond to visitor complaints,1
+oversee stock level,watch stock level,1
+show initiative,show active initiative,1
+maintain personal standards of hygiene,wash laundry,0
+operate cash point,operating a cash register,1
+convey verbal instructions,Microsoft Office Visio,0
+follow spoken instructions,cooperate,0
+manage cash desk,food safety standard,0
+demonstrate problem solving skills,teamwork methods,0
+process a payment,accept payments,1
+organise records management,Microsoft Visio,0
+draft corporate emails,record documents,0
+clean the surfaces,clean walls,0
+driving vehicles,drive vehicles,1
+demonstrate problem solving skills,apply problem solving,1
+schedule tasks,organise tasks,1
+use search engine,operate steam presser,0
+manage cash desk,run a cash point,1
+driving automatic car,use automatic car,1
+adhere to written instructions,collaborate on tasks,0
+drive automatic car,drive automatic car,1
+manage schedule of tasks,organize tasks,1
+handle customer complaints,handle petty cash,0
+customer services,customer support,1
+food safety standards,food safety standard,1
+follow spoken instructions,lead a team,0
+lead a team,support colleagues,0
+communicate by telephone,communicate by telephone,1
+set priorities,prioritise tasks,1
+transmit verbal instructions,convey instructions verbally,1
+control vehicles,operate vehicles,1
+use techniques to cook,make sandwiches,0
+view stock level,use office systems,0
+adapt to change,lifting heavy weights,0
+follow written instructions,lead a team,0
+food safety standard,operate dishwashing machine,0
+organise tasks,task planning,1
+handle payments,accept payments,1
+listen actively,lead a team,0
+conduct web searches,conduct web searches,1
+manage cash desk,customer services,0
+draft corporate emails,monitor stock level,0
+order documents,pick up incoming calls,0
+operate cash register,run a cash point,1
+check deliveries on receipt,lift heavy weight,0
+handle a helpdesk problem,handle helpdesk problems,1
+MS Visio,manage schedule,0
+adhere to verbal directions,adhere to verbal instructions,1
+collect payments,customer services,0
+Microsoft Office Word,prepare sandwiches,0
+manage schedule of tasks,park vehicles,0
+Microsoft Office Visio,handle helpdesk problems,0
+lead a team,driving automatic car,0
+deal with helpdesk problems,save stock records,0
+clean worktops,clean tables,1
+search for information online,communicate by telephone,0
+teamwork principle,teamwork principles,1
+manage cash desk,manage cash desk,1
+handle helpdesk problems,utilise microsoft office applications,0
+MS Visio,adhere to written instructions,0
+elevate heavy weights,store stock records,0
+apply problem solving,lift heavy weight,0
+issue official documents,issue official documents,1
+manage time,managing time,1
+maintain personal hygiene standards,clear tables,0
+operating a cash register,handle petty cash,0
+run a cash point,handle customer complaints,0
+issue official documents,convey instructions verbally,0
+use automatic car,drive automatic cars,1
+active listening,use techniques to cook,0
+handle customer complaints,handle customer complaints,1
+stock level monitoring,check deliveries on receipt,0
+convey verbal instructions,communicate verbal instructions,1
+address guest complaints,take incoming calls,0
+park automobiles,park cars,1
+monitor stock level,watch stock level,1
+collect payments,handle customers' complaints,0
+answer incoming calls,take incoming calls,1
+show active initiative,customer support,0
+answer incoming calls,work with office systems,0
+search for information online,use techniques to cook,0
+oversee stock level,monitor stock level,1
+control vehicles,driving vehicles,1
+draft corporate emails,prepare a sandwich,0
+collect payments,respond to complaints from visitors,0
+wash the laundry,washing the laundry,1
+cook meat in dishes,food safety standards,0
+keep stock records,keep a stock record,1
+use office systems,Microsoft Office Word,0
+keep stock records,prepare a sandwich,0
+park vehicles,park vehicles,1
+cook and finish meat dishes,show initiative,0
+Microsoft Office Word,adapt to changes,0
+show initiative,show initiative,1
+follow spoken instructions,listen actively,0
+lift heavy weights,elevate heavy weights,1
+answering incoming calls,communicate by telephone,0
+cooperate,support colleagues,0
+cook dishes with meat,cook and finish meat dishes,1
+follow spoken instructions,follow verbal instructions,1
+file documents,file documents,1
+wash laundry,convey verbal instructions,0
+apply active listening techniques,maintain active listening,1
+process payments,process payments,1
+view stock level,oversee stock level,1
+teamwork principles,listen actively,0
+teamwork principle,adhere to verbal directions,0
+cook meat dishes,cook meat dishes,1
+communicate verbal instructions,communicate verbal instructions,1
+lift heavy weight,communicate by telephone,0
+stock level monitoring,watch stock level,1
+active listening,maintain active listening,1
+hold stock records,solve problems,0
+use word processing software,Microsoft Office Word,1
+food safety standards,use cookery techniques,0
+supply official documents,adhere to written directions,0
+operate automatic car,use automatic car,1
+use office systems,do the laundry,0
+operate dishwashing machine,order documents,0
+use office systems,order documents,0
+check deliveries on receipt,park motorised vehicles,0
+maintain personal hygiene standards,maintain personal hygiene standards,1
+handle petty cash,handle payments,0
+task scheduling,adapt to changes,0
+clean tables,iron textiles by hand,0
+address guest complaints,Microsoft Office Word,0
+use cooking techniques,use cooking techniques,1
+prioritise actions,wash laundry,0
+transmit verbal instructions,follow written directions,0
+customer service,handle petty cash,0
+clear tables,clean tables,1
+address guest complaints,handle customer complaints,1
+clean worktops,clean floors,0
+solve helpdesk problems,work with office systems,0
+food safety standards,food safety requirements,1
+show initiative,manage time,0
+work with office systems,show initiative,0
+do the laundry,answer visitor complaints,0
+adhere to written directions,adhere to written instructions,1
+use microsoft office,operating a cash register,0
+keep stock records,store stock records,1
+park cars,park vehicles,1
+wash the laundry,iron textiles,0
+handle a helpdesk problem,deal with helpdesk problems,1
+maintain personal hygiene standards,maintain personal hygienic standards,1
+demonstrate problem solving skills,handle a helpdesk problem,0
+organise tasks,organize tasks,1
+work in teams,provide official documents,0
+check deliveries on receipt,keep a stock record,0
+teamwork principle,teamwork methods,1
+iron textiles by hand,iron textiles,1
+working in teams,work in teams,1
+lead a team,teamwork principles,0
+use word processing software,use spreadsheets software,0
+lead a team,communicate verbal instructions,0
+use techniques to cook,use cooking techniques,1
+view stock level,save stock records,0
+save stock records,keep stock records,1
+operate cash point,customer care,0
+operate steam presser,elevate heavy weights,0
+task planning,show sense of initiative,0
+show active initiative,openness to change,0
+communicate verbal instructions,cooperate,0
+set priorities,prioritise actions,1
+accept payments,process payments,1
+use office systems,use office systems,1
+follow spoken instructions,food safety requirements,0
+manage time,manage time,1
+use microsoft office,use microsoft office,1
+collaborate on tasks,working in teams,1
+drive vehicles,drive vehicles,1
+draft corporate emails,operate dishwasher,0
+customer service,respond to visitor complaints,0
+operate automatic car,drive automatic car,1
+Microsoft Visio,Microsoft Office Visio,1
+food safety standards,keep a stock record,0
+conduct web searches,follow written directions,0
+lift heavy weights,lift heavy weights,1
+follow written instructions,follow written instructions,1
+adhere to verbal directions,washing the laundry,0
+drive automatic car,drive automatic cars,1
+maintain active listening,listen actively,1
+process a payment,process payments,1
+clean surfaces,do the laundry,0
+adapt to change,adapt to change,1
+follow written instructions,adhere to written instructions,1
+manage cash desk,address guest complaints,0
+cook meat dishes,cook dishes with meat,1
+prepare sandwiches,prepare a sandwich,1
+save stock records,hold stock records,1
+make sandwiches,teamwork principles,0
+issue official documents,prepare a sandwich,0
+iron textiles by hand,operate steam presser,0
+drive a vehicle,control vehicles,1
+prepare a sandwich,cook meat in dishes,0
+examine deliveries on receipt,check deliveries with receipt,1
+file documents,order documents,0
+do the laundry,washing the laundry,1
+operating a cash register,operate cash register,1
+issue official documents,supply official documents,1
+cook and finish meat dishes,drive a vehicle,0
+work with office systems,use spreadsheets software,0
+handle petty cash,answer visitor complaints,0
+prepare a sandwich,use dishwasher,0
+teamwork principles,teamwork principles,1
+clear tables,clean surfaces,0
+organize tasks,Microsoft Office Word,0
+take incoming calls,pick up incoming calls,1
+lifting heavy weights,set priorities,0
+manage time,driving vehicles,0
+follow verbal instructions,utilize office systems,0
+teamwork approaches,teamwork methods,1
+park motorised vehicles,communicate by telephone,0
+examine deliveries on receipt,choose different ways to cook,0
+manage cash desk,collect payments,1
+park automobiles,drive automatic cars,0
+answer visitor complaints,manage cash desk,0
+use automatic car,drive automatic car,1
+iron textiles,answer visitor complaints,0
+clear tables,clean floors,0
+answer incoming calls,use spreadsheets software,0
+check deliveries with receipt,check deliveries on receipt,1
+carry out record management,perform records management,1
+cooperate,listen actively,0
+process a payment,handle payments,1
+operate dishwasher,operate dishwashing machine,1
+driving vehicles,drive a vehicle,1
+follow written directions,teamwork principle,0
+make sandwiches,active listening,0
+wash laundry,wash the laundry,1
+use spreadsheets software,active listening,0
+cook meat dishes,cook meat in dishes,1
+operate dishwashing machine,use dishwasher,1
+manage schedule of tasks,task scheduling,1
+organise tasks,solve problems,0
+show initiative,initiate action,1
+perform records management,maintain personal hygiene standards,0
+use microsoft office,utilise microsoft office software,1
+show active initiative,food safety standards,0
+communicate verbal instructions,cook meat in dishes,0
+support colleagues,MS Visio,0
+handle customer complaints,handle customers' complaints,1
+stock level monitoring,lifting heavy weights,0
+wash the laundry,wash the laundry,1
+manage schedule of tasks,manage schedule of tasks,1
+check deliveries on receipt,check deliveries on receipt,1
+file documents,follow written directions,0
+park cars,park motorised vehicles,1
+draft corporate emails,park vehicles,0
+choose different ways to cook,monitor stock level,0
+utilize office systems,search for information online,0
+use cooking techniques,cook and finish meat dishes,0
+clean walls,clean floors,0
+do the laundry,wash the laundry,1
+answer incoming calls,answer incoming calls,1
+handle helpdesk problems,issue official documents,0
+maintain personal hygienic standards,follow written instructions,0
+follow verbal instructions,adhere to verbal instructions,1
+carry out records management,filing of documents,0
+organize tasks,task planning,1
+adhere to verbal directions,choose different ways to cook,0
+deal with helpdesk problems,communicate by telephone,0
+run a cash point,process a payment,0
+solve problems,solve problems,1
+hold stock records,keep a stock record,1
+solve problems,show sense of initiative,0
+listen actively,adhere to written directions,0
+perform records management,perform records management,1
+convey verbal instructions,adhere to verbal directions,1
+elevate heavy weights,lifting heavy weights,1
+lifting heavy weights,conduct web searches,0
+prepare sandwiches,use search engine,0
+customer service,check delivery on receipt,0
+drive vehicles,operate vehicles,1
+monitor stock level,view stock level,1
+use techniques to cook,use cookery techniques,1
+use word processing software,use word processing software,1
+cook dishes with meat,operate dishwashing machine,0
+food safety standards,check deliveries on receipt,0
+draft corporate emails,use automatic car,0
+handle complaints by customers,handle customer complaints,1
+maintain personal hygienic standards,handle customers' complaints,0
+drive automatic car,iron textiles,0
+food safety standard,food safety requirements,1
+answering incoming calls,take incoming calls,1
+customer services,customer service,1
+order documents,record documents,0
+reply to visitor complaints,respond to visitor complaints,1
+follow written instructions,adhere to written directions,1
+reply to visitor complaints,run a cash point,0
+schedule tasks,set priorities,0
+search for information online,issue official documents,0
+use search engine,reply to visitor complaints,0
+handle customer complaints,prepare sandwiches,0
+lift heavy weights,lift heavy weight,1
+take incoming calls,convey verbal instructions,0
+park vehicles,park automobiles,1
+answering incoming calls,respond to incoming calls,1
+handle petty cash,handle petty cash,1
+store stock records,utilise microsoft office applications,0
+accept payments,elevate heavy weights,0
+keep stock records,keep stock records,1
+watch stock level,view stock level,1
+manage cash desk,handle petty cash,0
+demonstrate problem solving skills,solve problems,1
+clean surfaces,clean worktops,1
+iron textiles,iron textiles,1
+iron textiles by hand,maintain personal hygienic standards,0
+maintain active listening,use dishwasher,0
+operate cash point,teamwork principles,0
+communicate verbal instructions,teamwork principles,0
+demonstrate problem solving skills,managing time,0
+listen actively,convey instructions verbally,0
+respond to visitor complaints,respond to visitor complaints,1
+use spreadsheets software,use spreadsheets software,1
+clean surfaces,clean the surfaces,1
+follow written directions,follow written instructions,1
+answering incoming calls,pick up incoming calls,1
+use word processing software,maintain active listening,0
+answer incoming calls,answering incoming calls,1
+iron textiles by hand,iron,1
+operate dishwasher,use dishwasher,1
+initiate action,park vehicles,0
+utilize office systems,draft corporate emails,0
+handle complaints by customers,customer service,0
+operate steam presser,solve problems,0
+follow verbal instructions,follow verbal instructions,1
+drive vehicles,examine deliveries on receipt,0
+adapt to change,adapt to changes,1
+handle payments,collect payments,1
+convey instructions verbally,communicate verbal instructions,1
+store stock records,save stock records,1
+food safety standard,prepare a sandwich,0
+respond to incoming calls,cooperate,0
+be open to change,openness to change,1
+carry out records management,supply official documents,0
+cooperate,teamwork principles,1
+follow verbal instructions,handle customer complaints,0
+Microsoft Visio,Microsoft Visio,1
+use spreadsheets software,driving automatic car,0
+draft corporate emails,draft corporate emails,1
+lead a team,lead a team,1
+food safety standards,food safety standards,1
+check delivery on receipt,examine deliveries on receipt,1
+answer visitor complaints,address guest complaints,1
+customer service,customer service,1
+carry out records management,organise records management,1
+monitor stock level,monitor stock level,1
+adhere to verbal instructions,lift heavy weights,0
+choose different ways to cook,use techniques to cook,1
+make sandwiches,solve problems,0
+respond to visitor complaints,use cooking techniques,0
+collect payments,control vehicles,0
+answer incoming calls,driving vehicles,0
+task planning,maintain personal hygienic standards,0
+handle helpdesk problems,handle helpdesk problems,1
+listen actively,listen actively,1
+use cooking techniques,use cookery techniques,1
+use word processing software,cooperate,0
+manage time,prioritise tasks,0
+drive vehicles,driving automatic car,0
+issue official documents,provide official documents,1
+prepare sandwiches,prepare sandwiches,1
+file documents,filing of documents,1
+communicate by telephone,use spreadsheets software,0
+stock level monitoring,view stock level,1
+work in teams,work in teams,1
+prepare sandwiches,order documents,0
+driving automatic car,drive automatic cars,1
+monitor stock level,park vehicles,0
+use techniques to cook,use dishwasher,0
+park automobiles,operate vehicles,0
+operate dishwashing machine,operate dishwashing machine,1
+cook meat dishes,utilise microsoft office software,0
+drive vehicles,drive a vehicle,1
+reply to visitor complaints,answer visitor complaints,1
+keep a stock record,save stock records,1
+use cookery techniques,choose different ways to cook,1
+task planning,manage schedule of tasks,1
+adapt to change,openness to change,0
+driving automatic car,drive automatic car,1

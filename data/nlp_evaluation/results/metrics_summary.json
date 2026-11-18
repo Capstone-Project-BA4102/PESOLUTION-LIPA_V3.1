@@ -1,0 +1,120 @@
+{
+  "objective": "Objective 5: pretrained NLP semantic skill-pair evaluation",
+  "executed_at_utc": "2026-11-18T17:00:24.383111+00:00",
+  "executed_at_manila": "2026-11-19T01:00:24.383111+08:00",
+  "dataset_file": "PESOLUTION_ESCO_400_Human_Annotated_Ground_Truth.csv",
+  "dataset_sha256": "51fbdb6b6c8bed3bc26538ea8aee27de3bd4124494928f5e32672bc7519f923c",
+  "model": {
+    "id": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+  },
+  "threshold": 0.85,
+  "decision_rule": "measured cosine >= configured threshold -> Match (1)",
+  "positive_class": "Match (1)",
+  "averaging": "binary positive class",
+  "metric_units": "unrounded proportions",
+  "reference": "User-supplied final human consensus labels; process documented in dataset_metadata.json",
+  "zero_division": "undefined denominator -> null; F1 uses direct count formula",
+  "all_pairs_model_only": {
+    "records": 400,
+    "reference_labels": {
+      "Match": 193,
+      "No Match": 207
+    },
+    "predicted_labels": {
+      "Match": 117,
+      "No Match": 283
+    },
+    "counts": {
+      "TP": 117,
+      "TN": 207,
+      "FP": 0,
+      "FN": 76
+    },
+    "metrics": {
+      "accuracy": 0.81,
+      "precision": 1.0,
+      "recall": 0.6062176165803109,
+      "f1": 0.7548387096774194
+    }
+  },
+  "nonexact_pairs_model_only": {
+    "records": 352,
+    "reference_labels": {
+      "Match": 145,
+      "No Match": 207
+    },
+    "predicted_labels": {
+      "Match": 69,
+      "No Match": 283
+    },
+    "counts": {
+      "TP": 69,
+      "TN": 207,
+      "FP": 0,
+      "FN": 76
+    },
+    "metrics": {
+      "accuracy": 0.7840909090909091,
+      "precision": 1.0,
+      "recall": 0.47586206896551725,
+      "f1": 0.6448598130841121
+    }
+  },
+  "exact_controls_model_only": {
+    "records": 48,
+    "reference_labels": {
+      "Match": 48,
+      "No Match": 0
+    },
+    "predicted_labels": {
+      "Match": 48,
+      "No Match": 0
+    },
+    "counts": {
+      "TP": 48,
+      "TN": 0,
+      "FP": 0,
+      "FN": 0
+    },
+    "metrics": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "exact_rule_count": 48,
+  "production_policy_comparison": {
+    "records": 400,
+    "reference_labels": {
+      "Match": 193,
+      "No Match": 207
+    },
+    "predicted_labels": {
+      "Match": 117,
+      "No Match": 283
+    },
+    "counts": {
+      "TP": 117,
+      "TN": 207,
+      "FP": 0,
+      "FN": 76
+    },
+    "metrics": {
+      "accuracy": 0.81,
+      "precision": 1.0,
+      "recall": 0.6062176165803109,
+      "f1": 0.7548387096774194
+    }
+  },
+  "policy_prediction_disagreements": 0,
+  "channel_normalization_check": "hard and soft keys identical for all provided phrases; no inferred category labels",
+  "node_validation": {
+    "audits_validated": 400
+  },
+  "inference_seconds": 10.80780919999961,
+  "training_performed": false,
+  "threshold_tuning_performed": false,
+  "weighted_job_scoring_evaluated": false
+}

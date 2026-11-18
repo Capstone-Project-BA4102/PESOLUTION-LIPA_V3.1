@@ -44,8 +44,33 @@ coverage/
 *.tmp
 *.temp
 
-# Local-only development notes, synthetic previews and CLI cache.
-/docs/
+# Only current submission docs; draft/sprint/archive notes remain local.
+/docs/*
+!/docs/README.md
+!/docs/architecture.md
+!/docs/setup-and-deployment.md
+!/docs/nlp-evaluation-methodology.md
+!/docs/analytics-reporting.md
+!/docs/applicant-renewal.md
+!/docs/account-deletion-setup.md
+
+# Local-only synthetic previews and CLI cache.
 /tests/ui/
 /scripts/seed-sample.cjs
 /supabase/.temp/
+
+# Raw/draft research is separate from the canonical data/nlp_evaluation artifacts.
+/research_data/
+/research_outputs/
+
+# Local agent state, credentials and temporary work.
+/.codex/
+/.agents/
+/.superadmin-credentials*
+/secrets/
+/credentials/
+/tmp/
+/temp/
+*.tsbuildinfo
+
+# Official data/nlp_evaluation dataset, evaluator and results stay trackable.

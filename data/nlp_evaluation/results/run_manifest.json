@@ -1,0 +1,84 @@
+{
+  "dataset_sha256_before": "51fbdb6b6c8bed3bc26538ea8aee27de3bd4124494928f5e32672bc7519f923c",
+  "dataset_sha256_after": "51fbdb6b6c8bed3bc26538ea8aee27de3bd4124494928f5e32672bc7519f923c",
+  "source_sha256_before": {
+    "backend/skill_nlp.py": "8893f985c49f6f0e1f0d34360fca28d61e74611700db696eccda505cc1cb3662",
+    "backend/skill-nlp.cjs": "ce92c0ff26d1c39b48b31d3856de9efd0783f6fe3661cf4e4e5b8d4680ec833e",
+    "backend/skill-text.cjs": "cba574dac60a09d71b8c2cb2e5ac67583b0cfb65a6a1af6e2332f70416eb0eb7",
+    "backend/config.cjs": "feed2d0ff83229a199c6cbb321b2b9d18eff765a54c8624991a653b561868663",
+    "backend/domain.cjs": "28baa521ca115cd486225530641dd42d6109e6426cbc9076320da96ab6d1e8ba",
+    "backend/matching.cjs": "378816c00f20666c83d70fe42ae2af65cfcb8af8184f26265011c458258a3ddd",
+    "backend/requirements-nlp.txt": "dbfb77ed3e758d350ceef2661b6b86c37f905fa58dba1d9defe39a98804c039e"
+  },
+  "source_sha256_after": {
+    "backend/skill_nlp.py": "8893f985c49f6f0e1f0d34360fca28d61e74611700db696eccda505cc1cb3662",
+    "backend/skill-nlp.cjs": "ce92c0ff26d1c39b48b31d3856de9efd0783f6fe3661cf4e4e5b8d4680ec833e",
+    "backend/skill-text.cjs": "cba574dac60a09d71b8c2cb2e5ac67583b0cfb65a6a1af6e2332f70416eb0eb7",
+    "backend/config.cjs": "feed2d0ff83229a199c6cbb321b2b9d18eff765a54c8624991a653b561868663",
+    "backend/domain.cjs": "28baa521ca115cd486225530641dd42d6109e6426cbc9076320da96ab6d1e8ba",
+    "backend/matching.cjs": "378816c00f20666c83d70fe42ae2af65cfcb8af8184f26265011c458258a3ddd",
+    "backend/requirements-nlp.txt": "dbfb77ed3e758d350ceef2661b6b86c37f905fa58dba1d9defe39a98804c039e"
+  },
+  "model_assets_sha256_before": {
+    "config.json": "038a9fbf343363a7b9f8296a0a8402375e8e4e24f612ee4d7f1ec6fa67548508",
+    "config_sentence_transformers.json": "f2b987ee245699f73eec449f9f6d38b5ade39d1e6ae5653613f35a78bab9cbee",
+    "model.safetensors": "1377e9af0ca0b016a9f2aa584d6fc71ab3ea6804fae21ef9fb1416e2944057ac",
+    "modules.json": "e7989e94b5b809d895a9521b708312c1ccd333e183effebaf3838908da2acd53",
+    "pesolution-model.json": "75fac3adbee67221f4c47c598869180fd8a80c17b2cdf58dc55d69e7ae0284f5",
+    "README.md": "3fc756c24ada7da8ea723c13c19cba30b02a4fb22f358cd5b9262eba6a974a3b",
+    "sentence_bert_config.json": "5a78a8637a4c986a89b5e9b3ce4af84b94b1dfeb9f1dfb09c448182a9d7ca9ab",
+    "special_tokens_map.json": "5aa43c2f985a25296d5a5ce621c2f77376ca8091a47993c492fd5460b895b140",
+    "tokenizer.json": "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0",
+    "tokenizer_config.json": "d4f505dfdb84b5a987fc5f520e0c2bac59e4ac6e43a1d00cab1e96647971dad8",
+    "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+    "1_Pooling/config.json": "b4105bf48c5257a542a7e1968cef220b3ecd49ae24943143279650c4ac6e30a0"
+  },
+  "model_assets_sha256_after": {
+    "config.json": "038a9fbf343363a7b9f8296a0a8402375e8e4e24f612ee4d7f1ec6fa67548508",
+    "config_sentence_transformers.json": "f2b987ee245699f73eec449f9f6d38b5ade39d1e6ae5653613f35a78bab9cbee",
+    "model.safetensors": "1377e9af0ca0b016a9f2aa584d6fc71ab3ea6804fae21ef9fb1416e2944057ac",
+    "modules.json": "e7989e94b5b809d895a9521b708312c1ccd333e183effebaf3838908da2acd53",
+    "pesolution-model.json": "75fac3adbee67221f4c47c598869180fd8a80c17b2cdf58dc55d69e7ae0284f5",
+    "README.md": "3fc756c24ada7da8ea723c13c19cba30b02a4fb22f358cd5b9262eba6a974a3b",
+    "sentence_bert_config.json": "5a78a8637a4c986a89b5e9b3ce4af84b94b1dfeb9f1dfb09c448182a9d7ca9ab",
+    "special_tokens_map.json": "5aa43c2f985a25296d5a5ce621c2f77376ca8091a47993c492fd5460b895b140",
+    "tokenizer.json": "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0",
+    "tokenizer_config.json": "d4f505dfdb84b5a987fc5f520e0c2bac59e4ac6e43a1d00cab1e96647971dad8",
+    "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3",
+    "1_Pooling/config.json": "b4105bf48c5257a542a7e1968cef220b3ecd49ae24943143279650c4ac6e30a0"
+  },
+  "model": {
+    "id": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41"
+  },
+  "configured_threshold": 0.85,
+  "evaluator_sha256": "02c28ca23a20ed65e36831f8d329e3411afa8170859bd1c11bd20b9985ddaae6",
+  "dataset_metadata_sha256": "02c07e5b1cd172a8bfdf5b5bd159168a5564badda02715275189d2f9e46da26a",
+  "repository_commit": "38510596256ee3b741d5fa1170cebe91f35787aa",
+  "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "torch_threads": 1,
+  "device": "cpu",
+  "random_seed": 0,
+  "dependencies": {
+    "torch": "2.8.0+cpu",
+    "sentence-transformers": "5.1.2",
+    "transformers": "4.57.6",
+    "huggingface-hub": "0.36.0",
+    "Pillow": "13.0.0"
+  },
+  "model_loaded_locally": true,
+  "network_inference_calls": 0,
+  "application_source_unchanged": true,
+  "weights_unchanged": true,
+  "human_reference_bytes_unchanged": true,
+  "primary_preprocessing": "production competency_key with punctuation preservation; hard/soft keys verified identical",
+  "representation": "384-dimensional cached Sentence-Transformer, normalized embeddings; production util.cos_sim",
+  "files_sha256": {
+    "confusion_matrix.png": "c48679dcb8928ef3f50507b6061f38d668b8e6f215a4053d32de67b454b913d3",
+    "confusion_matrix_nonexact.png": "8b51931bdb49f863f91db3d60de400622e0b9eb36a8ab21e2e6092e655af2d26",
+    "evaluation_report.md": "970355a9bf173d977c355034d95be7749490c59b10ae169b069f6b1e9c0d72ae",
+    "metrics_summary.json": "88f4e7b475c764f0dc74b050f3e3667b969ae7aa7f6784edefef4ce049d790ff",
+    "prediction_audit.json": "f305971d57c06bee8b25a751573a2a5bb8a8449630d817b6e0b31c5e9e66332d",
+    "prediction_results.csv": "d9c1dcc0284bec677d6d34065464dc32d492f56b021a327822f8792af32b0f03"
+  }
+}

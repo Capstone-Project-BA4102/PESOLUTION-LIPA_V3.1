@@ -1,0 +1,15 @@
+{
+  "all_400_reference_labels_and_pair_order_preserved": true,
+  "canonical_file_byte_identical_to_supplied_original": true,
+  "single_canonical_project_dataset": true,
+  "all_raw_score_threshold_decisions_reconciled": true,
+  "all_pair_and_nonexact_metrics_independently_verified_with_scikit_learn": true,
+  "scikit_learn_version": "1.9.1",
+  "both_confusion_figures_2400x1800_at_300_dpi": true,
+  "evaluator_unit_tests_passed": 9,
+  "application_source_and_model_hashes_unchanged": true,
+  "node_production_audits_validated": 400,
+  "primary_and_production_policy_prediction_disagreements": 0,
+  "same_actual_metrics_observed_in_two_executed_model_runs": true,
+  "no_label_changes_training_or_threshold_tuning": true
+}

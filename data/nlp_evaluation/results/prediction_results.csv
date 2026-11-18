@@ -1,0 +1,401 @@
+﻿applicant_skill,job_skill,human_reference_label,model_predicted_label,cosine_similarity_score,prediction_result,human_reference_class,model_predicted_class
+control vehicles,drive vehicles,1,0,0.7537293434143066,Incorrect,Match,No Match
+prioritise tasks,adapt to change,0,0,0.1420798897743225,Correct,No Match,No Match
+clean worktops,clean the surfaces,1,0,0.5951606631278992,Incorrect,Match,No Match
+have proficiency in MS office,utilise microsoft office software,1,0,0.6268402338027954,Incorrect,Match,No Match
+handle petty cash,use automatic car,0,0,0.17816480994224548,Correct,No Match,No Match
+search for information online,use search engine,1,0,0.5995445251464844,Incorrect,Match,No Match
+show sense of initiative,iron,0,0,0.04725024476647377,Correct,No Match,No Match
+issue official documents,run a cash point,0,0,-0.09642994403839111,Correct,No Match,No Match
+operate cash register,operate cash register,1,1,1.0,Correct,Match,Match
+carry out record management,carry out records management,1,1,0.9582985639572144,Correct,Match,Match
+utilise microsoft office applications,supply official documents,0,0,0.24220851063728333,Correct,No Match,No Match
+take incoming calls,openness to change,0,0,0.10511942952871323,Correct,No Match,No Match
+clean worktops,lift heavy weights,0,0,0.05742258206009865,Correct,No Match,No Match
+openness to change,solve problems,0,0,0.18412210047245026,Correct,No Match,No Match
+cook and finish meat dishes,cook meat dishes,1,1,0.9026352167129517,Correct,Match,Match
+adhere to written directions,adhere to verbal directions,0,0,0.7554863691329956,Correct,No Match,No Match
+clean surfaces,clean surfaces,1,1,1.0,Correct,Match,Match
+handle helpdesk problems,solve helpdesk problems,1,0,0.8497458696365356,Incorrect,Match,No Match
+clean floors,clean surfaces,0,0,0.5561498999595642,Correct,No Match,No Match
+answer visitor complaints,respond to visitor complaints,1,1,0.9049263596534729,Correct,Match,Match
+oversee stock level,watch stock level,1,0,0.7229653596878052,Incorrect,Match,No Match
+show initiative,show active initiative,1,1,0.8528127074241638,Correct,Match,Match
+maintain personal standards of hygiene,wash laundry,0,0,0.383343905210495,Correct,No Match,No Match
+operate cash point,operating a cash register,1,0,0.5839762687683105,Incorrect,Match,No Match
+convey verbal instructions,Microsoft Office Visio,0,0,0.15840280055999756,Correct,No Match,No Match
+follow spoken instructions,cooperate,0,0,0.25570768117904663,Correct,No Match,No Match
+manage cash desk,food safety standard,0,0,0.0440787672996521,Correct,No Match,No Match
+demonstrate problem solving skills,teamwork methods,0,0,0.45202481746673584,Correct,No Match,No Match
+process a payment,accept payments,1,0,0.7715703248977661,Incorrect,Match,No Match
+organise records management,Microsoft Visio,0,0,0.062131885439157486,Correct,No Match,No Match
+draft corporate emails,record documents,0,0,0.23267486691474915,Correct,No Match,No Match
+clean the surfaces,clean walls,0,0,0.5677448511123657,Correct,No Match,No Match
+driving vehicles,drive vehicles,1,1,0.9483413696289062,Correct,Match,Match
+demonstrate problem solving skills,apply problem solving,1,0,0.6019372344017029,Incorrect,Match,No Match
+schedule tasks,organise tasks,1,0,0.6988295316696167,Incorrect,Match,No Match
+use search engine,operate steam presser,0,0,0.09469600766897202,Correct,No Match,No Match
+manage cash desk,run a cash point,1,0,0.49525898694992065,Incorrect,Match,No Match
+driving automatic car,use automatic car,1,1,0.8955380320549011,Correct,Match,Match
+adhere to written instructions,collaborate on tasks,0,0,0.2259061634540558,Correct,No Match,No Match
+drive automatic car,drive automatic car,1,1,0.9999999403953552,Correct,Match,Match
+manage schedule of tasks,organize tasks,1,0,0.7205759286880493,Incorrect,Match,No Match
+handle customer complaints,handle petty cash,0,0,0.2340996265411377,Correct,No Match,No Match
+customer services,customer support,1,0,0.7785184383392334,Incorrect,Match,No Match
+food safety standards,food safety standard,1,1,0.9679876565933228,Correct,Match,Match
+follow spoken instructions,lead a team,0,0,0.10165533423423767,Correct,No Match,No Match
+lead a team,support colleagues,0,0,0.3976835608482361,Correct,No Match,No Match
+communicate by telephone,communicate by telephone,1,1,1.0,Correct,Match,Match
+set priorities,prioritise tasks,1,0,0.5954481959342957,Incorrect,Match,No Match
+transmit verbal instructions,convey instructions verbally,1,0,0.7672651410102844,Incorrect,Match,No Match
+control vehicles,operate vehicles,1,0,0.7815377712249756,Incorrect,Match,No Match
+use techniques to cook,make sandwiches,0,0,0.2953680753707886,Correct,No Match,No Match
+view stock level,use office systems,0,0,-0.03816591948270798,Correct,No Match,No Match
+adapt to change,lifting heavy weights,0,0,0.054420143365859985,Correct,No Match,No Match
+follow written instructions,lead a team,0,0,0.1587439477443695,Correct,No Match,No Match
+food safety standard,operate dishwashing machine,0,0,0.11957613378763199,Correct,No Match,No Match
+organise tasks,task planning,1,0,0.6616354584693909,Incorrect,Match,No Match
+handle payments,accept payments,1,0,0.8235076665878296,Incorrect,Match,No Match
+listen actively,lead a team,0,0,0.12244720757007599,Correct,No Match,No Match
+conduct web searches,conduct web searches,1,1,1.0,Correct,Match,Match
+manage cash desk,customer services,0,0,0.26512259244918823,Correct,No Match,No Match
+draft corporate emails,monitor stock level,0,0,0.10002046078443527,Correct,No Match,No Match
+order documents,pick up incoming calls,0,0,0.08265773952007294,Correct,No Match,No Match
+operate cash register,run a cash point,1,0,0.47798413038253784,Incorrect,Match,No Match
+check deliveries on receipt,lift heavy weight,0,0,0.08346860855817795,Correct,No Match,No Match
+handle a helpdesk problem,handle helpdesk problems,1,1,0.9702950716018677,Correct,Match,Match
+MS Visio,manage schedule,0,0,0.16357681155204773,Correct,No Match,No Match
+adhere to verbal directions,adhere to verbal instructions,1,1,0.9238177537918091,Correct,Match,Match
+collect payments,customer services,0,0,0.292502224445343,Correct,No Match,No Match
+Microsoft Office Word,prepare sandwiches,0,0,0.042151566594839096,Correct,No Match,No Match
+manage schedule of tasks,park vehicles,0,0,0.07694579660892487,Correct,No Match,No Match
+Microsoft Office Visio,handle helpdesk problems,0,0,0.10402407497167587,Correct,No Match,No Match
+lead a team,driving automatic car,0,0,0.1550716906785965,Correct,No Match,No Match
+deal with helpdesk problems,save stock records,0,0,-0.06249091774225235,Correct,No Match,No Match
+clean worktops,clean tables,1,0,0.492314875125885,Incorrect,Match,No Match
+search for information online,communicate by telephone,0,0,0.16124266386032104,Correct,No Match,No Match
+teamwork principle,teamwork principles,1,1,0.8719740509986877,Correct,Match,Match
+manage cash desk,manage cash desk,1,1,1.0,Correct,Match,Match
+handle helpdesk problems,utilise microsoft office applications,0,0,0.1156395673751831,Correct,No Match,No Match
+MS Visio,adhere to written instructions,0,0,0.08094833791255951,Correct,No Match,No Match
+elevate heavy weights,store stock records,0,0,0.0700344666838646,Correct,No Match,No Match
+apply problem solving,lift heavy weight,0,0,0.06170489639043808,Correct,No Match,No Match
+issue official documents,issue official documents,1,1,0.9999998807907104,Correct,Match,Match
+manage time,managing time,1,1,0.9680951833724976,Correct,Match,Match
+maintain personal hygiene standards,clear tables,0,0,0.05583837255835533,Correct,No Match,No Match
+operating a cash register,handle petty cash,0,0,0.42766863107681274,Correct,No Match,No Match
+run a cash point,handle customer complaints,0,0,0.06940589845180511,Correct,No Match,No Match
+issue official documents,convey instructions verbally,0,0,0.11561700701713562,Correct,No Match,No Match
+use automatic car,drive automatic cars,1,1,0.895182728767395,Correct,Match,Match
+active listening,use techniques to cook,0,0,0.031190432608127594,Correct,No Match,No Match
+handle customer complaints,handle customer complaints,1,1,1.0,Correct,Match,Match
+stock level monitoring,check deliveries on receipt,0,0,0.21127361059188843,Correct,No Match,No Match
+convey verbal instructions,communicate verbal instructions,1,1,0.9203498363494873,Correct,Match,Match
+address guest complaints,take incoming calls,0,0,0.13274818658828735,Correct,No Match,No Match
+park automobiles,park cars,1,1,0.9062802791595459,Correct,Match,Match
+monitor stock level,watch stock level,1,0,0.782228946685791,Incorrect,Match,No Match
+collect payments,handle customers' complaints,0,0,0.22338815033435822,Correct,No Match,No Match
+answer incoming calls,take incoming calls,1,0,0.8454619646072388,Incorrect,Match,No Match
+show active initiative,customer support,0,0,0.06819060444831848,Correct,No Match,No Match
+answer incoming calls,work with office systems,0,0,0.2607267498970032,Correct,No Match,No Match
+search for information online,use techniques to cook,0,0,0.11048171669244766,Correct,No Match,No Match
+oversee stock level,monitor stock level,1,0,0.6594186425209045,Incorrect,Match,No Match
+control vehicles,driving vehicles,1,0,0.767484188079834,Incorrect,Match,No Match
+draft corporate emails,prepare a sandwich,0,0,0.1482894867658615,Correct,No Match,No Match
+collect payments,respond to complaints from visitors,0,0,0.17562317848205566,Correct,No Match,No Match
+wash the laundry,washing the laundry,1,1,0.9404687881469727,Correct,Match,Match
+cook meat in dishes,food safety standards,0,0,0.26911604404449463,Correct,No Match,No Match
+keep stock records,keep a stock record,1,1,0.9446991086006165,Correct,Match,Match
+use office systems,Microsoft Office Word,0,0,0.628787636756897,Correct,No Match,No Match
+keep stock records,prepare a sandwich,0,0,0.06446783244609833,Correct,No Match,No Match
+park vehicles,park vehicles,1,1,0.9999999403953552,Correct,Match,Match
+cook and finish meat dishes,show initiative,0,0,0.007995008490979671,Correct,No Match,No Match
+Microsoft Office Word,adapt to changes,0,0,0.1049177423119545,Correct,No Match,No Match
+show initiative,show initiative,1,1,1.0,Correct,Match,Match
+follow spoken instructions,listen actively,0,0,0.3420863747596741,Correct,No Match,No Match
+lift heavy weights,elevate heavy weights,1,0,0.7764763236045837,Incorrect,Match,No Match
+answering incoming calls,communicate by telephone,0,0,0.6573604345321655,Correct,No Match,No Match
+cooperate,support colleagues,0,0,0.46443232893943787,Correct,No Match,No Match
+cook dishes with meat,cook and finish meat dishes,1,1,0.8956826329231262,Correct,Match,Match
+follow spoken instructions,follow verbal instructions,1,0,0.7775847911834717,Incorrect,Match,No Match
+file documents,file documents,1,1,1.0,Correct,Match,Match
+wash laundry,convey verbal instructions,0,0,0.09242723137140274,Correct,No Match,No Match
+apply active listening techniques,maintain active listening,1,0,0.8472366333007812,Incorrect,Match,No Match
+process payments,process payments,1,1,1.0,Correct,Match,Match
+view stock level,oversee stock level,1,0,0.6354853510856628,Incorrect,Match,No Match
+teamwork principles,listen actively,0,0,0.17955121397972107,Correct,No Match,No Match
+teamwork principle,adhere to verbal directions,0,0,0.3670811057090759,Correct,No Match,No Match
+cook meat dishes,cook meat dishes,1,1,1.0,Correct,Match,Match
+communicate verbal instructions,communicate verbal instructions,1,1,1.0,Correct,Match,Match
+lift heavy weight,communicate by telephone,0,0,0.06720004975795746,Correct,No Match,No Match
+stock level monitoring,watch stock level,1,0,0.8362137079238892,Incorrect,Match,No Match
+active listening,maintain active listening,1,1,0.8965619802474976,Correct,Match,Match
+hold stock records,solve problems,0,0,0.002204909920692444,Correct,No Match,No Match
+use word processing software,Microsoft Office Word,1,0,0.6878014802932739,Incorrect,Match,No Match
+food safety standards,use cookery techniques,0,0,0.3181343376636505,Correct,No Match,No Match
+supply official documents,adhere to written directions,0,0,0.15697050094604492,Correct,No Match,No Match
+operate automatic car,use automatic car,1,1,0.9186339974403381,Correct,Match,Match
+use office systems,do the laundry,0,0,0.1094227284193039,Correct,No Match,No Match
+operate dishwashing machine,order documents,0,0,0.10379447042942047,Correct,No Match,No Match
+use office systems,order documents,0,0,0.32961031794548035,Correct,No Match,No Match
+check deliveries on receipt,park motorised vehicles,0,0,0.019512169063091278,Correct,No Match,No Match
+maintain personal hygiene standards,maintain personal hygiene standards,1,1,0.9999999403953552,Correct,Match,Match
+handle petty cash,handle payments,0,0,0.5014474987983704,Correct,No Match,No Match
+task scheduling,adapt to changes,0,0,0.12940113246440887,Correct,No Match,No Match
+clean tables,iron textiles by hand,0,0,0.018432384356856346,Correct,No Match,No Match
+address guest complaints,Microsoft Office Word,0,0,0.061765603721141815,Correct,No Match,No Match
+use cooking techniques,use cooking techniques,1,1,1.0,Correct,Match,Match
+prioritise actions,wash laundry,0,0,0.1003093272447586,Correct,No Match,No Match
+transmit verbal instructions,follow written directions,0,0,0.393660306930542,Correct,No Match,No Match
+customer service,handle petty cash,0,0,0.22455459833145142,Correct,No Match,No Match
+clear tables,clean tables,1,0,0.829154372215271,Incorrect,Match,No Match
+address guest complaints,handle customer complaints,1,0,0.4943699836730957,Incorrect,Match,No Match
+clean worktops,clean floors,0,0,0.4800160527229309,Correct,No Match,No Match
+solve helpdesk problems,work with office systems,0,0,0.2396424114704132,Correct,No Match,No Match
+food safety standards,food safety requirements,1,1,0.8772385120391846,Correct,Match,Match
+show initiative,manage time,0,0,0.2649042308330536,Correct,No Match,No Match
+work with office systems,show initiative,0,0,0.1660763919353485,Correct,No Match,No Match
+do the laundry,answer visitor complaints,0,0,0.04713050276041031,Correct,No Match,No Match
+adhere to written directions,adhere to written instructions,1,1,0.8702096939086914,Correct,Match,Match
+use microsoft office,operating a cash register,0,0,0.2446882724761963,Correct,No Match,No Match
+keep stock records,store stock records,1,1,0.8916856050491333,Correct,Match,Match
+park cars,park vehicles,1,1,0.9244775772094727,Correct,Match,Match
+wash the laundry,iron textiles,0,0,0.29776719212532043,Correct,No Match,No Match
+handle a helpdesk problem,deal with helpdesk problems,1,1,0.9528676271438599,Correct,Match,Match
+maintain personal hygiene standards,maintain personal hygienic standards,1,1,0.8716884851455688,Correct,Match,Match
+demonstrate problem solving skills,handle a helpdesk problem,0,0,0.3184383511543274,Correct,No Match,No Match
+organise tasks,organize tasks,1,1,0.9452263116836548,Correct,Match,Match
+work in teams,provide official documents,0,0,0.09784974157810211,Correct,No Match,No Match
+check deliveries on receipt,keep a stock record,0,0,0.116146020591259,Correct,No Match,No Match
+teamwork principle,teamwork methods,1,0,0.7887893915176392,Incorrect,Match,No Match
+iron textiles by hand,iron textiles,1,1,0.9160645008087158,Correct,Match,Match
+working in teams,work in teams,1,1,0.9779112339019775,Correct,Match,Match
+lead a team,teamwork principles,0,0,0.559611976146698,Correct,No Match,No Match
+use word processing software,use spreadsheets software,0,0,0.45358455181121826,Correct,No Match,No Match
+lead a team,communicate verbal instructions,0,0,0.14687608182430267,Correct,No Match,No Match
+use techniques to cook,use cooking techniques,1,1,0.9426645636558533,Correct,Match,Match
+view stock level,save stock records,0,0,0.4298090934753418,Correct,No Match,No Match
+save stock records,keep stock records,1,1,0.891015350818634,Correct,Match,Match
+operate cash point,customer care,0,0,0.2529166042804718,Correct,No Match,No Match
+operate steam presser,elevate heavy weights,0,0,0.08885058015584946,Correct,No Match,No Match
+task planning,show sense of initiative,0,0,0.4422956705093384,Correct,No Match,No Match
+show active initiative,openness to change,0,0,0.1393936425447464,Correct,No Match,No Match
+communicate verbal instructions,cooperate,0,0,0.2843809723854065,Correct,No Match,No Match
+set priorities,prioritise actions,1,0,0.5617009997367859,Incorrect,Match,No Match
+accept payments,process payments,1,0,0.7507953643798828,Incorrect,Match,No Match
+use office systems,use office systems,1,1,1.0,Correct,Match,Match
+follow spoken instructions,food safety requirements,0,0,0.10969500243663788,Correct,No Match,No Match
+manage time,manage time,1,1,1.0,Correct,Match,Match
+use microsoft office,use microsoft office,1,1,1.0,Correct,Match,Match
+collaborate on tasks,working in teams,1,0,0.3821724057197571,Incorrect,Match,No Match
+drive vehicles,drive vehicles,1,1,1.0,Correct,Match,Match
+draft corporate emails,operate dishwasher,0,0,-0.02185003086924553,Correct,No Match,No Match
+customer service,respond to visitor complaints,0,0,0.3710523247718811,Correct,No Match,No Match
+operate automatic car,drive automatic car,1,1,0.9014694094657898,Correct,Match,Match
+Microsoft Visio,Microsoft Office Visio,1,1,0.9099233150482178,Correct,Match,Match
+food safety standards,keep a stock record,0,0,0.044182151556015015,Correct,No Match,No Match
+conduct web searches,follow written directions,0,0,0.18763324618339539,Correct,No Match,No Match
+lift heavy weights,lift heavy weights,1,1,1.0,Correct,Match,Match
+follow written instructions,follow written instructions,1,1,1.0,Correct,Match,Match
+adhere to verbal directions,washing the laundry,0,0,0.08296096324920654,Correct,No Match,No Match
+drive automatic car,drive automatic cars,1,1,0.9705374240875244,Correct,Match,Match
+maintain active listening,listen actively,1,0,0.815379798412323,Incorrect,Match,No Match
+process a payment,process payments,1,1,0.8649656176567078,Correct,Match,Match
+clean surfaces,do the laundry,0,0,0.23184701800346375,Correct,No Match,No Match
+adapt to change,adapt to change,1,1,1.0,Correct,Match,Match
+follow written instructions,adhere to written instructions,1,0,0.6404767036437988,Incorrect,Match,No Match
+manage cash desk,address guest complaints,0,0,0.030267812311649323,Correct,No Match,No Match
+cook meat dishes,cook dishes with meat,1,1,0.9763994216918945,Correct,Match,Match
+prepare sandwiches,prepare a sandwich,1,1,0.9162982702255249,Correct,Match,Match
+save stock records,hold stock records,1,0,0.8224631547927856,Incorrect,Match,No Match
+make sandwiches,teamwork principles,0,0,0.19494691491127014,Correct,No Match,No Match
+issue official documents,prepare a sandwich,0,0,0.00747055746614933,Correct,No Match,No Match
+iron textiles by hand,operate steam presser,0,0,0.19118797779083252,Correct,No Match,No Match
+drive a vehicle,control vehicles,1,0,0.6649967432022095,Incorrect,Match,No Match
+prepare a sandwich,cook meat in dishes,0,0,0.43364760279655457,Correct,No Match,No Match
+examine deliveries on receipt,check deliveries with receipt,1,1,0.9261834621429443,Correct,Match,Match
+file documents,order documents,0,0,0.617702305316925,Correct,No Match,No Match
+do the laundry,washing the laundry,1,1,0.8886152505874634,Correct,Match,Match
+operating a cash register,operate cash register,1,1,0.9595508575439453,Correct,Match,Match
+issue official documents,supply official documents,1,0,0.7432100176811218,Incorrect,Match,No Match
+cook and finish meat dishes,drive a vehicle,0,0,0.04120960086584091,Correct,No Match,No Match
+work with office systems,use spreadsheets software,0,0,0.39883923530578613,Correct,No Match,No Match
+handle petty cash,answer visitor complaints,0,0,0.09919396787881851,Correct,No Match,No Match
+prepare a sandwich,use dishwasher,0,0,0.24042199552059174,Correct,No Match,No Match
+teamwork principles,teamwork principles,1,1,1.0,Correct,Match,Match
+clear tables,clean surfaces,0,0,0.3960648775100708,Correct,No Match,No Match
+organize tasks,Microsoft Office Word,0,0,0.19161772727966309,Correct,No Match,No Match
+take incoming calls,pick up incoming calls,1,1,0.9038202166557312,Correct,Match,Match
+lifting heavy weights,set priorities,0,0,0.1113814190030098,Correct,No Match,No Match
+manage time,driving vehicles,0,0,0.13746818900108337,Correct,No Match,No Match
+follow verbal instructions,utilize office systems,0,0,0.1367916315793991,Correct,No Match,No Match
+teamwork approaches,teamwork methods,1,1,0.9126078486442566,Correct,Match,Match
+park motorised vehicles,communicate by telephone,0,0,-0.01284891739487648,Correct,No Match,No Match
+examine deliveries on receipt,choose different ways to cook,0,0,-0.004507516510784626,Correct,No Match,No Match
+manage cash desk,collect payments,1,0,0.26391077041625977,Incorrect,Match,No Match
+park automobiles,drive automatic cars,0,0,0.5289816856384277,Correct,No Match,No Match
+answer visitor complaints,manage cash desk,0,0,0.010908483527600765,Correct,No Match,No Match
+use automatic car,drive automatic car,1,1,0.9142739772796631,Correct,Match,Match
+iron textiles,answer visitor complaints,0,0,0.016700226813554764,Correct,No Match,No Match
+clear tables,clean floors,0,0,0.29601943492889404,Correct,No Match,No Match
+answer incoming calls,use spreadsheets software,0,0,0.13931667804718018,Correct,No Match,No Match
+check deliveries with receipt,check deliveries on receipt,1,1,0.9924066066741943,Correct,Match,Match
+carry out record management,perform records management,1,1,0.855178952217102,Correct,Match,Match
+cooperate,listen actively,0,0,0.23594015836715698,Correct,No Match,No Match
+process a payment,handle payments,1,0,0.8205743432044983,Incorrect,Match,No Match
+operate dishwasher,operate dishwashing machine,1,1,0.9362260103225708,Correct,Match,Match
+driving vehicles,drive a vehicle,1,0,0.8237011432647705,Incorrect,Match,No Match
+follow written directions,teamwork principle,0,0,0.24974669516086578,Correct,No Match,No Match
+make sandwiches,active listening,0,0,0.047376759350299835,Correct,No Match,No Match
+wash laundry,wash the laundry,1,1,0.9551393985748291,Correct,Match,Match
+use spreadsheets software,active listening,0,0,-0.0023815836757421494,Correct,No Match,No Match
+cook meat dishes,cook meat in dishes,1,1,0.9678274989128113,Correct,Match,Match
+operate dishwashing machine,use dishwasher,1,0,0.6965804100036621,Incorrect,Match,No Match
+manage schedule of tasks,task scheduling,1,0,0.7837592363357544,Incorrect,Match,No Match
+organise tasks,solve problems,0,0,0.41260775923728943,Correct,No Match,No Match
+show initiative,initiate action,1,0,0.43231862783432007,Incorrect,Match,No Match
+perform records management,maintain personal hygiene standards,0,0,0.14372602105140686,Correct,No Match,No Match
+use microsoft office,utilise microsoft office software,1,1,0.9009548425674438,Correct,Match,Match
+show active initiative,food safety standards,0,0,-0.022718369960784912,Correct,No Match,No Match
+communicate verbal instructions,cook meat in dishes,0,0,0.05749685317277908,Correct,No Match,No Match
+support colleagues,MS Visio,0,0,0.10812118649482727,Correct,No Match,No Match
+handle customer complaints,handle customers' complaints,1,1,0.9756019711494446,Correct,Match,Match
+stock level monitoring,lifting heavy weights,0,0,0.14813420176506042,Correct,No Match,No Match
+wash the laundry,wash the laundry,1,1,0.9999999403953552,Correct,Match,Match
+manage schedule of tasks,manage schedule of tasks,1,1,1.0,Correct,Match,Match
+check deliveries on receipt,check deliveries on receipt,1,1,1.0,Correct,Match,Match
+file documents,follow written directions,0,0,0.07219257950782776,Correct,No Match,No Match
+park cars,park motorised vehicles,1,0,0.8190560340881348,Incorrect,Match,No Match
+draft corporate emails,park vehicles,0,0,0.015850316733121872,Correct,No Match,No Match
+choose different ways to cook,monitor stock level,0,0,-0.03703644499182701,Correct,No Match,No Match
+utilize office systems,search for information online,0,0,0.1572299599647522,Correct,No Match,No Match
+use cooking techniques,cook and finish meat dishes,0,0,0.557834804058075,Correct,No Match,No Match
+clean walls,clean floors,0,0,0.5020588636398315,Correct,No Match,No Match
+do the laundry,wash the laundry,1,1,0.9193651676177979,Correct,Match,Match
+answer incoming calls,answer incoming calls,1,1,1.0,Correct,Match,Match
+handle helpdesk problems,issue official documents,0,0,0.2020251750946045,Correct,No Match,No Match
+maintain personal hygienic standards,follow written instructions,0,0,0.16079455614089966,Correct,No Match,No Match
+follow verbal instructions,adhere to verbal instructions,1,1,0.8645200729370117,Correct,Match,Match
+carry out records management,filing of documents,0,0,0.383148193359375,Correct,No Match,No Match
+organize tasks,task planning,1,0,0.6648156046867371,Incorrect,Match,No Match
+adhere to verbal directions,choose different ways to cook,0,0,0.15899765491485596,Correct,No Match,No Match
+deal with helpdesk problems,communicate by telephone,0,0,0.046312570571899414,Correct,No Match,No Match
+run a cash point,process a payment,0,0,0.2525801658630371,Correct,No Match,No Match
+solve problems,solve problems,1,1,1.0,Correct,Match,Match
+hold stock records,keep a stock record,1,1,0.8653488159179688,Correct,Match,Match
+solve problems,show sense of initiative,0,0,0.2130042016506195,Correct,No Match,No Match
+listen actively,adhere to written directions,0,0,0.1384187787771225,Correct,No Match,No Match
+perform records management,perform records management,1,1,0.9999999403953552,Correct,Match,Match
+convey verbal instructions,adhere to verbal directions,1,0,0.7804021239280701,Incorrect,Match,No Match
+elevate heavy weights,lifting heavy weights,1,0,0.767295241355896,Incorrect,Match,No Match
+lifting heavy weights,conduct web searches,0,0,0.043183498084545135,Correct,No Match,No Match
+prepare sandwiches,use search engine,0,0,0.0669064074754715,Correct,No Match,No Match
+customer service,check delivery on receipt,0,0,0.260148823261261,Correct,No Match,No Match
+drive vehicles,operate vehicles,1,0,0.7810314297676086,Incorrect,Match,No Match
+monitor stock level,view stock level,1,0,0.7978620529174805,Incorrect,Match,No Match
+use techniques to cook,use cookery techniques,1,0,0.8270269632339478,Incorrect,Match,No Match
+use word processing software,use word processing software,1,1,1.0,Correct,Match,Match
+cook dishes with meat,operate dishwashing machine,0,0,0.3842509388923645,Correct,No Match,No Match
+food safety standards,check deliveries on receipt,0,0,0.1335906684398651,Correct,No Match,No Match
+draft corporate emails,use automatic car,0,0,0.005969066172838211,Correct,No Match,No Match
+handle complaints by customers,handle customer complaints,1,1,0.9705857038497925,Correct,Match,Match
+maintain personal hygienic standards,handle customers' complaints,0,0,0.18390700221061707,Correct,No Match,No Match
+drive automatic car,iron textiles,0,0,-0.04887501522898674,Correct,No Match,No Match
+food safety standard,food safety requirements,1,1,0.8792034387588501,Correct,Match,Match
+answering incoming calls,take incoming calls,1,0,0.8253126740455627,Incorrect,Match,No Match
+customer services,customer service,1,1,0.954835057258606,Correct,Match,Match
+order documents,record documents,0,0,0.606674075126648,Correct,No Match,No Match
+reply to visitor complaints,respond to visitor complaints,1,1,0.963895857334137,Correct,Match,Match
+follow written instructions,adhere to written directions,1,0,0.502449631690979,Incorrect,Match,No Match
+reply to visitor complaints,run a cash point,0,0,-0.001654486171901226,Correct,No Match,No Match
+schedule tasks,set priorities,0,0,0.41700488328933716,Correct,No Match,No Match
+search for information online,issue official documents,0,0,0.20571553707122803,Correct,No Match,No Match
+use search engine,reply to visitor complaints,0,0,0.000522226095199585,Correct,No Match,No Match
+handle customer complaints,prepare sandwiches,0,0,0.07158645242452621,Correct,No Match,No Match
+lift heavy weights,lift heavy weight,1,1,0.9305562973022461,Correct,Match,Match
+take incoming calls,convey verbal instructions,0,0,0.20803670585155487,Correct,No Match,No Match
+park vehicles,park automobiles,1,1,0.8738178014755249,Correct,Match,Match
+answering incoming calls,respond to incoming calls,1,1,0.8846021890640259,Correct,Match,Match
+handle petty cash,handle petty cash,1,1,1.0,Correct,Match,Match
+store stock records,utilise microsoft office applications,0,0,0.15637411177158356,Correct,No Match,No Match
+accept payments,elevate heavy weights,0,0,0.015988538041710854,Correct,No Match,No Match
+keep stock records,keep stock records,1,1,0.9999999403953552,Correct,Match,Match
+watch stock level,view stock level,1,0,0.8197414875030518,Incorrect,Match,No Match
+manage cash desk,handle petty cash,0,0,0.5030921697616577,Correct,No Match,No Match
+demonstrate problem solving skills,solve problems,1,0,0.6697367429733276,Incorrect,Match,No Match
+clean surfaces,clean worktops,1,0,0.6245191097259521,Incorrect,Match,No Match
+iron textiles,iron textiles,1,1,1.0,Correct,Match,Match
+iron textiles by hand,maintain personal hygienic standards,0,0,0.19990229606628418,Correct,No Match,No Match
+maintain active listening,use dishwasher,0,0,-0.022666137665510178,Correct,No Match,No Match
+operate cash point,teamwork principles,0,0,0.11519692838191986,Correct,No Match,No Match
+communicate verbal instructions,teamwork principles,0,0,0.3870628774166107,Correct,No Match,No Match
+demonstrate problem solving skills,managing time,0,0,0.2032448649406433,Correct,No Match,No Match
+listen actively,convey instructions verbally,0,0,0.15205779671669006,Correct,No Match,No Match
+respond to visitor complaints,respond to visitor complaints,1,1,1.0,Correct,Match,Match
+use spreadsheets software,use spreadsheets software,1,1,1.0,Correct,Match,Match
+clean surfaces,clean the surfaces,1,1,0.9202224612236023,Correct,Match,Match
+follow written directions,follow written instructions,1,0,0.7911176681518555,Incorrect,Match,No Match
+answering incoming calls,pick up incoming calls,1,0,0.8104754686355591,Incorrect,Match,No Match
+use word processing software,maintain active listening,0,0,0.0330708883702755,Correct,No Match,No Match
+answer incoming calls,answering incoming calls,1,1,0.9422093629837036,Correct,Match,Match
+iron textiles by hand,iron,1,0,0.5838143825531006,Incorrect,Match,No Match
+operate dishwasher,use dishwasher,1,0,0.7468982338905334,Incorrect,Match,No Match
+initiate action,park vehicles,0,0,0.09135802090167999,Correct,No Match,No Match
+utilize office systems,draft corporate emails,0,0,0.2565443217754364,Correct,No Match,No Match
+handle complaints by customers,customer service,0,0,0.5687060356140137,Correct,No Match,No Match
+operate steam presser,solve problems,0,0,0.06017402932047844,Correct,No Match,No Match
+follow verbal instructions,follow verbal instructions,1,1,1.0,Correct,Match,Match
+drive vehicles,examine deliveries on receipt,0,0,0.08479063212871552,Correct,No Match,No Match
+adapt to change,adapt to changes,1,1,0.904544472694397,Correct,Match,Match
+handle payments,collect payments,1,0,0.7965507507324219,Incorrect,Match,No Match
+convey instructions verbally,communicate verbal instructions,1,1,0.8805333971977234,Correct,Match,Match
+store stock records,save stock records,1,1,0.8747248649597168,Correct,Match,Match
+food safety standard,prepare a sandwich,0,0,0.29380765557289124,Correct,No Match,No Match
+respond to incoming calls,cooperate,0,0,0.21379949152469635,Correct,No Match,No Match
+be open to change,openness to change,1,0,0.8211077451705933,Incorrect,Match,No Match
+carry out records management,supply official documents,0,0,0.3447366952896118,Correct,No Match,No Match
+cooperate,teamwork principles,1,0,0.4461728632450104,Incorrect,Match,No Match
+follow verbal instructions,handle customer complaints,0,0,0.22535735368728638,Correct,No Match,No Match
+Microsoft Visio,Microsoft Visio,1,1,1.0,Correct,Match,Match
+use spreadsheets software,driving automatic car,0,0,0.07858423888683319,Correct,No Match,No Match
+draft corporate emails,draft corporate emails,1,1,1.0,Correct,Match,Match
+lead a team,lead a team,1,1,1.0,Correct,Match,Match
+food safety standards,food safety standards,1,1,1.0,Correct,Match,Match
+check delivery on receipt,examine deliveries on receipt,1,1,0.8633107542991638,Correct,Match,Match
+answer visitor complaints,address guest complaints,1,0,0.6611817479133606,Incorrect,Match,No Match
+customer service,customer service,1,1,0.9999998807907104,Correct,Match,Match
+carry out records management,organise records management,1,0,0.8134856820106506,Incorrect,Match,No Match
+monitor stock level,monitor stock level,1,1,1.0,Correct,Match,Match
+adhere to verbal instructions,lift heavy weights,0,0,0.12118101119995117,Correct,No Match,No Match
+choose different ways to cook,use techniques to cook,1,0,0.8148592710494995,Incorrect,Match,No Match
+make sandwiches,solve problems,0,0,0.10716855525970459,Correct,No Match,No Match
+respond to visitor complaints,use cooking techniques,0,0,-0.07347044348716736,Correct,No Match,No Match
+collect payments,control vehicles,0,0,0.08739374577999115,Correct,No Match,No Match
+answer incoming calls,driving vehicles,0,0,0.12534093856811523,Correct,No Match,No Match
+task planning,maintain personal hygienic standards,0,0,0.027396991848945618,Correct,No Match,No Match
+handle helpdesk problems,handle helpdesk problems,1,1,1.0,Correct,Match,Match
+listen actively,listen actively,1,1,1.0,Correct,Match,Match
+use cooking techniques,use cookery techniques,1,0,0.8254101276397705,Incorrect,Match,No Match
+use word processing software,cooperate,0,0,0.07721749693155289,Correct,No Match,No Match
+manage time,prioritise tasks,0,0,0.3335595726966858,Correct,No Match,No Match
+drive vehicles,driving automatic car,0,0,0.5607750415802002,Correct,No Match,No Match
+issue official documents,provide official documents,1,0,0.826159656047821,Incorrect,Match,No Match
+prepare sandwiches,prepare sandwiches,1,1,1.0,Correct,Match,Match
+file documents,filing of documents,1,0,0.7913748025894165,Incorrect,Match,No Match
+communicate by telephone,use spreadsheets software,0,0,0.09148576855659485,Correct,No Match,No Match
+stock level monitoring,view stock level,1,0,0.7817918062210083,Incorrect,Match,No Match
+work in teams,work in teams,1,1,1.0,Correct,Match,Match
+prepare sandwiches,order documents,0,0,0.06377357989549637,Correct,No Match,No Match
+driving automatic car,drive automatic cars,1,1,0.944720983505249,Correct,Match,Match
+monitor stock level,park vehicles,0,0,0.028556589037179947,Correct,No Match,No Match
+use techniques to cook,use dishwasher,0,0,0.3474946618080139,Correct,No Match,No Match
+park automobiles,operate vehicles,0,0,0.6319308876991272,Correct,No Match,No Match
+operate dishwashing machine,operate dishwashing machine,1,1,1.0,Correct,Match,Match
+cook meat dishes,utilise microsoft office software,0,0,0.009350789710879326,Correct,No Match,No Match
+drive vehicles,drive a vehicle,1,1,0.8536465764045715,Correct,Match,Match
+reply to visitor complaints,answer visitor complaints,1,1,0.9252637028694153,Correct,Match,Match
+keep a stock record,save stock records,1,0,0.838983416557312,Incorrect,Match,No Match
+use cookery techniques,choose different ways to cook,1,0,0.6805505156517029,Incorrect,Match,No Match
+task planning,manage schedule of tasks,1,0,0.5986292958259583,Incorrect,Match,No Match
+adapt to change,openness to change,0,0,0.3694329857826233,Correct,No Match,No Match
+driving automatic car,drive automatic car,1,1,0.9734436869621277,Correct,Match,Match
