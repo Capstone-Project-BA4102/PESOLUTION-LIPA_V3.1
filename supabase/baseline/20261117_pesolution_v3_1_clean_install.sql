@@ -1296,4 +1296,92 @@ revoke all on function public.manage_peso_referral(text,uuid,uuid,uuid,uuid,uuid
 grant execute on function public.manage_peso_referral(text,uuid,uuid,uuid,uuid,uuid,jsonb,text) to service_role;
 
 
+-- Company referral email audit (2026-11-24).
+-- Additive: run once against an existing installation after the clean baseline.
+CREATE TABLE IF NOT EXISTS public.company_referral_emails (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  referral_id UUID NOT NULL UNIQUE REFERENCES public.referrals(id) ON DELETE CASCADE,
+  company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  recipient_email TEXT NOT NULL CHECK (recipient_email ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'),
+  subject TEXT NOT NULL,
+  content_fingerprint TEXT NOT NULL,
+  attachment_sha256 TEXT NOT NULL,
+  email_status TEXT NOT NULL CHECK (email_status IN ('Sending', 'Sent', 'Failed', 'Unknown')),
+  provider_message_id TEXT,
+  sent_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  error_details TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sent_at TIMESTAMPTZ
+);
+ALTER TABLE public.company_referral_emails ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.company_referral_emails FROM anon, authenticated;
+GRANT ALL ON public.company_referral_emails TO service_role;
+COMMENT ON TABLE public.company_referral_emails IS 'Backend-only employer referral email receipts. Sent means provider acceptance, not guaranteed delivery. Unknown requires provider reconciliation before resend.';
+
+-- Quiet matching Realtime subscriptions (2026-11-24).
+-- Publish the tables used by the matching page's existing quiet Realtime listener.
+-- Idempotent; no applicant records, matches or statuses are changed.
+DO $$
+DECLARE table_name text;
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime' AND puballtables) THEN
+    RETURN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    RAISE NOTICE 'supabase_realtime publication is not present; configure Supabase Realtime before expecting live updates.';
+    RETURN;
+  END IF;
+  FOREACH table_name IN ARRAY ARRAY['applicants','applications','referrals','job_matches','job_listings','resumes','status_history'] LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = table_name) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', table_name);
+    END IF;
+  END LOOP;
+END $$;
+
+-- One active referral per applicant.
+-- Enforce one active (Referred) application per applicant without deleting legacy records.
+-- Existing duplicates are retained for staff review; additional referrals are blocked.
+CREATE OR REPLACE FUNCTION public.peso_one_active_referral()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+BEGIN
+  IF NEW.status <> 'Referred' THEN RETURN NEW; END IF;
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.status = 'Referred' AND OLD.applicant_id = NEW.applicant_id THEN RETURN NEW; END IF;
+  END IF;
+  -- All referral RPCs use this same applicant lock, serializing simultaneous issuance.
+  PERFORM 1 FROM public.applicants WHERE id = NEW.applicant_id FOR UPDATE;
+  IF EXISTS (SELECT 1 FROM public.applications a
+    WHERE a.applicant_id = NEW.applicant_id AND a.status = 'Referred' AND a.id <> NEW.id) THEN
+    RAISE EXCEPTION 'Only one active referral is allowed per applicant. Record its outcome or cancel it before issuing another.' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS peso_one_active_referral ON public.applications;
+CREATE TRIGGER peso_one_active_referral BEFORE INSERT OR UPDATE OF status, applicant_id ON public.applications
+FOR EACH ROW EXECUTE FUNCTION public.peso_one_active_referral();
+REVOKE ALL ON FUNCTION public.peso_one_active_referral() FROM PUBLIC, anon, authenticated;
+
+-- Require confirmed renewal after hiring.
+-- Apply after renewal versioning and the one-active-referral migration.
+-- Keep historical slips accessible; block new referrals until a real renewal is confirmed.
+CREATE OR REPLACE FUNCTION public.peso_one_active_referral()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+BEGIN
+  IF NEW.status <> 'Referred' THEN RETURN NEW; END IF;
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.status = 'Referred' AND OLD.applicant_id = NEW.applicant_id THEN RETURN NEW; END IF;
+  END IF;
+  PERFORM 1 FROM public.applicants WHERE id = NEW.applicant_id FOR UPDATE;
+  IF public.peso_has_current_hire(NEW.applicant_id) THEN
+    RAISE EXCEPTION 'Applicant is already Hired. Complete applicant renewal before issuing another referral.' USING ERRCODE = 'P0001';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.applications a
+    WHERE a.applicant_id = NEW.applicant_id AND a.status = 'Referred' AND a.id <> NEW.id) THEN
+    RAISE EXCEPTION 'Only one active referral is allowed per applicant. Record its outcome or cancel it before issuing another.' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.peso_one_active_referral() FROM PUBLIC, anon, authenticated;
+
 commit;

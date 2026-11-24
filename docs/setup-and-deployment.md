@@ -41,10 +41,45 @@ npm run nlp:test
 .\.venv-nlp\Scripts\python.exe data/nlp_evaluation/evaluate.py --validate-only
 ```
 
-The Node suite primarily uses mocks/fixtures. Two PostgreSQL integration tests require PESO_SQL_TEST_RUNTIME pointing to a disposable PGlite installation or are skipped. See the isolated setup in [renewal verification](applicant-renewal.md#verification). Never point isolated tests at a live database. The default Python suite skips cached-model probes unless NLP_REAL_MODEL_TEST=1 is explicitly set.
+The Node suite primarily uses mocks/fixtures. Four PostgreSQL integration tests require PESO_SQL_TEST_RUNTIME pointing to a disposable PGlite installation or are skipped. See the isolated setup in [renewal verification](applicant-renewal.md#verification). Never point isolated tests at a live database. The default Python suite skips cached-model probes unless NLP_REAL_MODEL_TEST=1 is explicitly set.
 
 npm run verify:live -- --url http://127.0.0.1:5000 needs a running configured API and performs read-only health/access checks. It does not create accounts or measure model accuracy. Offline checks do not establish live browser acceptance or production database state.
 
 ## Distinguish evaluators
 
 npm run nlp:evaluate runs the official Objective 5 skill-pair CSV evaluator and overwrites derived results from actual inference. The older scripts/evaluate.cjs consumes validated OCR or weighted-job JSON; its 60% job cutoff is not the cosine threshold. Do not use that older tool for the Objective 5 CSV. No model rerun is needed for documentation cleanup.
+
+
+## Referral update deployment
+
+For an existing database, follow the single [migration checklist](../supabase/migrations/README.md). It lists prerequisites, the four November 24 updates in order, and the difference between migrations, audits and the empty-project baseline. Apply only missing updates after reviewing the actual installed state. No live database state is certified by this repository review.
+
+## Referral email review
+
+Use the existing BREVO_API_KEY, BREVO_SENDER_EMAIL and BREVO_SENDER_NAME with a verified sender; no additional secret is required. The company receipt table is backend-only and adds no browser write grants.
+
+After confirmation, **Review referral emails** opens a single window on the slip or Referred applicant row. Applicant and Company have separate checkboxes and message preview tabs, with one collapsible official PDF preview. Eligible unsent recipients are selected by default. Missing/invalid addresses, already-sent and uncertain/processing deliveries cannot be selected. Staff explicitly select **Send selected emails**; opening the window sends nothing.
+
+Each selected recipient receives a separate email and the server-generated referral PDF. The attachment uses saved details, the existing city seal and bundled Liberation Sans fonts; its layout may differ from browser printing. No resume, password or account receipt is attached. The send request cannot override the recipient or upload a replacement PDF. Changed details require a new preview. Only an active Referred record can be sent.
+
+The applicant email reuses the existing Referred status-event receipt; the company has a separate receipt per referral. An earlier applicant notification is not resent merely to add a PDF. If one recipient fails, the other's success is kept. Welcome and hiring/outcome email flows are unchanged.
+
+**Already Sent** means provider acceptance, not guaranteed inbox delivery. Definite rejections are retryable. Applicant Queued and company Unknown are unconfirmed holds; stale Sending receipts also require checking provider logs before reconciliation. A provider acceptance followed by a database-save failure must not enable duplicate retry. There is no durable background email queue, automatic resend, or correction/resend of an already accepted company notification.
+
+Email failure never changes referral status. Concurrent submissions are guarded by database uniqueness and conditional retry claims. The Applicants table waits for the initial email checks before displaying actions; later page/background checks retain existing data or show an explicit status error instead of false unsent/no-email-required labels.
+
+## Matching updates and referral history
+
+Match counts show saved results for currently available jobs, separately from referral/hiring status. List and drill-down views exclude closed, filled and 30-day-expired jobs using the production matcher's availability rules. Changes to skills or job requirements still need the normal matching/recalculation workflow; this is not continuous model inference. The 50-30-20 calculation is unchanged.
+
+Realtime changes use the existing quiet debounce (approximately 1-3 seconds plus network time). Search, filters and displayed data remain stable. Hidden tabs defer reads; the three-minute fallback works when Realtime is unavailable. No rapid polling or automatic all-applicant inference is introduced.
+
+Job cards show referral/hiring status and an existing-slip link. Previous slips for closed jobs or jobs no longer matching remain accessible in the expandable history. One-to-one referral objects and older array-shaped results are normalized. A status without a real slip is flagged for review; the app does not invent a replacement REF.
+
+Only one active referral per applicant is permitted. A current hire requires a real confirmed applicant_renewals version before another referral, rather than a standalone legacy Renewal label. Old hiring outcomes/slips remain intact. Existing duplicate/overlapping records are preserved for staff review. Entering a referral page resets scroll to the heading and confirmation controls.
+
+## Demo data boundaries
+
+Run the optional [read-only consistency inventory](../supabase/audits/20261124_referral_consistency_read_only.sql) before planning corrections. Do not fabricate renewal versions, REF numbers or model scores to make a fixture appear consistent. Database corrections need review of the actual records and intended factual change.
+
+The optional local seed tool is excluded from repository deliverables and is not an installation step. It refuses projects with existing Auth/application/company data, requires a private demo password and never deletes/reset existing users, files or history. Use a new disposable project for a fresh demo; do not seed the current database as a repair. Demo referrals/hires use the guarded workflow, and initial matches use actual production exact-match scoring without fabricated semantic evidence. Demonstrate renewal through the real reviewed form. None of this changes the official Objective 5 dataset or results.

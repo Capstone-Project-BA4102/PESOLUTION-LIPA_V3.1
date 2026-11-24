@@ -15,6 +15,13 @@ export function normalizeActivityText(text: string, pt: Translate = literal): st
   if (/^Review [0-9a-f-]{36} removed by staff [0-9a-f-]{36} at \S+\. Application and referral history retained\.$/i.test(text.trim())) {
     return pt('A feedback review was removed. Application and referral history was kept.')
   }
+  // RPC audit fields remain in storage/export; the normal activity feed shows the action and public REF only.
+  if (/\|\s*(?:Staff|Application|Previous status):/i.test(text)) {
+    const parts = text.split(/\s*\|\s*/)
+    const summary = parts.filter(part => !/^(?:Staff|Application|Previous status):/i.test(part))
+      .map(part => part.replace(/^REF:\s*/i, '')).filter(Boolean)
+    return summary.map(part => pt(part)).join(' · ')
+  }
   const match = text.match(/^(.*?)(\d+)\s+match(?:\(es\)|es)?\s+found([.!]?)$/i)
   if (!match) return text
   return `${match[1]}${matchCountLabel(Number(match[2]), pt)}${match[3]}`

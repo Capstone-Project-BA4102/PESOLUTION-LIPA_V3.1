@@ -26,7 +26,7 @@ export function MatchInsights({ applicantId, match, refreshKey = 0, compact = fa
   return <section className="min-w-0" aria-label={pt('Job match insights')}>
     <div className={cn('grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1', compact ? 'mb-3' : 'mb-4')} role="tablist" aria-label={pt('Match details')}>
       <button ref={node => { tabs.current[0] = node }} id={`${id}-audit-tab`} aria-controls={`${id}-audit-panel`} tabIndex={tab === 'audit' ? 0 : -1} onKeyDown={event => keyboard(event, 0)} type="button" role="tab" aria-selected={tab === 'audit'} onClick={() => setTab('audit')} className={tabClass(tab === 'audit')}>
-        <Target aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /><span className="whitespace-normal text-left leading-tight">{pt('Match Audit')}</span>
+        <Target aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /><span className="whitespace-normal text-left leading-tight">{pt('Why this matches')}</span>
       </button>
       <button ref={node => { tabs.current[1] = node }} id={`${id}-plan-tab`} aria-controls={`${id}-plan-panel`} tabIndex={tab === 'plan' ? 0 : -1} onKeyDown={event => keyboard(event, 1)} type="button" role="tab" aria-selected={tab === 'plan'} onClick={() => setTab('plan')} className={tabClass(tab === 'plan')}>
         <Sparkles aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /><span className="whitespace-normal text-left leading-tight">{pt('Improvement Plan')}</span>

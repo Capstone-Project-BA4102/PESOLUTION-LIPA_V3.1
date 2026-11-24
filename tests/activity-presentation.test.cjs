@@ -64,3 +64,10 @@ test('technical feedback audit is presented plainly without rewriting the stored
   assert.equal(normalizeActivityText('Applicant APP-2026-001 updated'), 'Applicant APP-2026-001 updated');
   assert.equal(classifyActivity({type:'applicant',title:'Feedback Review Removed'}).kind, 'review-removed');
 });
+
+test('referral audit metadata is kept out of the ordinary feed without losing the public reference', () => {
+  const raw='Official referral issued | Staff: 6105485c-26f1-4ec9-8c11-f7e3da10ffdb | Previous status: Matched | Application: 401b56e7-f371-403d-bcc5-266b95b5113a | REF: REF-2026-0010';
+  assert.equal(normalizeActivityText(raw),'Official referral issued · REF-2026-0010');
+  assert.match(raw,/Staff:/,'stored evidence is not rewritten');
+  assert.equal(normalizeActivityText('Referral cancelled | Staff: id | Previous status: Referred | Reason: Applicant requested cancellation | Application: id | REF: REF-2026-0011'), 'Referral cancelled · Reason: Applicant requested cancellation · REF-2026-0011');
+});

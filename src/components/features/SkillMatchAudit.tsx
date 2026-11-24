@@ -126,7 +126,7 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
         <MatchRing score={match.score} suffix={pt('match')} size={48} label={pt('{score}% match', { score: match.score })} />
         <div className="min-w-0">
           <p className="text-[13px] font-bold text-slate-900">{pt('Score breakdown')}</p>
-          <p className="text-[11px] leading-4 text-slate-500">{pt('Category score = matched requirements ÷ total requirements')}</p>
+          <p className="text-[11px] leading-4 text-slate-500">{pt('Each category shows how many job requirements are met.')}</p>
         </div>
         <div className="ml-auto">{methodButton}</div>
       </div>}
@@ -136,7 +136,7 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
       {showMethod && <div role="note" className="mt-3 overflow-hidden rounded-[10px] border border-slate-200 bg-slate-50 text-sm text-slate-700">
         <div className="flex items-start gap-3 border-b border-slate-200 bg-white px-4 py-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><Calculator className="h-5 w-5" /></span>
-          <div><p className="font-bold text-slate-900">{pt('How your match score is calculated')}</p><p className="mt-0.5 text-xs text-slate-500">{pt('Category score = matched requirements ÷ total requirements')}</p></div>
+          <div><p className="font-bold text-slate-900">{pt('How your match score is calculated')}</p><p className="mt-0.5 text-xs text-slate-500">{pt('Each category shows how many job requirements are met.')}</p></div>
           <span className="ml-auto shrink-0 rounded-full bg-success-50 px-2.5 py-1 text-xs font-bold text-success-700">{pt('Rule-based')}</span>
         </div>
         <div className="grid divide-y divide-slate-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -164,7 +164,7 @@ export const SkillMatchAudit: React.FC<SkillMatchAuditProps> = ({ match, embedde
         </div>
         <div className="grid gap-3 p-4 sm:grid-cols-2">
           <div className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success-600" /><p><strong className="block text-slate-900">{pt('Rule engine controls')}</strong><span className="text-xs text-slate-500">{pt('Fixed weights, arithmetic, threshold, and final score')}</span></p></div>
-          <div className="flex gap-2"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" /><p><strong className="block text-slate-900">{pt('Local NLP and Gemini assistance')}</strong><span className="text-xs text-slate-500">{pt('Local NLP compares skills; Gemini suggests training for verified gaps.')}</span></p></div>
+          <div className="flex gap-2"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-warning-600" /><p><strong className="block text-slate-900">{pt('Skill matching and training suggestions')}</strong><span className="text-xs text-slate-500">{pt('Skills are compared by wording and meaning. Training suggestions address the identified skill gaps.')}</span></p></div>
         </div>
       </div>}
 

@@ -1,15 +1,16 @@
 // @ts-nocheck
+import { ReferralEmails } from '@/components/admin/ReferralEmails'
 import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
 import { useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { FileDown, Pencil, XCircle, Save, Printer } from 'lucide-react'
 import { downloadReferralPdf } from '@/lib/referralPdf'
 import { referralPronouns } from '@/lib/referralPronouns'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { fetchReferralSlip, fetchReferralPreview, updateReferralSlip, cancelReferral, generateReferral } from '@/lib/api'
+import { fetchReferralSlip, fetchReferralPreview, fetchApplicantReferralEligibility, updateReferralSlip, cancelReferral, generateReferral } from '@/lib/api'
 import { useQuery } from '@/lib/useQuery'
 import { printDocument } from '@/lib/print'
 import { ErrorBlock } from '@/components/shared/QueryState'
@@ -39,12 +40,15 @@ export default function ReferralSlipPage() {
   const location = useLocation()
   const isAdmin = location.pathname.includes('/admin')
 
+  useLayoutEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }) }, [applicantId, jobId, referralId])
+
   const [resolvedRefId, setResolvedRefId] = useState(referralId)
   const [refNo, setRefNo] = useState('')
   const [editMode, setEditMode] = useState(false)
   const [form, setForm] = useState({ date: '', to: '', address: '', signatory: '' })
   const [isConfirming, setIsConfirming] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [actionError, setActionError] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState(null) // 'confirm' | 'cancel'
 
@@ -54,7 +58,9 @@ export default function ReferralSlipPage() {
   )
   const { data, loading, refreshing, error, reload } = useQuery(fetcher, [resolvedRefId, jobId, applicantId])
 
-  useLiveRefresh(reload, ['referrals', 'applications'], !editMode && !isSaving && !isConfirming && !isCancelling)
+  const activeReferralQuery = useQuery(() => fetchApplicantReferralEligibility(applicantId), [applicantId])
+  const reloadReferralData = () => { reload(); activeReferralQuery.reload() }
+  useLiveRefresh(reloadReferralData, ['referrals', 'applications'], !editMode && !isSaving && !isConfirming && !isCancelling)
 
   useEffect(() => {
     if (!data || editMode) return
@@ -73,7 +79,8 @@ export default function ReferralSlipPage() {
   const pronouns = referralPronouns(data.applicantGender)
   const confirmed = data.applicationStatus === 'Referred'
   const issued = !!resolvedRefId
-  const canConfirm = !issued || ['Matched', 'Referral Requested'].includes(data.applicationStatus)
+  const hasOtherReferral = (activeReferralQuery.data?.activeReferrals || []).some(row => issued ? !row.referrals?.some(ref => ref.id === resolvedRefId) : row.job_id !== jobId)
+  const canConfirm = (!issued || ['Matched', 'Referral Requested'].includes(data.applicationStatus)) && !hasOtherReferral && !activeReferralQuery.data?.requiresRenewal && !activeReferralQuery.loading && !activeReferralQuery.error
   const downloadable = issued && ['Referred', 'Hired', 'Not Hired'].includes(data.applicationStatus)
   const displayTo = form.to || data.company || ''
   const displayAddress = form.address || data.companyAddress || ''
@@ -86,8 +93,9 @@ export default function ReferralSlipPage() {
       setEditMode(false)
       return
     }
+    setActionError('')
     setIsSaving(true)
-    const toastId = toast(pt('Saving changes…'), { duration: Infinity })
+    const toastId = toast.loading(pt('Saving changes…'))
     try {
       await updateReferralSlip(resolvedRefId, {
         date_issued: form.date ? new Date(form.date + 'T09:00:00').toISOString() : data.date_issued,
@@ -99,6 +107,7 @@ export default function ReferralSlipPage() {
       await reload()
       toast.success(pt('Referral slip updated.'), { id: toastId })
     } catch (e) {
+      setActionError(e.message || pt('The action could not be completed. Please try again.'))
       toast.error(e.message || pt('Failed to save.'), { id: toastId })
     } finally {
       setIsSaving(false)
@@ -116,7 +125,8 @@ export default function ReferralSlipPage() {
   }
 
   const handleConfirmReferral = async () => {
-    if (!isAdmin || isConfirming || loading) return
+    if (!isAdmin || isConfirming || loading || !canConfirm) return
+    setActionError('')
     setIsConfirming(true)
     try {
       const res = await generateReferral(applicantId, jobId, {
@@ -129,18 +139,21 @@ export default function ReferralSlipPage() {
       toast.success(pt('Referral issued. You can now download or print the slip.'))
       if (resolvedRefId) await reload()
     } catch (e) {
+      setActionError(e.message || pt('The action could not be completed. Please try again.'))
       toast.error(e.message || pt('Failed to issue referral.'))
     } finally { setIsConfirming(false) }
   }
 
   const handleDownload = async () => {
     if (!downloadable || isConfirming || editMode) return
+    setActionError('')
     setIsConfirming(true)
-    const toastId = toast(pt('Generating referral PDF…'), { duration: Infinity })
+    const toastId = toast.loading(pt('Generating referral PDF…'))
     try {
       await downloadReferralPdf(document.getElementById('referral-slip-content'), refNo)
       toast.success(pt('Referral PDF downloaded.'), { id: toastId })
     } catch (e) {
+      setActionError(e.message || pt('The action could not be completed. Please try again.'))
       toast.error(e.message || pt('Failed to download PDF.'), { id: toastId })
     } finally { setIsConfirming(false) }
   }
@@ -148,13 +161,15 @@ export default function ReferralSlipPage() {
   const handleCancelReferral = async () => {
     if (isCancelling || !resolvedRefId || loading) return
     setConfirmDialog(null)
+    setActionError('')
     setIsCancelling(true)
-    const toastId = toast(pt('Cancelling referral…'), { duration: Infinity })
+    const toastId = toast.loading(pt('Cancelling referral…'))
     try {
       await cancelReferral(resolvedRefId)
       toast.success(pt('Referral cancelled.'), { id: toastId })
       navigate(`/admin/matching/${applicantId}`)
     } catch (e) {
+      setActionError(e.message || pt('The action could not be completed. Please try again.'))
       toast.error(e.message || pt('Failed to cancel referral.'), { id: toastId })
     } finally {
       setIsCancelling(false)
@@ -168,6 +183,10 @@ export default function ReferralSlipPage() {
   return (
     <div className="space-y-4">
       <div className="print:hidden no-print">
+        {activeReferralQuery.data?.requiresRenewal && !confirmed && <p role="alert" className="mb-4 rounded-lg border border-warning-200 bg-warning-50 p-3 text-sm text-warning-800">{pt('This applicant is recorded as Hired. Complete applicant renewal before issuing another referral.')}</p>}
+        {hasOtherReferral && !confirmed && <p role="alert" className="mb-4 rounded-lg border border-warning-200 bg-warning-50 p-3 text-sm text-warning-800">{pt('This applicant already has an active referral. Record its outcome or cancel it before issuing another.')}</p>}
+        {activeReferralQuery.error && <p role="alert" className="mb-4 text-sm text-red-700">{pt('Active referrals could not be checked. Confirmation is unavailable until verification succeeds.')} <Button size="sm" variant="neutral" onClick={activeReferralQuery.reload}>{pt('Retry')}</Button></p>}
+        {actionError && <p role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">{actionError}</p>}
         <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
         <PageHeader
           title="Referral Slip Preview"
@@ -175,6 +194,7 @@ export default function ReferralSlipPage() {
           back={isAdmin ? { to: `/admin/matching/${applicantId}`, label: "Back to Match Details" } : { to: "/applicant/status", label: "Back to Application Status" }}
           actions={
             <div className="flex flex-wrap items-center gap-2">
+              {isAdmin && confirmed && !editMode && <ReferralEmails key={resolvedRefId} referralId={resolvedRefId} disabled={isConfirming || isSaving || isCancelling} />}
               {downloadable && !editMode && <>
                 <Button variant="neutral" onClick={handlePrint}><Printer className="mr-2 h-4 w-4" />{pt('Print')}</Button>
                 <Button variant="primary" disabled={isConfirming} onClick={handleDownload}><FileDown className="mr-2 h-4 w-4" />{pt(isConfirming ? 'Generating…' : 'Download PDF')}</Button>

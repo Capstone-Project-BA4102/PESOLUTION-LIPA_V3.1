@@ -15,9 +15,9 @@ It creates no Auth users or sample applicant/company/job records. It does not
 create feedback, star-rating, sentiment or legacy evaluation tables. The public
 website seed contains no testimonials. Administrator provisioning is separate.
 
-This is a complete clean-install entry point through 17 November 2026. It includes
+This is a complete clean-install entry point through 24 November 2026. It includes
 the retained October baseline and the applicable 20–26 October, referral-safeguard
-and renewal migrations. Do not replay those source migrations after this file.
+and renewal migrations, plus the 24 November company referral email table. Do not replay those source migrations after this file.
 Do not run the root `supabase_schema.sql`, `supabase_rls_and_functions.sql`,
 `supabase_seed.sql` or old baselines afterward. This manual SQL-editor workflow
 does not reconcile Supabase CLI migration tracking automatically.
@@ -25,8 +25,23 @@ does not reconcile Supabase CLI migration tracking automatically.
 ## Existing Supabase project
 
 **Do not run any baseline against existing data.** Keep migration history intact.
+Follow the [November referral update checklist](../migrations/README.md) for the
+current incremental updates and their prerequisite/order checks.
 Removing local SQL files would not remove database objects. Use only incremental
 changes reviewed for the actual schema and applied migration state.
+
+For the new staff-reviewed company referral emails, apply
+[`20261124_company_referral_emails.sql`](../migrations/20261124_company_referral_emails.sql)
+once. It adds only a backend-owned email receipt table; it sends no mail and
+does not change any referral status.
+
+Apply [`20261124_matching_realtime.sql`](../migrations/20261124_matching_realtime.sql)
+to enable the matching-related Realtime publication tables where necessary.
+It is also included in the clean baseline and changes no applicant records.
+
+Apply [`20261124_one_active_referral.sql`](../migrations/20261124_one_active_referral.sql)
+for the one-active-referral guard. Existing duplicates are preserved for staff
+review; the migration does not cancel any referral. The clean baseline includes it.
 
 `../audits/20261117_retired_features_read_only.sql` is an optional read-only
 inventory: retired tables, estimated row counts, policies and dependencies. It
@@ -62,3 +77,12 @@ Supabase Auth/Storage primitives and real uuid-ossp/pgcrypto extensions. Checks
 cover absent retired tables, retained RLS, server-only matching/referral/renewal
 functions, required buckets, no applicant/Auth seed and replay refusal. This is
 not a live Supabase deployment or a Storage API/GoTrue integration test.
+
+
+For an existing project with legacy demo records, run the optional
+[read-only referral inventory](../audits/20261124_referral_consistency_read_only.sql)
+before planning corrections. A Renewal label alone is not a confirmed qualification
+version. Preserve issued slips even when a job closes. The
+[hired/renewal guard](../migrations/20261124_hired_renewal_referral_guard.sql)
+extends the one-active-referral trigger after renewal versioning is installed.
+The sample seeder is for new empty demo projects only; it refuses existing data.

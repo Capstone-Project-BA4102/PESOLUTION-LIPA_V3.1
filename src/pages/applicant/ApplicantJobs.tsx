@@ -111,7 +111,7 @@ export default function ApplicantJobs() {
       {error && <div role="alert" className="rounded-lg border border-warning-100 bg-warning-50 p-4 text-sm text-warning-700">
         <p>{error}</p><Button size="sm" variant="neutral" disabled={checking} onClick={reload}>{pt('Retry')}</Button>
       </div>}
-      {matching?.aiDegraded && <p role="status" className="rounded-lg border border-warning-100 bg-warning-50 p-4 text-sm text-warning-700">{pt('Local NLP was unavailable for this run. Scores and gaps use exact skill matches only. Gemini recommendations use those verified gaps.')}</p>}
+      {matching?.aiDegraded && <p role="status" className="rounded-lg border border-warning-100 bg-warning-50 p-4 text-sm text-warning-700">{pt('Skill comparison by meaning is temporarily unavailable. These results use exact skill matches. Training suggestions are based on the listed skill gaps.')}</p>}
 
       {ranked.length === 0 ? (
         <div className="flex items-center gap-3 rounded-lg border border-info-100 bg-info-50 p-4 text-sm text-info-700">

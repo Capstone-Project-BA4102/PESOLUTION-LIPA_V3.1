@@ -15,6 +15,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [loginError, setLoginError] = useState('')
   const submitting = useRef(false)
 
   useEffect(() => {
@@ -30,16 +31,19 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
     e.preventDefault()
     if (submitting.current) return
     submitting.current = true
+    setLoginError('')
     setBusy(true)
     try {
       const role = await login(username, password)
       if (!role) {
+        setLoginError(pt('Incorrect email/User ID or password. Please try again.'))
         toast.error(pt('Incorrect email/User ID or password. Please try again.'))
         return
       }
       toast.success(pt('Logged in successfully'))
       // Navigation is handled by the useEffect watching `user` state
     } catch (err: any) {
+      setLoginError(err.message || pt('Login failed. Please check your credentials.'))
       toast.error(err.message || pt('Login failed. Please check your credentials.'))
     } finally {
       submitting.current = false
@@ -54,6 +58,7 @@ export function LoginModal({ open, onClose }: { open: boolean; onClose: () => vo
         <div><p className="text-[15px] font-semibold text-brand-600">PESOLUTION</p><p className="text-[12px] text-slate-500">PESO LIPA CITY</p></div>
       </div>
       <p className="mb-4 text-[14px] text-slate-600">{pt('Please enter your credentials to continue.')}</p>
+      {loginError && <p role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">{loginError}</p>}
       <form onSubmit={submit} className="space-y-4" aria-busy={busy}>
         <Input label="Email / User ID" leftIcon={<Mail />} placeholder="Enter your email or User ID"
           value={username} onChange={event => setUsername(event.target.value)} autoComplete="username" required disabled={busy} />

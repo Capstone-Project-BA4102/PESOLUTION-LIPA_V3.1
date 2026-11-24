@@ -26,7 +26,7 @@ export default function MatchDetailsPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const isMatching = loading
   const handleRunMatching = () => refresh(true)
-  const aiNotice = matching?.aiDegraded ? 'Local NLP was unavailable for this run. Scores and gaps use exact skill matches only. Gemini recommendations use those verified gaps.' : ''
+  const aiNotice = matching?.aiDegraded ? 'Skill comparison by meaning is temporarily unavailable. These results use exact skill matches. Training suggestions are based on the listed skill gaps.' : ''
   const matchRun = matching?.checkedAt ? Date.parse(matching.checkedAt) : 0
   // Same job listing data the applicant portal uses, so every card shows the uploaded company logo and job details.
   const jobsQuery = useQuery(fetchJobs, [matchRun])
@@ -36,36 +36,39 @@ export default function MatchDetailsPage() {
   if (!data) return <ErrorBlock message={error || pt('Applicant not found')} onRetry={() => refresh(false)} />
 
   const { applicant, matches: appMatches } = data
+  const activeReferrals = data.activeReferrals || []
+  const hasActiveReferral = activeReferrals.length > 0
+  const requiresRenewal = !!applicant.requiresRenewal
+  const referralHistory = data.referralHistory || []
+  const previousReferrals = referralHistory.filter(ref => !ref.referralId || !appMatches.some(match => match.jobId === ref.jobId && match.referralId === ref.referralId))
   const selectedRecord = appMatches.find(match => match.jobId === selectedJobId)
   const selected = selectedRecord ? withMatchEvidence(selectedRecord, matching) : undefined
   const openReferral = (match: typeof appMatches[number]) => {
+    if ((hasActiveReferral || requiresRenewal) && !match.referralId) return
     const base = `/admin/matching/${applicant.id}/referral`
     navigate(match.referralId ? `${base}?refId=${match.referralId}` : `${base}?jobId=${match.jobId}`)
   }
   const referralLabel = (match: typeof appMatches[number]) => `${pt('Referred')}${match.referralNumber ? ` · ${match.referralNumber}` : ''}`
 
   return (
-    <div className="space-y-4">
-      <PageHeader title="Job Matching Results" description="Recommended job opportunities based on applicant skills, education, and job requirements." back={{ to: "/admin/matching", label: "Back to Matching" }} />
+    <div className="mx-auto w-full max-w-6xl space-y-4">
+      <PageHeader title="Job Matching Results" description="Review job matches and referral records." back={{ to: "/admin/matching", label: "Back to Matching" }} />
 
-      <Card className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.1fr)]">
-        <div className="flex min-w-0 items-center gap-4">
-          <Avatar name={applicant.name} src={applicant.avatarUrl} size="xl" className="shrink-0 rounded-full border border-slate-200" />
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold leading-snug text-slate-900">{applicant.name}</h2>
-            <div className="mt-1"><Badge tone="info">{applicant.code}</Badge></div>
-            <p className="mt-2 text-xs text-slate-500">{pt('Education:')} {applicant.education}</p>
-            {applicant.course && <p className="mt-0.5 text-xs text-slate-500">{pt('Course:')} {applicant.course}</p>}
+      <Card className="p-4">
+        <div className="flex items-center gap-3">
+          <Avatar name={applicant.name} src={applicant.avatarUrl} size="lg" className="shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1"><h2 className="font-semibold text-slate-900">{applicant.name}</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{applicant.code} · {applicant.education}</p>
+            {applicant.course && <p className="mt-0.5 text-xs text-slate-500">{applicant.course}</p>}
           </div>
         </div>
-        {(['hard', 'soft'] as const).map(category => <div key={category} className="min-w-0 border-t border-slate-100 pt-4 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
-          <p className="mb-2 text-sm font-bold text-slate-800">{pt(category === 'hard' ? 'Hard Skills' : 'Soft Skills')}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {(category === 'hard' ? applicant.hardSkills : applicant.softSkills)?.length > 0
-              ? (category === 'hard' ? applicant.hardSkills : applicant.softSkills).map((skill: string) => <SkillTag key={skill} variant={category}>{skill}</SkillTag>)
-              : <span className="text-xs text-slate-400">{pt('N/A')}</span>}
-          </div>
-        </div>)}
+        <details className="mt-3 border-t border-slate-100 pt-3">
+          <summary className="cursor-pointer text-xs font-semibold text-slate-600">{pt('Applicant skills')} ({(applicant.hardSkills?.length || 0) + (applicant.softSkills?.length || 0)})</summary>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">{(['hard', 'soft'] as const).map(category => <div key={category}>
+            <p className="mb-2 text-xs font-semibold text-slate-500">{pt(category === 'hard' ? 'Hard Skills' : 'Soft Skills')}</p>
+            <div className="flex flex-wrap gap-1.5">{(category === 'hard' ? applicant.hardSkills : applicant.softSkills)?.map((skill: string) => <SkillTag key={skill} variant={category}>{skill}</SkillTag>)}</div>
+          </div>)}</div>
+        </details>
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -76,29 +79,33 @@ export default function MatchDetailsPage() {
         </Button>
       </div>
 
-      <div role="status" className="space-y-1 text-sm text-slate-500">
-        <p>{loading ? pt('Checking for matching updates…') : error ? pt('Showing saved results; the latest refresh failed.') : pt(matching?.cacheStatus === 'updated' ? 'Matching results updated.' : 'Saved matches are up to date.')}
-          {matching?.checkedAt && !loading && <span> · {new Date(matching.checkedAt).toLocaleTimeString()}</span>}</p>
-        {realtime !== 'live' && <p className="text-xs">{pt(realtime === 'offline' ? 'Offline. Matching will refresh when you reconnect.' : 'Live connection pending; changes are also checked periodically.')}</p>}
-      </div>
-      {error && <div role="alert" className="rounded-lg border border-warning-100 bg-warning-50 p-4 text-sm text-warning-700">
-        <p>{error}</p><Button size="sm" variant="neutral" onClick={() => refresh(false)} disabled={isMatching}>{pt('Retry')}</Button>
+      <p role="status" className="text-xs text-slate-500">
+        {loading ? pt('Checking matches...') : error ? pt('Showing previous results.') : pt('Matches updated')}
+        {matching?.checkedAt && !loading && <span> · {new Date(matching.checkedAt).toLocaleTimeString()}</span>}
+        {realtime === 'offline' && <span> · {pt('Offline')}</span>}
+      </p>
+      {error && <div role="alert" className="rounded-lg border border-warning-100 px-3 py-2 text-sm text-warning-700"><p>{error}</p><Button size="sm" variant="neutral" onClick={() => refresh(false)} disabled={isMatching}>{pt('Retry')}</Button></div>}
+      {aiNotice && <p role="status" className="text-xs text-warning-700">{pt(aiNotice)}</p>}
+      {jobsQuery.error && <p className="text-xs text-warning-700">{pt('Job details could not be loaded. Match scores are still shown.')}</p>}
+      {(requiresRenewal || hasActiveReferral) && <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+        <p>{pt(requiresRenewal ? (hasActiveReferral ? 'Hired. Review the active referral, then renew registration before another referral.' : 'Hired. Renew registration before issuing another referral.') : activeReferrals.length > 1 ? 'Multiple active referrals need staff review. Another referral cannot be issued yet.' : 'An active referral is in progress. Record its outcome or cancel it before issuing another.')}</p>
+        {requiresRenewal && !hasActiveReferral && <Button size="sm" variant="neutral" onClick={() => navigate(`/admin/applicants/${applicant.id}/renew`)}>{pt('Renew registration')}</Button>}
       </div>}
-
-      {aiNotice && (
-        <div role="status" className="rounded-lg border border-warning-100 bg-warning-50 px-4 py-3 text-sm font-medium text-warning-700">
-          {pt(aiNotice)}
-        </div>
-      )}
-
-      {jobsQuery.error && <p className="text-[12px] text-warning-700">{pt('Job details could not be loaded. Match scores are still shown.')}</p>}
-
-      <div className="grid items-stretch gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {previousReferrals.length > 0 && <details open={appMatches.length === 0 || undefined} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-700">{pt('Previous referrals')} ({previousReferrals.length})</summary>
+        <ul className="mt-2 divide-y divide-slate-100">{previousReferrals.map(ref => <li key={ref.applicationId || ref.jobId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="min-w-0"><p className="text-sm font-semibold text-slate-900">{ref.title}</p><p className="mt-0.5 text-xs text-slate-500">{ref.company}{ref.referralNumber ? ` · ${ref.referralNumber}` : ''}</p>
+            <div className="mt-1.5 flex gap-2"><Badge tone={ref.status === 'Referred' ? 'info' : ref.status === 'Hired' ? 'success' : 'neutral'}>{pt(ref.status)}</Badge>{ref.jobStatus && ref.jobStatus !== 'Active' && <Badge tone="neutral">{pt('Job')}: {pt(ref.jobStatus)}</Badge>}</div></div>
+          {ref.referralId ? <Button size="sm" variant="neutral" onClick={() => navigate(`/admin/matching/${applicant.id}/referral?refId=${ref.referralId}`)}><FileText className="mr-2 h-4 w-4" />{pt('View slip')}</Button> : <p className="text-xs text-warning-700">{pt('No issued slip recorded. Staff review needed.')}</p>}
+        </li>)}</ul>
+      </details>}
+      <div className="grid items-stretch gap-4 md:grid-cols-2">
         {appMatches.map((match, index) => <ApplicantMatchCard key={match.jobId}
           match={{ matchId: match.jobId, jobId: match.jobId, audit: match, job: { id: match.jobId, title: match.title, companies: { name: match.company } }, applicationId: null, requestStatus: null, requestedAt: null }}
           job={jobsById[match.jobId]}
           best={index === 0}
-          actions={match.referred ? <Badge tone="success" wrap className="max-w-full">{referralLabel(match)}</Badge> : undefined}
+          actions={match.referralId ? <Button size="sm" variant="neutral" onClick={() => openReferral(match)}><FileText className="mr-1.5 h-4 w-4" />{pt('View slip')}</Button> : undefined}
+          status={match.referred ? <Badge tone="info" wrap className="max-w-full">{referralLabel(match)}</Badge> : match.applicationStatus === 'Hired' ? <Badge tone="success">{pt('Hired')}{match.referralNumber ? ` - ${match.referralNumber}` : ''}</Badge> : undefined}
           onView={() => setSelectedJobId(match.jobId)} />)}
 
         {appMatches.length === 0 && (
@@ -126,7 +133,7 @@ export default function MatchDetailsPage() {
           </div>
           <MatchInsights applicantId={applicant.id} match={selected} refreshKey={matchRun} />
           <div className="mt-4 flex justify-end border-t border-slate-100 pt-4">
-            <Button onClick={() => openReferral(selected)}><FileText aria-hidden="true" className="mr-2 h-4 w-4" />{pt('View Referral')}</Button>
+            <Button disabled={(hasActiveReferral || requiresRenewal) && !selected.referralId} onClick={() => openReferral(selected)}><FileText aria-hidden="true" className="mr-2 h-4 w-4" />{pt(selected.referralId ? 'View Referral Slip' : requiresRenewal ? 'Renewal required' : hasActiveReferral ? 'Active referral exists' : 'Prepare Referral')}</Button>
           </div>
         </>}
       </Modal>

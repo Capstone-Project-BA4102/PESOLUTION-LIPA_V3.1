@@ -132,7 +132,7 @@ async function listCurrentNotificationEvents(supabase, applicantIds) {
   }));
 }
 
-async function sendNotification(supabase, actor, eventId, config) {
+async function sendNotification(supabase, actor, eventId, config, options = {}) {
   if (!config.brevoApiKey || !config.brevoSenderEmail) throw new HttpError(503, 'Brevo email delivery is not configured.');
   const event = await eventContext(supabase, eventId);
   const template = templateFor(event, config.publicUrl);
@@ -154,13 +154,14 @@ async function sendNotification(supabase, actor, eventId, config) {
   let notification;
   if (existing) {
     notification = check(await supabase.from('application_email_notifications').update(row).eq('id', existing.id)
-      .in('email_status', ['Failed', 'Bounced']).select('*').single());
+      .in('email_status', ['Not Sent', 'Failed', 'Bounced']).select('*').single());
   } else {
     const inserted = await supabase.from('application_email_notifications').insert(row).select('*').single();
     if (inserted.error?.code === '23505') throw new HttpError(409, 'This status email has already been submitted.');
     notification = check(inserted);
   }
 
+  let deliveryUncertain = false;
   try {
     // A failed delivery must be retryable. Keep the database uniqueness anchored to
     // the saved status event, but use a distinct Brevo key for each persisted attempt.
@@ -168,20 +169,25 @@ async function sendNotification(supabase, actor, eventId, config) {
       .update(`${event.id}:${notification.updated_at}`)
       .digest('hex')
       .slice(0, 32);
+    deliveryUncertain = true;
     const response = await fetch('https://api.brevo.com/v3/smtp/email', { method: 'POST', headers: {
       accept: 'application/json', 'content-type': 'application/json', 'api-key': config.brevoApiKey,
     }, body: JSON.stringify({ sender: { email: config.brevoSenderEmail, name: config.brevoSenderName },
       to: [{ email: template.recipientEmail, name: template.applicantName }], subject: template.subject,
       htmlContent: template.html, textContent: template.text,
+      ...(options.attachment ? { attachment: [options.attachment] } : {}),
       headers: { idempotencyKey: attemptKey } }), signal: AbortSignal.timeout(15000) });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.messageId) throw new Error(result.message || `Brevo rejected the request (${response.status}).`);
+    if (!response.ok || !result.messageId) {
+      if (response.status >= 400 && response.status < 500) deliveryUncertain = false;
+      throw new Error(result.message || `Brevo rejected the request (${response.status}).`);
+    }
     return check(await supabase.from('application_email_notifications').update({ email_status: 'Sent', provider_message_id: result.messageId,
       sent_at: new Date().toISOString(), updated_at: new Date().toISOString(), error_details: null }).eq('id', notification.id).select('*').single());
   } catch (error) {
-    await supabase.from('application_email_notifications').update({ email_status: 'Failed', error_details: String(error.message || error).slice(0, 2000),
+    await supabase.from('application_email_notifications').update({ email_status: options.safeDelivery && deliveryUncertain ? 'Queued' : 'Failed', error_details: options.safeDelivery && deliveryUncertain ? 'Delivery unconfirmed; verify Brevo before resending.' : String(error.message || error).slice(0, 2000),
       updated_at: new Date().toISOString() }).eq('id', notification.id);
-    throw new HttpError(502, 'The status was saved, but Brevo could not send the email. You can retry it.');
+    throw new HttpError(502, options.safeDelivery && deliveryUncertain ? 'Applicant email delivery is unconfirmed. Check Brevo before resending.' : 'The status was saved, but Brevo could not send the email. You can retry it.');
   }
 }
 

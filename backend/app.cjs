@@ -1,6 +1,8 @@
 const express = require('express');
 const { employmentAnalytics } = require('./employment-analytics.cjs');
 const { manageReferral } = require('./referrals.cjs');
+const { previewCompanyEmail, sendCompanyEmail } = require('./company-referral-email.cjs');
+const { referralForApplication, previewReferralEmails, sendReferralEmails } = require('./referral-emails.cjs');
 const cors = require('cors');
 const path = require('node:path');
 const { authentication, requireRole, applicantAccess } = require('./auth.cjs');
@@ -64,6 +66,31 @@ function createApp({ supabase, gemini, nlp, config, matchingCache }) {
     res.json(await withLock('runtime-cache:cleanup', () => matchingRefresh.maintainCache(true)));
   }));
 
+  app.get('/api/admin/applications/:applicationId/referral-email-status', authenticate, admin, asyncRoute(async (req, res) => {
+    available(); res.set('Cache-Control', 'no-store');
+    const id = await referralForApplication(supabase, req.params.applicationId);
+    const preview = await previewReferralEmails(supabase, id, config, false);
+    res.json({ referralId: id, recipients: Object.fromEntries(Object.entries(preview.recipients).map(([kind, value]) =>
+      [kind, { available: value.available, notification: value.notification || null }])) });
+  }));
+  app.get('/api/admin/referrals/:referralId/emails-preview', authenticate, admin, asyncRoute(async (req, res) => {
+    available(); res.set('Cache-Control', 'no-store');
+    res.json(await previewReferralEmails(supabase, req.params.referralId, config));
+  }));
+  app.post('/api/admin/referrals/:referralId/emails', authenticate, admin, asyncRoute(async (req, res) => {
+    available(); const id = requireUuid(req.params.referralId);
+    res.json(await withLock(`company-email:${id}`, () => sendReferralEmails(supabase, req.actor, id, req.body, config)));
+  }));
+  app.get('/api/admin/referrals/:referralId/company-email-preview', authenticate, admin, asyncRoute(async (req, res) => {
+    available();
+    res.set('Cache-Control', 'no-store');
+    res.json(await previewCompanyEmail(supabase, req.params.referralId));
+  }));
+  app.post('/api/admin/referrals/:referralId/company-email', authenticate, admin, asyncRoute(async (req, res) => {
+    available();
+    const id = requireUuid(req.params.referralId);
+    res.json(await withLock(`company-email:${id}`, () => sendCompanyEmail(supabase, req.actor, id, req.body, config)));
+  }));
   app.post('/api/admin/referrals/manage', authenticate, admin, asyncRoute(async (req, res) => {
     available();
     res.json(await manageReferral(supabase, req.actor, req.body));

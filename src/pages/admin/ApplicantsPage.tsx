@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { RefreshNotice } from '@/components/shared/RefreshNotice'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -45,11 +45,9 @@ import {
   markReferralRejected,
   fetchApplicantReferrals,
   fetchApplicantStatusEvents,
-  fetchCurrentApplicantStatusEvents,
   previewApplicantStatusEmail,
   sendApplicantStatusEmail,
   sendApplicantSetupEmail,
-  fetchApplicantSetupEmailStatuses,
   type ApplicantSetupEmailStatus,
   type StatusEmailPreview,
   fetchPendingReferralRequest,
@@ -62,6 +60,8 @@ import { LoadingBlock, ErrorBlock } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import { hasStructuredApplicantName } from "@/lib/applicantName";
 
+import { fetchApplicantEmailData } from '@/lib/applicantEmailData';
+import { ReferralEmails } from '@/components/admin/ReferralEmails';
 import { QualificationHistory } from "@/components/admin/QualificationHistory";
 import { EditApplicantModal } from "@/components/modals/EditApplicantModal";
 
@@ -99,6 +99,14 @@ export default function ApplicantsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [applicantHistory, setApplicantHistory] = useState<ApplicantHistoryItem[]>([]);
   const [tableEmailEvents, setTableEmailEvents] = useState<Record<string, ApplicantHistoryItem>>({});
+  const [tableReferralStatuses, setTableReferralStatuses] = useState({});
+  const [tableReferralErrors, setTableReferralErrors] = useState({});
+  const [tableStatusErrors, setTableStatusErrors] = useState({});
+  const [tableSetupErrors, setTableSetupErrors] = useState({});
+  const [emailDataKey, setEmailDataKey] = useState<string | null>(null);
+  const [emailDataError, setEmailDataError] = useState('');
+  const [firstEmailsReady, setFirstEmailsReady] = useState(false);
+  const emailLoadGeneration = useRef(0);
   const [emailPreview, setEmailPreview] = useState<StatusEmailPreview | null>(null);
   const [emailPreviewApplicantId, setEmailPreviewApplicantId] = useState<string | null>(null);
   const [emailPreviewLoading, setEmailPreviewLoading] = useState(false);
@@ -245,28 +253,41 @@ export default function ApplicantsPage() {
   });
 
   const { page, pages, setPage, paged, from, to } = usePagination(filtered, 10);
-  const pagedApplicantIds = paged.map(applicant => applicant.id).join(",");
 
-  const loadTableEmailEvents = async (ids: string[]) => {
-    if (!ids.length) {
-      setTableEmailEvents({});
-      setSetupEmailStatuses({});
-      return;
+  const pagedEmailKey = paged.map(applicant => `${applicant.id}:${applicant.status}`).join(',');
+  const emailPageRef = useRef({ ids: [] as string[], key: '' });
+  const pagedApplicantIds = paged.map(applicant => applicant.id).join(',');
+  const hasApplicantsData = data !== null;
+  useLayoutEffect(() => {
+    emailPageRef.current = { ids: pagedApplicantIds ? pagedApplicantIds.split(',') : [], key: pagedEmailKey };
+  }, [pagedApplicantIds, pagedEmailKey]);
+  const loadTableEmailEvents = useCallback(async (ids: string[]) => {
+    if (ids.join(",") !== emailPageRef.current.ids.join(",")) return;
+    const key = emailPageRef.current.key;
+    const generation = ++emailLoadGeneration.current;
+    try {
+      const result = await fetchApplicantEmailData(ids);
+      if (generation !== emailLoadGeneration.current || key !== emailPageRef.current.key) return;
+      setTableEmailEvents(result.events);
+      setSetupEmailStatuses(result.setupEmails);
+      setTableReferralStatuses(result.referralStatuses);
+      setTableReferralErrors(result.referralErrors);
+      setTableStatusErrors(result.statusErrors); setTableSetupErrors(result.setupErrors);
+      setEmailDataKey(key); setEmailDataError(result.notice); setFirstEmailsReady(true);
+    } catch {
+      if (generation !== emailLoadGeneration.current || key !== emailPageRef.current.key) return;
+      setEmailDataError('Email statuses could not be checked. Please retry.');
+      setFirstEmailsReady(true);
     }
-    const [events, setupEmails] = await Promise.all([
-      fetchCurrentApplicantStatusEvents(ids),
-      fetchApplicantSetupEmailStatuses(ids),
-    ]);
-    setTableEmailEvents(Object.fromEntries(events.map(event => [event.applicantId, event])));
-    setSetupEmailStatuses(Object.fromEntries(setupEmails.map(email => [email.applicant_id, email])));
-  };
+  }, []);
 
   useEffect(() => {
-    loadTableEmailEvents(pagedApplicantIds ? pagedApplicantIds.split(",") : [])
-      .catch(() => setTableEmailEvents({}));
-  }, [pagedApplicantIds]);
+    if (!hasApplicantsData) return;
+    void loadTableEmailEvents(emailPageRef.current.ids);
+  }, [pagedEmailKey, hasApplicantsData, loadTableEmailEvents]);
+  useLiveRefresh(() => { void loadTableEmailEvents(emailPageRef.current.ids); }, ['application_email_notifications'], !!data);
 
-  if (loading && !data) return <LoadingBlock label="Loading applicants…" kpis={5} rows={6} action />;
+  if ((loading && !data) || (data && !firstEmailsReady)) return <LoadingBlock label="Loading applicants…" kpis={5} rows={6} action />;
   if (error && !data) return <ErrorBlock message={error} onRetry={reload} />;
 
   const selectedApplicant =
@@ -416,6 +437,9 @@ export default function ApplicantsPage() {
 
   /** Email action cell — keeps the existing send/resend/retry rules untouched. */
   const renderEmailAction = (app: Applicant) => {
+    if (emailDataKey !== pagedEmailKey) return emailDataError ? <Button size="sm" variant="neutral" onClick={event => { event.stopPropagation(); void loadTableEmailEvents(emailPageRef.current.ids); }}>{pt('Retry email status')}</Button> : <div role="status" aria-label={pt('Loading email status')} className="h-9 w-full max-w-[240px] animate-pulse rounded-md bg-slate-100" />;
+    const sourceError = app.status === 'New' ? tableSetupErrors[app.id] : tableStatusErrors[app.id];
+    if (sourceError) return <Button size="sm" variant="neutral" title={pt(sourceError)} onClick={event => { event.stopPropagation(); void loadTableEmailEvents(emailPageRef.current.ids); }}>{pt('Retry email status')}</Button>;
     const emailEvent = tableEmailEvents[app.id];
     if (!emailEvent) {
       const setupStatus = setupEmailStatuses[app.id];
@@ -438,9 +462,13 @@ export default function ApplicantsPage() {
         </Button>
       ) : (
         <p className="max-w-[240px] text-xs font-medium leading-snug text-slate-400">
-          {pt("No email is required for the {status} status", { status: pt(app.status) })}
+          {pt("No email update recorded for {status}", { status: pt(app.status) })}
         </p>
       );
+    }
+    if (tableReferralErrors[app.id]) return <Button size="sm" variant="neutral" title={pt(tableReferralErrors[app.id])} onClick={event => { event.stopPropagation(); void loadTableEmailEvents(emailPageRef.current.ids); }}>{pt('Retry email status')}</Button>;
+    if (emailEvent.status === 'Referred' && emailEvent.applicationId) {
+      return <ReferralEmails key={emailEvent.applicationId} applicationId={emailEvent.applicationId} initialStatus={tableReferralStatuses[app.id]} compact onDone={() => loadTableEmailEvents(paged.map(applicant => applicant.id))} />;
     }
     const status = emailEvent.notification?.email_status;
     const sent = status === "Sent" || status === "Delivered";
@@ -451,6 +479,7 @@ export default function ApplicantsPage() {
         variant={sent ? "neutral" : "primary"}
         size="sm"
         className="w-full max-w-[240px] shrink-0 whitespace-nowrap !px-3"
+        style={sent ? { opacity: 1 } : undefined}
         disabled={sent || processing || emailPreviewLoading}
         onClick={(event) => {
           event.stopPropagation();
@@ -459,7 +488,7 @@ export default function ApplicantsPage() {
         title={sent ? pt("This status email has already been sent.") : undefined}
       >
         {retry ? <RotateCcw className="mr-1.5 h-4 w-4" /> : <Mail className="mr-1.5 h-4 w-4" />}
-        {sent ? pt("Email Sent") : processing ? pt("Sending...") : retry ? pt("Retry Email") : pt("Send Email")}
+        {sent ? <span className="text-success-700">{pt("Already Sent")}</span> : processing ? pt("Sending...") : retry ? pt("Retry Email") : pt("Send Email")}
       </Button>
     );
   };
@@ -512,15 +541,16 @@ export default function ApplicantsPage() {
     },
     {
       key: "email",
-      header: pt("Email Action"),
+      header: pt("Email"),
       width: "30%",
-      render: (app) => renderEmailAction(app),
+      render: (app) => <div className="flex min-h-[52px] items-center">{renderEmailAction(app)}</div>,
     },
   ];
 
   return (
     <div className="flex flex-col gap-4">
       <RefreshNotice error={error} refreshing={refreshing} retry={reload} />
+      {emailDataError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning-100 bg-warning-50 p-3 text-sm text-warning-700"><span>{pt(emailDataError)}</span><Button size="sm" variant="neutral" onClick={() => { void loadTableEmailEvents(emailPageRef.current.ids); }}>{pt('Retry email checks')}</Button></div>}
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
@@ -956,7 +986,8 @@ export default function ApplicantsPage() {
                                   </p>
                                 )}
                               </div>
-                              {item.canEmail && (
+                              {item.canEmail && item.status === 'Referred' && item.applicationId && <ReferralEmails key={item.applicationId} applicationId={item.applicationId} compact onDone={() => loadStatusEvents(selectedApplicant.id)} />}
+                              {item.canEmail && item.status !== 'Referred' && (
                                 <Button
                                   variant={sent ? "neutral" : "primary"}
                                   size="sm"
@@ -965,7 +996,7 @@ export default function ApplicantsPage() {
                                   title={sent ? pt("This status email has already been sent.") : undefined}
                                 >
                                   {retry ? <RotateCcw className="mr-2 h-4 w-4" /> : <Mail className="mr-2 h-4 w-4" />}
-                                  {sent ? pt("Email Sent") : processing ? pt("Sending...") : retry ? pt("Retry Email") : pt("Send Email")}
+                                  {sent ? <span className="text-success-700">{pt("Already Sent")}</span> : processing ? pt("Sending...") : retry ? pt("Retry Email") : pt("Send Email")}
                                 </Button>
                               )}
                               {item.status === "New" && item.remarks === "Registered via PESO walk-in" && (

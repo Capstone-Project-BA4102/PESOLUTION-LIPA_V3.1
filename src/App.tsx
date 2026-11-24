@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useEffect, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
+import toast, { Toaster, ToastBar } from 'react-hot-toast'
 import { BarChart3, Briefcase, Building2, ClipboardList, FileText, Home, Puzzle, Settings, User, Users, Workflow } from 'lucide-react'
 import { AuthProvider, useAuth, roleHome, type Role } from '@/lib/auth'
 import { appReveal } from '@/lib/appReveal'
@@ -269,6 +269,8 @@ export default function App() {
       </GlobalLoader>
       </PublicPreferencesProvider>
       <Toaster position="top-right" toastOptions={{
+        duration: 5000,
+        loading: { duration: Infinity },
         // Toasts sit over the printed documents (account receipt, referral slip), so keep them on screen only.
         className: 'ui-toast print:hidden',
         style: {
@@ -276,12 +278,24 @@ export default function App() {
           color: '#fff',
         },
         success: {
+          duration: 5000,
           iconTheme: { primary: '#10b981', secondary: '#fff' }
         },
         error: {
+          duration: 5000,
           iconTheme: { primary: '#ef4444', secondary: '#fff' }
         }
-      }} />
+      }}>
+        {(notification) => (
+          <ToastBar toast={notification}>
+            {({ icon, message }) => <>
+              {icon}{message}
+              <button type="button" aria-label="Dismiss notification" onClick={() => toast.dismiss(notification.id)}
+                className="shrink-0 rounded p-2 text-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">×</button>
+            </>}
+          </ToastBar>
+        )}
+      </Toaster>
     </AuthProvider>
   )
 }

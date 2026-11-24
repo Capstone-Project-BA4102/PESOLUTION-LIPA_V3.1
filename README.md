@@ -12,7 +12,7 @@ PESOLUTION is an employment management and applicant-job matching system for the
 - Reviewed applicant renewal with updated qualifications and before/after history, retaining the existing account and prior referrals.
 - Gemini improvement actions, practice guidance and training-topic suggestions based on verified missing requirements.
 - Employment analytics, Monthly Employment & Skills PDF reports, activities and office website-content management.
-- Optional Brevo account/status emails, role-based access and quiet Realtime/background refresh.
+- Optional Brevo account/status emails and staff-reviewed applicant/company referral emails with official PDF attachments, role-based access and quiet Realtime/background refresh.
 
 Feedback comments, star ratings and sentiment analysis are retired. Historical SQL references are retained for installation history; they are not active functionality.
 
@@ -119,7 +119,7 @@ Deliberately reproduce Objective 5 only when needed:
 npm run nlp:evaluate
 ```
 
-That command overwrites derived results from actual inference; it does not change labels or tune the threshold. Do not run it merely to organize the repository. npm run verify:live -- --url http://127.0.0.1:5000 performs read-only health/access checks against a running API. Two PostgreSQL integration checks require optional PESO_SQL_TEST_RUNTIME or are skipped. See [verification details](docs/setup-and-deployment.md).
+That command overwrites derived results from actual inference; it does not change labels or tune the threshold. Do not run it merely to organize the repository. npm run verify:live -- --url http://127.0.0.1:5000 performs read-only health/access checks against a running API. Four PostgreSQL integration checks require optional PESO_SQL_TEST_RUNTIME or are skipped. See [verification details](docs/setup-and-deployment.md).
 
 ## Research deliverables and directory map
 

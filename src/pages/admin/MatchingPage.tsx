@@ -8,6 +8,7 @@ import { Avatar, Badge, Button, DataTable, type DataTableColumn } from '@/compon
 import { CountUp } from '@/components/ui/CountUp'
 import { fetchMatchingSummary, runApplicantMatching } from '@/lib/api'
 import { useLiveRefresh } from '@/lib/useLiveRefresh'
+import { BACKGROUND_REFRESH } from '@/lib/refreshPolicy'
 import { useQuery } from '@/lib/useQuery'
 import { usePagination } from '@/lib/usePagination'
 import { matchCountLabel } from '@/lib/activityPresentation'
@@ -55,6 +56,7 @@ export default function MatchingPage() {
           const result = await runApplicantMatching(row.id)
           if ((result.matchesFound ?? 0) > 0) matched += 1
           else empty += 1
+          reload(BACKGROUND_REFRESH)
         } catch {
           failed += 1
         }
@@ -64,7 +66,7 @@ export default function MatchingPage() {
       if (failed) toast.error(failed === 1 ? pt('Matching failed for 1 applicant. Please retry.') : pt('Matching failed for {n} applicants. Please retry.', { n: failed }))
     } finally {
       setMatching(false)
-      reload()
+      reload(BACKGROUND_REFRESH)
     }
   }
 
@@ -93,7 +95,7 @@ export default function MatchingPage() {
     { status: '', label: 'Total Applicants', value: counts.all, icon: <Users />, foot: 'Applicants in the system', static: true },
     { status: 'Needs Match', label: 'Needs Match', value: counts.needsMatch, icon: <Target />, foot: 'No active job matches yet' },
     { status: 'Matched', label: 'Matched', value: counts.matched, icon: <Sparkles />, foot: 'Has at least one active job match' },
-    { status: 'Referred', label: 'Referred', value: counts.referred, icon: <Send />, foot: pt('{n} referrals confirmed', { n: data.referralsGenerated }) },
+    { status: 'Referred', label: 'Referred', value: counts.referred, icon: <Send />, foot: 'Applicants marked Referred' },
     { status: 'Hired', label: 'Hired', value: counts.hired, icon: <CheckCircle2 />, foot: 'Hired through a referral' },
   ]
 
@@ -127,14 +129,14 @@ export default function MatchingPage() {
       key: 'status',
       header: pt('Latest match status'),
       width: 220,
-      render: (applicant) => applicant.matchStatus === 'Needs Match' ? (
-        <Badge tone="warning">{pt('Needs Match')}</Badge>
-      ) : applicant.matchStatus === 'Matched' ? (
-        <Badge tone="success">{matchCountLabel(applicant.matchCount, pt)}</Badge>
-      ) : applicant.matchStatus === 'Referred' ? (
-        <Badge tone="info">{pt('Referred')}</Badge>
-      ) : (
-        <Badge tone="success">{pt('Hired')}</Badge>
+      render: (applicant) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={applicant.matchCount > 0 ? 'success' : 'warning'}>
+            {applicant.matchCount > 0 ? matchCountLabel(applicant.matchCount, pt) : pt('No current matches')}
+          </Badge>
+          {applicant.matchStatus === 'Referred' && <Badge tone="info">{pt('Referred')}</Badge>}
+          {applicant.matchStatus === 'Hired' && <Badge tone="success">{pt('Hired')}</Badge>}
+        </div>
       ),
     },
   ]
@@ -147,6 +149,7 @@ export default function MatchingPage() {
         <h1 className="text-[24px] font-bold tracking-[-0.015em] text-slate-900">{pt('Matching & Referrals')}</h1>
         <p className="mt-0.5 max-w-2xl text-[14px] leading-relaxed text-slate-500">
           {pt('Find job matches for applicants and generate referral slips.')}
+          <span className="block">{pt('Match counts show saved results for currently available jobs. Referral and hiring status are shown separately.')}</span>
         </p>
       </div>
 

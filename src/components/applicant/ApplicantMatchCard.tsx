@@ -8,10 +8,11 @@ import { JobLogo } from '@/components/shared/JobLogo'
 import { Button } from '@/components/ui/Button'
 
 /** Real applicant match card, sharing the job-card anatomy of the public and admin listings. */
-export function ApplicantMatchCard({ match, job, best = false, actions, onView }: {
+export function ApplicantMatchCard({ match, job, best = false, actions, status, onView }: {
   match: ApplicantJobMatch
   job?: Job
   best?: boolean
+  status?: ReactNode
   actions?: ReactNode
   onView: () => void
 }) {
@@ -50,6 +51,8 @@ export function ApplicantMatchCard({ match, job, best = false, actions, onView }
         {best && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 ring-1 ring-brand-100">{pt('Best match')}</span>}
       </div>
     </header>
+
+    {status && <div role="status">{status}</div>}
 
     {(location || engagement || salary) && <ul className="space-y-1.5 text-[13px] text-slate-600">
       {location && <li className="flex items-start gap-2">

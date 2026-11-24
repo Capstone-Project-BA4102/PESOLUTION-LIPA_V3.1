@@ -296,7 +296,12 @@ function mapApplicant(r: any): Applicant {
   const history = Array.isArray(r.status_history)
     ? r.status_history.slice().sort((a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime())
     : []
-  const latestHistory = history[history.length - 1]
+  const confirmedRenewals = r.applicant_renewals || []
+  // Renewal snapshots are staff-only under RLS. Do not infer 'no renewal' from an applicant's restricted view.
+  const verifiedRenewalContext = r.renewal_versions_verified === true
+  const effectiveHistory = verifiedRenewalContext ? history.filter(row => row.status !== 'Renewal' || confirmedRenewals.length > 0) : history
+  const latestHistory = effectiveHistory[effectiveHistory.length - 1]
+  const needsRenewal = verifiedRenewalContext && requiresApplicantRenewal(applications, history, confirmedRenewals)
 
   const year = getYear(r.date_registered)
   const numStr = String(r.applicant_number || 0).padStart(4, '0')
@@ -335,7 +340,7 @@ function mapApplicant(r: any): Applicant {
     experience: (r.applicant_experience || []).map((e: any) => ({
       id: e.id, company: e.company || '', position: e.position || '', years: e.years || ''
     })),
-    status: (latestHistory?.status || latestApp?.status || 'Active') as ApplicantStatus,
+    status: (needsRenewal ? 'Hired' : latestHistory?.status || (latestApp?.status === 'Renewal' && verifiedRenewalContext && !confirmedRenewals.length ? 'New' : latestApp?.status) || 'Active') as ApplicantStatus,
     accountStatus: (r.account_status || 'Active') as Applicant['accountStatus'],
     dateRegistered: r.date_registered || '',
     dateAdded: fmtDate(r.date_registered),
@@ -390,12 +395,13 @@ async function attachSignedResumeUrls(applicants: Applicant[]): Promise<Applican
 }
 
 export async function fetchApplicants(): Promise<Applicant[]> {
-  const base = '*, applicant_experience(*), resumes(hard_skills, soft_skills, uploaded_at, file_path), applications(status, created_at)'
+  const base = '*, applicant_experience(*), resumes(hard_skills, soft_skills, uploaded_at, file_path), applications(id, status, created_at)'
   let { data, error } = await supabase
     .from('applicants')
-    .select(`${base}, status_history(status, changed_at)`)
+    .select(`${base}, status_history(application_id, status, changed_at), applicant_renewals(created_at)`)
     .order('date_registered', { ascending: false })
 
+  const verifiedRenewalContext = !error
   if (error) {
     // status_history.applicant_id not yet migrated — load without it
     ;({ data, error } = await supabase
@@ -406,7 +412,7 @@ export async function fetchApplicants(): Promise<Applicant[]> {
   if (error) throw error
   const avatarMap = await fetchAvatarUrls()
   return attachSignedResumeUrls((data || []).map((r: any) => {
-    const a = mapApplicant(r)
+    const a = mapApplicant({ ...r, renewal_versions_verified: verifiedRenewalContext })
     if (a.profileId && avatarMap[a.profileId.toLowerCase()]) {
       a.avatarUrl = avatarMap[a.profileId.toLowerCase()]
     }
@@ -831,27 +837,34 @@ export async function fetchSummaryReport(period: ReportPeriod, offset = 0): Prom
   }
 }
 
+/** Match visibility mirrors the production matcher: active, unfilled, within its posting period. */
+function currentMatchJob(job: any): boolean {
+  return job?.status === 'Active' && (job.vacancies == null || Number(job.vacancies) > 0) &&
+    (!job.date_posted || Date.now() - Date.parse(job.date_posted) < 30 * 86_400_000)
+}
+
 export async function fetchMatchingSummary(): Promise<any> {
-  const { count: referrals } = await supabase
+  const { count: referrals, error: referralError } = await supabase
     .from('referrals')
     .select('id, applications!inner(status)', { count: 'exact', head: true })
     .eq('applications.status', 'Referred')
   
   const { data, error } = await supabase
     .from('applicants')
-    .select('id, full_name, education, course, date_registered, applicant_number, profile_id, account_status, status_history(application_id,status,changed_at)')
+    .select('id, full_name, education, course, date_registered, applicant_number, profile_id, account_status, applicant_renewals(created_at), status_history(application_id,status,changed_at)')
     .order('date_registered', { ascending: false })
     
   if (error) throw error
+  if (referralError) throw referralError
 
   // Per-applicant match count + latest application status for the status badge
   const [matchResult, applicationResult] = await Promise.all([
-    supabase.from('job_matches').select('applicant_id, job_listings!inner(status)').eq('job_listings.status', 'Active'),
+    supabase.from('job_matches').select('applicant_id, job_id, job_listings!inner(status,vacancies,date_posted)').eq('job_listings.status', 'Active'),
     supabase.from('applications').select('id, applicant_id, status, created_at'),
   ])
   if (matchResult.error) throw matchResult.error
   if (applicationResult.error) throw applicationResult.error
-  const matchRows = matchResult.data || []
+  const matchRows = (matchResult.data || []).filter((row: any) => currentMatchJob(row.job_listings))
   const appRows = applicationResult.data || []
   const matchCounts: Record<string, number> = {}
   for (const m of matchRows) {
@@ -864,7 +877,8 @@ export async function fetchMatchingSummary(): Promise<any> {
     const k = String(a.applicant_id)
     const history = historyByApplicant.get(k) as any[] || []
     const timestamps = (rows: any[], field: string) => rows.map(row => Date.parse(row[field])).filter(Number.isFinite)
-    const renewedAt = Math.max(-Infinity, ...timestamps(history.filter(row => row.status === 'Renewal'), 'changed_at'))
+    const renewalRows = (data || []).find((row: any) => String(row.id) === k)?.applicant_renewals || []
+    const renewedAt = Math.max(-Infinity, ...timestamps(renewalRows, 'created_at'))
     const statusAt = Math.max(Date.parse(a.created_at) || 0, ...timestamps(history.filter(row => row.application_id === a.id && row.status === a.status), 'changed_at'))
     if (statusAt < renewedAt) continue
     if (a.status === 'Hired') appStatus[k] = 'Hired'
@@ -938,17 +952,25 @@ export async function refreshOwnApplicantMatching(applicantId: string): Promise<
   }
 }
 
+function relatedRows(value: any): any[] { return Array.isArray(value) ? value : value ? [value] : [] }
+function requiresApplicantRenewal(applications: any[], history: any[], renewals: any[]): boolean {
+  const renewedAt = Math.max(-Infinity, ...renewals.map(row => Date.parse(row.created_at)).filter(Number.isFinite))
+  return applications.some(app => app.status === 'Hired' && Math.max(Date.parse(app.created_at) || 0,
+    ...history.filter(row => row.application_id === app.id && row.status === 'Hired').map(row => Date.parse(row.changed_at)).filter(Number.isFinite)) >= renewedAt)
+}
+
 export async function fetchApplicantMatchDetails(applicantId: string): Promise<any> {  const { data, error } = await supabase
     .from('applicants')
     .select(`
       id, full_name, education, course, date_registered, applicant_number, profile_id,
       resumes(hard_skills, soft_skills, uploaded_at),
-      applications(job_id, status, referrals(id, referral_number)),
+      applicant_renewals(created_at), status_history(application_id,status,changed_at),
+      applications(id, job_id, status, created_at, referrals(id, referral_number), job_listings(title, status, companies(name))),
       job_matches(
         final_match_score, hard_skill_score, soft_skill_score, education_score,
         matched_hard_skills, missing_hard_skills, matched_soft_skills, missing_soft_skills,
         job_id,
-        job_listings(title, status, location, employment_type, companies(name))
+        job_listings(title, status, vacancies, date_posted, location, employment_type, companies(name))
       )
     `)
     .eq('id', applicantId)
@@ -965,15 +987,15 @@ export async function fetchApplicantMatchDetails(applicantId: string): Promise<a
   const avatarMap = await fetchAvatarUrls()
 
   // jobId -> existing referral (one unique REF per applicant+job)
-  const referralByJob: Record<string, { id: string; referral_number: string; referred: boolean }> = {}
+  const referralByJob: Record<string, { id: string; referral_number: string; referred: boolean; status: string }> = {}
   for (const app of data.applications || []) {
-    const ref = (app.referrals || [])[0]
-    if (ref && app.job_id && !referralByJob[app.job_id]) {
-      referralByJob[app.job_id] = { id: ref.id, referral_number: ref.referral_number, referred: app.status === 'Referred' }
+    const ref = relatedRows(app.referrals)[0]
+    if (app.job_id && (!referralByJob[app.job_id] || app.status === 'Referred')) {
+      referralByJob[app.job_id] = { id: ref?.id || '', referral_number: ref?.referral_number || '', referred: app.status === 'Referred', status: app.status }
     }
   }
 
-  const appMatches = (data.job_matches || []).filter((m: any) => m.job_listings?.status === 'Active').map((m: any) => {
+  const appMatches = (data.job_matches || []).filter((m: any) => currentMatchJob(m.job_listings)).map((m: any) => {
     const job = m.job_listings
     const ref = referralByJob[m.job_id]
     return {
@@ -981,6 +1003,7 @@ export async function fetchApplicantMatchDetails(applicantId: string): Promise<a
       referralId: ref?.id || '',
       referralNumber: ref?.referral_number || '',
       referred: ref?.referred || false,
+      applicationStatus: ref?.status || '',
       title: job?.title || 'Unknown Job',
       company: job?.companies?.name || 'Unknown Company',
       score: Math.round(m.final_match_score || 0),
@@ -1009,10 +1032,20 @@ export async function fetchApplicantMatchDetails(applicantId: string): Promise<a
       course: data.course || '',
       avatarUrl: (data.profile_id && avatarMap[String(data.profile_id).toLowerCase()]) || '',
       matchesCount: appMatches.length,
+      requiresRenewal: requiresApplicantRenewal(data.applications || [], data.status_history || [], data.applicant_renewals || []),
       skills,
       hardSkills: latestResume.hard_skills || [],
       softSkills: latestResume.soft_skills || [],
     },
+    activeReferrals: (data.applications || []).filter((app: any) => app.status === 'Referred').map((app: any) => ({
+      jobId: app.job_id, referralId: relatedRows(app.referrals)[0]?.id || '', referralNumber: relatedRows(app.referrals)[0]?.referral_number || '',
+      title: app.job_listings?.title || 'Job referral', company: app.job_listings?.companies?.name || '',
+    })),
+    referralHistory: (data.applications || []).filter((app: any) => relatedRows(app.referrals).length || ['Referred','Hired'].includes(app.status)).map((app: any) => ({
+      applicationId: app.id, jobId: app.job_id, status: app.status, jobStatus: app.job_listings?.status || '',
+      referralId: relatedRows(app.referrals)[0]?.id || '', referralNumber: relatedRows(app.referrals)[0]?.referral_number || '',
+      title: app.job_listings?.title || 'Job referral', company: app.job_listings?.companies?.name || '',
+    })),
     matches: appMatches
   }
 }
@@ -1022,7 +1055,7 @@ export async function fetchApplicantDashboard(email: string): Promise<any> {
     .from('applicants')
     .select(`
       id, profile_id, date_registered,
-      applications(status, created_at),
+      applications(id, status, created_at),
       job_matches(id, created_at),
       resumes(id, uploaded_at),
       status_history(status, remarks, changed_at)
@@ -1086,7 +1119,7 @@ export async function fetchProfileAvatarUrl(profileId: string): Promise<string> 
 export async function fetchApplicantProfile(email: string): Promise<Applicant | null> {
   const { data, error } = await supabase
     .from('applicants')
-    .select('*, applicant_experience(*), resumes(hard_skills, soft_skills, uploaded_at, file_path), applications(status, created_at), status_history(status, changed_at)')
+    .select('*, applicant_experience(*), resumes(hard_skills, soft_skills, uploaded_at, file_path), applications(id, status, created_at), status_history(application_id, status, changed_at), applicant_renewals(created_at)')
     .eq('email_address', email)
     .maybeSingle()
 
@@ -1251,6 +1284,17 @@ export async function setApplicantStatus(id: string, status: 'Active' | 'Inactiv
 
 // Slip preview for a match that has no referral yet — nothing is written to
 // the DB until the admin clicks Confirm Referral.
+export async function fetchApplicantReferralEligibility(applicantId: string): Promise<any> {
+  const [apps, applicant] = await Promise.all([
+    supabase.from('applications').select('id,job_id,status,created_at,referrals(id,referral_number)').eq('applicant_id', applicantId),
+    supabase.from('applicants').select('applicant_renewals(created_at),status_history(application_id,status,changed_at)').eq('id', applicantId).single(),
+  ])
+  if (apps.error) throw apps.error
+  if (applicant.error) throw applicant.error
+  return { activeReferrals: (apps.data || []).filter(row => row.status === 'Referred').map(row => ({ ...row, referrals: relatedRows(row.referrals) })),
+    requiresRenewal: requiresApplicantRenewal(apps.data || [], applicant.data?.status_history || [], applicant.data?.applicant_renewals || []) }
+}
+
 export async function fetchReferralPreview(applicantId: string, jobId: string): Promise<any> {
   const [{ data: applicant, error: e1 }, { data: job, error: e2 }, office] = await Promise.all([
     supabase.from('applicants').select('id, full_name, gender, contact_number, email_address').eq('id', applicantId).single(),
@@ -1615,7 +1659,7 @@ export async function fetchApplicantMatchedJobs(email: string): Promise<Applican
   const [{ data: matches, error: matchError }, { data: apps, error: applicationError }] = await Promise.all([
     supabase
       .from('job_matches')
-      .select('id, job_id, created_at, final_match_score, hard_skill_score, soft_skill_score, education_score, matched_hard_skills, missing_hard_skills, matched_soft_skills, missing_soft_skills, job_listings ( id, title, status, location, employment_type, companies ( name, location ) )')
+      .select('id, job_id, created_at, final_match_score, hard_skill_score, soft_skill_score, education_score, matched_hard_skills, missing_hard_skills, matched_soft_skills, missing_soft_skills, job_listings ( id, title, status, vacancies, date_posted, location, employment_type, companies ( name, location ) )')
       .eq('applicant_id', applicant.id)
       .order('created_at', { ascending: false }),
     supabase
@@ -1632,7 +1676,7 @@ export async function fetchApplicantMatchedJobs(email: string): Promise<Applican
   }
 
   const matchedJobs = (matches || [])
-    .filter((m: any) => m.job_listings?.status === 'Active')
+    .filter((m: any) => currentMatchJob(m.job_listings))
     .map((m: any) => {
       const app = appByJob[m.job_id]
       return {
